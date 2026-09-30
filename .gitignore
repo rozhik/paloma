@@ -1,0 +1,7 @@
+node_modules/
+dist/
+build/
+.paloma_data/
+.paloma/
+*.log
+.DS_Store

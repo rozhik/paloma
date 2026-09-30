@@ -1,0 +1,158 @@
+@import 'bootstrap/dist/css/bootstrap.min.css';
+@import 'bootstrap-icons/font/bootstrap-icons.css';
+
+:root {
+  --paloma-primary: #0d6efd;
+  --paloma-secondary: #495057;
+  --paloma-bg: #f8f9fa;
+  --paloma-card-bg: #ffffff;
+  --paloma-border: #dee2e6;
+  --paloma-tray-bg: #1e293b;
+  --paloma-accent: #f59e0b;
+  --paloma-text-size: 1.1rem;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: var(--paloma-text-size);
+  background-color: var(--paloma-bg);
+  color: #212529;
+  user-select: none;
+  overflow: hidden;
+}
+
+/* Senior-Friendly Button overrides */
+.btn-lg-custom {
+  font-size: 1.15rem;
+  padding: 0.6rem 1.2rem;
+  font-weight: 600;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Top Header Bar */
+.paloma-navbar {
+  background-color: #0f172a;
+  color: #ffffff;
+  padding: 0.75rem 1.5rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.paloma-logo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #38bdf8;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Photo Grid */
+.photo-card {
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: white;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  position: relative;
+  cursor: pointer;
+}
+
+.photo-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+  border-color: #0284c7;
+}
+
+.photo-card.selected {
+  border: 3px solid #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.3);
+}
+
+.photo-card .star-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #e2e8f0;
+  border: none;
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.photo-card .star-btn.starred {
+  color: #f59e0b;
+}
+
+/* Photo Tray (Bottom Selection Bar) */
+.photo-tray {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 80px;
+  background-color: var(--paloma-tray-bg);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+  z-index: 1000;
+  border-top: 3px solid #334155;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.photo-tray-thumbnails {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  overflow-x: auto;
+  max-width: 50%;
+  padding: 4px 0;
+}
+
+.photo-tray-thumb {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 2px solid #38bdf8;
+}
+
+/* Editor View */
+.editor-canvas-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #090d16;
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}

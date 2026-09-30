@@ -1,0 +1,76 @@
+import React from 'react';
+import { usePalomaStore, AppView } from '../store/usePalomaStore.js';
+import { Search, Image, Users, MapPin, LayoutGrid, PlusCircle } from 'lucide-react';
+
+interface NavbarProps {
+  onOpenImport: () => void;
+}
+
+export const Navbar: React.FC<NavbarProps> = ({ onOpenImport }) => {
+  const { currentView, setCurrentView, searchQuery, setSearchQuery } = usePalomaStore();
+
+  return (
+    <nav className="paloma-navbar d-flex align-items-center justify-content-between">
+      <div className="d-flex align-items-center gap-3">
+        <div className="paloma-logo cursor-pointer" onClick={() => setCurrentView('library')}>
+          🕊️ <span>Paloma</span>
+          <span className="badge bg-primary text-wrap fs-6 ms-2">Senior Edition</span>
+        </div>
+      </div>
+
+      <div className="d-flex align-items-center gap-2 flex-grow-1 mx-4" style={{ maxWidth: '480px' }}>
+        <div className="input-group">
+          <span className="input-group-text bg-white text-dark border-end-0">
+            <Search size={20} />
+          </span>
+          <input
+            type="text"
+            className="form-control form-control-lg border-start-0 fs-5"
+            placeholder="Пошук світлин за назвою, тегами або датою..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="d-flex align-items-center gap-2">
+        <button
+          className={`btn btn-lg-custom ${currentView === 'library' ? 'btn-primary' : 'btn-outline-light'}`}
+          onClick={() => setCurrentView('library')}
+        >
+          <Image size={22} />
+          <span>Бібліотека</span>
+        </button>
+
+        <button
+          className={`btn btn-lg-custom ${currentView === 'people' ? 'btn-primary' : 'btn-outline-light'}`}
+          onClick={() => setCurrentView('people')}
+        >
+          <Users size={22} />
+          <span>Люди</span>
+        </button>
+
+        <button
+          className={`btn btn-lg-custom ${currentView === 'map' ? 'btn-primary' : 'btn-outline-light'}`}
+          onClick={() => setCurrentView('map')}
+        >
+          <MapPin size={22} />
+          <span>Карта</span>
+        </button>
+
+        <button
+          className={`btn btn-lg-custom ${currentView === 'collage' ? 'btn-primary' : 'btn-outline-light'}`}
+          onClick={() => setCurrentView('collage')}
+        >
+          <LayoutGrid size={22} />
+          <span>Колаж</span>
+        </button>
+
+        <button className="btn btn-lg-custom btn-success ms-2" onClick={onOpenImport}>
+          <PlusCircle size={22} />
+          <span>Додати папку</span>
+        </button>
+      </div>
+    </nav>
+  );
+};
