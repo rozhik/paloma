@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import type { Photo } from '../../../shared/types.js';
+import { useTranslation } from 'react-i18next';
 import { ArrowLeft } from 'lucide-react';
 import { usePalomaStore } from '../store/usePalomaStore.js';
 
@@ -19,6 +20,7 @@ const customIcon = new L.Icon({
 
 export const PlacesMap: React.FC = () => {
   const { setCurrentView } = usePalomaStore();
+  const { t } = useTranslation();
   const [geoPhotos, setGeoPhotos] = useState<Photo[]>([]);
 
   useEffect(() => {
@@ -40,12 +42,12 @@ export const PlacesMap: React.FC = () => {
       <div className="d-flex align-items-center justify-content-between p-3 bg-secondary">
         <div className="d-flex align-items-center gap-3">
           <button className="btn btn-outline-light btn-lg-custom" onClick={() => setCurrentView('library')}>
-            <ArrowLeft size={20} />
-            <span>Назад</span>
+            <ArrowLeft size={20} className="flip-rtl" />
+            <span>{t('common.back')}</span>
           </button>
-          <h4 className="fw-bold mb-0">📍 Карта геолокацій світлин Paloma</h4>
+          <h4 className="fw-bold mb-0">{t('map.title')}</h4>
         </div>
-        <span className="badge bg-primary fs-5">Знайдено {geoPhotos.length} геоміток</span>
+        <span className="badge bg-primary fs-5">{t('map.found', { count: geoPhotos.length })}</span>
       </div>
 
       <div className="flex-grow-1" style={{ height: 'calc(100vh - 80px)' }}>

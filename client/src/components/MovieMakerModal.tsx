@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Modal, Button } from 'react-bootstrap';
 import { usePalomaStore } from '../store/usePalomaStore.js';
+import { Trans, useTranslation } from 'react-i18next';
 import { Film, CheckCircle2 } from 'lucide-react';
 
 interface MovieMakerModalProps {
@@ -10,6 +11,7 @@ interface MovieMakerModalProps {
 
 export const MovieMakerModal: React.FC<MovieMakerModalProps> = ({ show, onHide }) => {
   const { selectedPhotos } = usePalomaStore();
+  const { t } = useTranslation();
   const [durationPerSlide, setDurationPerSlide] = useState(3);
   const [loading, setLoading] = useState(false);
   const [moviePath, setMoviePath] = useState<string | null>(null);
@@ -44,23 +46,23 @@ export const MovieMakerModal: React.FC<MovieMakerModalProps> = ({ show, onHide }
       <Modal.Header closeButton className="bg-warning text-dark">
         <Modal.Title className="fs-3 fw-bold d-flex align-items-center gap-2">
           <Film size={28} />
-          <span>Генератор MP4 Слайд-шоу відео</span>
+          <span>{t('movie.title')}</span>
         </Modal.Title>
       </Modal.Header>
       <Modal.Body className="p-4">
         {moviePath ? (
           <div className="text-center py-4">
             <CheckCircle2 size={64} className="text-success mb-3" />
-            <h3 className="fw-bold">Слайд-шоу створено!</h3>
-            <p className="fs-5 text-muted">Шлях до відеофайлу: <code>{moviePath}</code></p>
+            <h3 className="fw-bold">{t('movie.done')}</h3>
+            <p className="fs-5 text-muted">{t('movie.path')} <code>{moviePath}</code></p>
             <Button variant="primary" size="lg" className="mt-3" onClick={onHide}>
-              Закрити
+              {t('common.close')}
             </Button>
           </div>
         ) : (
           <div>
             <div className="mb-4">
-              <label className="form-label fs-5 fw-semibold">Тривалість одного слайду ({durationPerSlide} сек):</label>
+              <label className="form-label fs-5 fw-semibold">{t('movie.duration', { value: durationPerSlide })}</label>
               <input
                 type="range"
                 className="form-range"
@@ -72,15 +74,15 @@ export const MovieMakerModal: React.FC<MovieMakerModalProps> = ({ show, onHide }
             </div>
 
             <div className="alert alert-warning fs-5">
-              Відео буде згенеровано з <strong>{selectedPhotos.length}</strong> обраних світлин у форматі MP4 1080p.
+              <Trans i18nKey="movie.summary" count={selectedPhotos.length} components={{ b: <strong /> }} />
             </div>
 
             <div className="d-flex justify-content-end gap-2">
               <Button variant="outline-secondary" size="lg" onClick={onHide} disabled={loading}>
-                Скасувати
+                {t('common.cancel')}
               </Button>
               <Button variant="warning" size="lg" className="text-dark fw-bold" onClick={handleGenerateMovie} disabled={loading}>
-                {loading ? 'Генерація MP4...' : 'Створити відео'}
+                {loading ? t('movie.generating') : t('movie.create')}
               </Button>
             </div>
           </div>

@@ -1,0 +1,181 @@
+{
+  "_meta": { "reviewed": false },
+  "app": {
+    "title": "Paloma — современный фотоменеджер (преемник Google Picasa)"
+  },
+  "common": {
+    "cancel": "Отмена",
+    "save": "Сохранить",
+    "close": "Закрыть",
+    "back": "Назад",
+    "untitled": "Без названия",
+    "photos_one": "{{count, number}} фотография",
+    "photos_few": "{{count, number}} фотографии",
+    "photos_many": "{{count, number}} фотографий",
+    "photos_other": "{{count, number}} фотографии"
+  },
+  "language": {
+    "label": "Язык"
+  },
+  "nav": {
+    "edition": "Senior Edition",
+    "searchPlaceholder": "Поиск фотографий по названию, тегам или дате...",
+    "library": "Библиотека",
+    "people": "Люди",
+    "map": "Карта",
+    "collage": "Коллаж"
+  },
+  "sidebar": {
+    "collections": "Коллекции",
+    "allPhotos": "Все фотографии",
+    "starred": "⭐ Избранное",
+    "recentImport": "📥 Последний импорт",
+    "albums": "Альбомы",
+    "noAlbums": "Альбомов пока нет. Выберите фотографии и нажмите «В альбом».",
+    "folders": "Отслеживаемые папки",
+    "noFolders": "Нет папок. Укажите папки с фотографиями в PALOMA_PHOTOS_DIRS в файле .env и перезапустите сервер."
+  },
+  "grid": {
+    "emptyTitle": "Фотографии не найдены",
+    "emptyHint": "Проверьте папки в PALOMA_PHOTOS_DIRS в файле .env или измените параметры поиска."
+  },
+  "photo": {
+    "star": "Добавить в избранное",
+    "unstar": "Убрать из избранного",
+    "edited": "Отредактировано",
+    "geotagged": "Есть геометка"
+  },
+  "tray": {
+    "selected": "🖼️ Выбрано:",
+    "removeFromTray": "Убрать из буфера",
+    "addToAlbum": "В альбом",
+    "removeFromAlbum": "Убрать из альбома",
+    "makeCover": "Сделать обложкой",
+    "clear": "Очистить",
+    "export": "Экспорт",
+    "print": "Печать",
+    "collage": "Коллаж",
+    "movie": "Видео"
+  },
+  "album": {
+    "properties": "Свойства",
+    "delete": "Удалить",
+    "deleteTitle": "Удалить альбом?",
+    "deleteBody": "Альбом «{{name}}» будет удалён. Фотографии останутся в своих папках.",
+    "deleteConfirm": "Удалить альбом"
+  },
+  "albumPicker": {
+    "title_one": "Добавить {{count, number}} фотографию в альбом",
+    "title_few": "Добавить {{count, number}} фотографии в альбом",
+    "title_many": "Добавить {{count, number}} фотографий в альбом",
+    "title_other": "Добавить {{count, number}} фотографии в альбом",
+    "newAlbum": "Новый альбом",
+    "newAlbumName": "Название нового альбома",
+    "create": "Создать альбом",
+    "add": "Добавить"
+  },
+  "albumProperties": {
+    "title": "Свойства альбома",
+    "name": "Название",
+    "description": "Описание",
+    "location": "Место",
+    "optional": "(необязательно)"
+  },
+  "editor": {
+    "back": "Назад в библиотеку",
+    "holdForOriginal": "Удерживайте, чтобы увидеть оригинал",
+    "title": "✏️ Редактор фото",
+    "fillLight": "Осветление: {{value, number}}",
+    "contrast": "Контраст: {{value, number}}",
+    "straighten": "Выравнивание горизонта: {{value, number}}°",
+    "effects": "Эффекты и стили:",
+    "bw": "Чёрно-белое",
+    "sepia": "Сепия",
+    "saving": "Сохранение...",
+    "save": "Сохранить изменения"
+  },
+  "collage": {
+    "title": "🎨 Конструктор коллажей Paloma",
+    "pile": "Стопка фотографий",
+    "grid": "Коллаж-сетка",
+    "download": "Скачать PNG"
+  },
+  "export": {
+    "title": "Пакетный экспорт фотографий",
+    "done_one": "Экспортирована {{count, number}} фотография!",
+    "done_few": "Экспортировано {{count, number}} фотографии!",
+    "done_many": "Экспортировано {{count, number}} фотографий!",
+    "done_other": "Экспортировано {{count, number}} фотографии!",
+    "savedTo": "Файлы сохранены в папке:",
+    "destination": "Папка назначения:",
+    "quality": "Качество JPEG ({{value, number}} %):",
+    "maxWidth": "Максимальная ширина (px):",
+    "originalSize": "Исходный размер",
+    "summary_one": "Будет экспортирована <b>{{count, number}}</b> выбранная фотография с применёнными правками.",
+    "summary_few": "Будет экспортировано <b>{{count, number}}</b> выбранные фотографии с применёнными правками.",
+    "summary_many": "Будет экспортировано <b>{{count, number}}</b> выбранных фотографий с применёнными правками.",
+    "summary_other": "Будет экспортировано <b>{{count, number}}</b> выбранной фотографии с применёнными правками.",
+    "exporting": "Экспорт...",
+    "start": "Начать экспорт"
+  },
+  "print": {
+    "title": "Печать фотографий",
+    "layout": "Макет страницы:",
+    "single": "📄 1 фото на страницу (A4)",
+    "grid2x2": "🖼️ Сетка 2×2 (4 фото на A4)",
+    "photo10x15": "📸 Фотобумага (10×15 см)",
+    "printNow": "🖨️ Печатать сейчас",
+    "preview_one": "Предварительный просмотр ({{count, number}} фото)",
+    "preview_few": "Предварительный просмотр ({{count, number}} фото)",
+    "preview_many": "Предварительный просмотр ({{count, number}} фото)",
+    "preview_other": "Предварительный просмотр ({{count, number}} фото)"
+  },
+  "movie": {
+    "title": "Создание MP4-слайд-шоу",
+    "done": "Слайд-шоу создано!",
+    "path": "Видеофайл:",
+    "duration": "Длительность одного слайда ({{value, number}} с):",
+    "summary_one": "Видео будет создано из <b>{{count, number}}</b> выбранной фотографии в формате MP4 1080p.",
+    "summary_few": "Видео будет создано из <b>{{count, number}}</b> выбранных фотографий в формате MP4 1080p.",
+    "summary_many": "Видео будет создано из <b>{{count, number}}</b> выбранных фотографий в формате MP4 1080p.",
+    "summary_other": "Видео будет создано из <b>{{count, number}}</b> выбранной фотографии в формате MP4 1080p.",
+    "generating": "Создание MP4...",
+    "create": "Создать видео"
+  },
+  "map": {
+    "title": "📍 Карта фотографий Paloma",
+    "found_one": "Найдена {{count, number}} геометка",
+    "found_few": "Найдено {{count, number}} геометки",
+    "found_many": "Найдено {{count, number}} геометок",
+    "found_other": "Найдено {{count, number}} геометки"
+  },
+  "people": {
+    "title": "👤 Распознавание лиц и люди",
+    "add": "Добавить человека",
+    "namePlaceholder": "Имя (например: Бабушка Елена)",
+    "create": "Создать профиль",
+    "catalog": "Люди ({{count, number}})",
+    "empty": "Людей пока нет. Введите имя слева или запустите сканер лиц."
+  },
+  "errors": {
+    "network": "Не удаётся связаться с сервером Paloma. Проверьте, что он запущен.",
+    "request_failed": "Запрос не выполнен ({{status}}).",
+    "not_changed": "Не изменено: {{folders}}",
+    "invalid_body": "Некорректный запрос.",
+    "invalid_field": "Некорректное значение поля «{{field}}».",
+    "album_name_required": "Введите название альбома.",
+    "photo_ids_required": "Выберите хотя бы одну фотографию.",
+    "no_album_fields": "В альбоме нечего изменить.",
+    "no_photo_fields": "В фотографии нечего изменить.",
+    "photo_not_found": "Фотография не найдена. Возможно, её убрали из библиотеки.",
+    "album_not_found": "Альбом не найден. Возможно, его удалили.",
+    "file_not_found": "Файл не найден.",
+    "cover_not_in_album": "Обложкой может быть только фотография из этого альбома.",
+    "sidecar_unreadable": "Не удаётся прочитать {{files}}. Исправьте или удалите файл, чтобы вносить там изменения.",
+    "sidecar_write_failed": "Не удалось сохранить изменения в .paloma.json в {{folders}}.",
+    "album_empty": "В альбоме нет фотографий из библиотеки.",
+    "export_params_required": "Выберите фотографии и папку назначения.",
+    "person_name_required": "Введите имя.",
+    "internal": "Ошибка сервера: {{message}}"
+  }
+}

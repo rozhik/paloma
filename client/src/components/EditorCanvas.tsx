@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { Photo, EditDAG } from '../../../shared/types.js';
 import { usePalomaStore } from '../store/usePalomaStore.js';
+import { useTranslation } from 'react-i18next';
 import { Save, ArrowLeft, Sun, Contrast, Thermometer, Crop, RotateCw, Image as ImageIcon } from 'lucide-react';
 
 interface EditorCanvasProps {
@@ -10,6 +11,7 @@ interface EditorCanvasProps {
 
 export const EditorCanvas: React.FC<EditorCanvasProps> = ({ photo, onSaveSuccess }) => {
   const { setCurrentView, setActiveEditPhoto } = usePalomaStore();
+  const { t } = useTranslation();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const [tuning, setTuning] = useState({
@@ -141,8 +143,8 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({ photo, onSaveSuccess
             className="btn btn-outline-light btn-lg-custom"
             onClick={() => setActiveEditPhoto(null)}
           >
-            <ArrowLeft size={20} />
-            <span>Назад до бібліотеки</span>
+            <ArrowLeft size={20} className="flip-rtl" />
+            <span>{t('editor.back')}</span>
           </button>
         </div>
 
@@ -154,7 +156,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({ photo, onSaveSuccess
             onMouseLeave={() => setShowOriginal(false)}
           >
             <ImageIcon size={20} />
-            <span>Утримуйте для оригіналу</span>
+            <span>{t('editor.holdForOriginal')}</span>
           </button>
         </div>
 
@@ -165,13 +167,13 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({ photo, onSaveSuccess
 
       {/* Right Control Toolbar */}
       <div className="bg-secondary text-white p-4 border-start border-secondary" style={{ width: '360px', overflowY: 'auto' }}>
-        <h4 className="fw-bold mb-4 border-bottom pb-2">✏️ Редактор фото</h4>
+        <h4 className="fw-bold mb-4 border-bottom pb-2">{t('editor.title')}</h4>
 
         {/* Tuning Controls */}
         <div className="mb-4">
           <label className="form-label fs-5 fw-semibold d-flex align-items-center gap-2">
             <Sun size={20} className="text-warning" />
-            <span>Світосила (Fill Light): {tuning.fillLight}</span>
+            <span>{t('editor.fillLight', { value: tuning.fillLight })}</span>
           </label>
           <input
             type="range"
@@ -186,7 +188,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({ photo, onSaveSuccess
         <div className="mb-4">
           <label className="form-label fs-5 fw-semibold d-flex align-items-center gap-2">
             <Contrast size={20} className="text-info" />
-            <span>Контраст: {tuning.contrast}</span>
+            <span>{t('editor.contrast', { value: tuning.contrast })}</span>
           </label>
           <input
             type="range"
@@ -201,7 +203,7 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({ photo, onSaveSuccess
         <div className="mb-4">
           <label className="form-label fs-5 fw-semibold d-flex align-items-center gap-2">
             <RotateCw size={20} className="text-success" />
-            <span>Вирівнювання горизонту: {tuning.straighten}°</span>
+            <span>{t('editor.straighten', { value: tuning.straighten })}</span>
           </label>
           <input
             type="range"
@@ -215,19 +217,19 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({ photo, onSaveSuccess
 
         {/* Color Presets */}
         <div className="mb-4 border-top pt-3">
-          <h6 className="fw-bold mb-3 fs-5">Ефекти та стилі:</h6>
+          <h6 className="fw-bold mb-3 fs-5">{t('editor.effects')}</h6>
           <div className="d-flex gap-2 mb-2">
             <button
               className={`btn btn-lg flex-grow-1 ${tuning.bw ? 'btn-primary' : 'btn-outline-light'}`}
               onClick={() => setTuning({ ...tuning, bw: !tuning.bw, sepia: false })}
             >
-              Чорно-біле
+              {t('editor.bw')}
             </button>
             <button
               className={`btn btn-lg flex-grow-1 ${tuning.sepia ? 'btn-primary' : 'btn-outline-light'}`}
               onClick={() => setTuning({ ...tuning, sepia: !tuning.sepia, bw: false })}
             >
-              Сепія
+              {t('editor.sepia')}
             </button>
           </div>
         </div>
@@ -236,10 +238,10 @@ export const EditorCanvas: React.FC<EditorCanvasProps> = ({ photo, onSaveSuccess
         <div className="d-grid gap-2 border-top pt-4">
           <button className="btn btn-success btn-lg-custom py-3" onClick={handleSave} disabled={isSaving}>
             <Save size={24} />
-            <span>{isSaving ? 'Збереження...' : 'Зберегти зміни'}</span>
+            <span>{isSaving ? t('editor.saving') : t('editor.save')}</span>
           </button>
           <button className="btn btn-outline-light btn-lg-custom" onClick={() => setActiveEditPhoto(null)}>
-            Скасувати
+            {t('common.cancel')}
           </button>
         </div>
       </div>

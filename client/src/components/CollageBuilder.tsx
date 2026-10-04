@@ -1,10 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { fabric } from 'fabric';
 import { usePalomaStore } from '../store/usePalomaStore.js';
+import { useTranslation } from 'react-i18next';
 import { Download, ArrowLeft, RefreshCw, LayoutGrid } from 'lucide-react';
 
 export const CollageBuilder: React.FC = () => {
   const { selectedPhotos, setCurrentView } = usePalomaStore();
+  const { t } = useTranslation();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [fabricCanvas, setFabricCanvas] = useState<fabric.Canvas | null>(null);
 
@@ -88,24 +90,24 @@ export const CollageBuilder: React.FC = () => {
       <div className="d-flex align-items-center justify-content-between mb-3 bg-secondary p-3 rounded">
         <div className="d-flex align-items-center gap-3">
           <button className="btn btn-outline-light btn-lg-custom" onClick={() => setCurrentView('library')}>
-            <ArrowLeft size={20} />
-            <span>Назад</span>
+            <ArrowLeft size={20} className="flip-rtl" />
+            <span>{t('common.back')}</span>
           </button>
-          <h4 className="fw-bold mb-0">🎨 Конструктор Колажів Paloma</h4>
+          <h4 className="fw-bold mb-0">{t('collage.title')}</h4>
         </div>
 
         <div className="d-flex align-items-center gap-2">
           <button className="btn btn-outline-info btn-lg-custom" onClick={() => populateCollage('pile')}>
             <RefreshCw size={20} />
-            <span>Picture Pile</span>
+            <span>{t('collage.pile')}</span>
           </button>
           <button className="btn btn-outline-info btn-lg-custom" onClick={() => populateCollage('grid')}>
             <LayoutGrid size={20} />
-            <span>Grid Collage</span>
+            <span>{t('collage.grid')}</span>
           </button>
           <button className="btn btn-success btn-lg-custom ms-2" onClick={handleDownload}>
             <Download size={20} />
-            <span>Завантажити PNG</span>
+            <span>{t('collage.download')}</span>
           </button>
         </div>
       </div>

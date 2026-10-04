@@ -1,0 +1,195 @@
+{
+  "_meta": { "reviewed": false },
+  "app": {
+    "title": "Paloma — مدير صور حديث (خليفة Google Picasa)"
+  },
+  "common": {
+    "cancel": "إلغاء",
+    "save": "حفظ",
+    "close": "إغلاق",
+    "back": "رجوع",
+    "untitled": "بلا عنوان",
+    "photos_zero": "{{count, number}} صورة",
+    "photos_one": "صورة واحدة ({{count, number}})",
+    "photos_two": "صورتان ({{count, number}})",
+    "photos_few": "{{count, number}} صور",
+    "photos_many": "{{count, number}} صورة",
+    "photos_other": "{{count, number}} صورة"
+  },
+  "language": {
+    "label": "اللغة"
+  },
+  "nav": {
+    "edition": "Senior Edition",
+    "searchPlaceholder": "ابحث عن الصور بالاسم أو الوسوم أو التاريخ...",
+    "library": "المكتبة",
+    "people": "الأشخاص",
+    "map": "الخريطة",
+    "collage": "مجمّعة"
+  },
+  "sidebar": {
+    "collections": "المجموعات",
+    "allPhotos": "كل الصور",
+    "starred": "⭐ المميّزة بنجمة",
+    "recentImport": "📥 آخر استيراد",
+    "albums": "الألبومات",
+    "noAlbums": "لا توجد ألبومات بعد. اختر صورًا ثم انقر «إلى الألبوم».",
+    "folders": "المجلدات المراقَبة",
+    "noFolders": "لا توجد مجلدات. أضف مجلدات الصور إلى PALOMA_PHOTOS_DIRS في ملف ‎.env ثم أعد تشغيل الخادم."
+  },
+  "grid": {
+    "emptyTitle": "لم يتم العثور على صور",
+    "emptyHint": "تحقّق من المجلدات في PALOMA_PHOTOS_DIRS في ملف ‎.env أو غيّر البحث."
+  },
+  "photo": {
+    "star": "تمييز بنجمة",
+    "unstar": "إزالة النجمة",
+    "edited": "معدّلة",
+    "geotagged": "تحتوي على موقع جغرافي"
+  },
+  "tray": {
+    "selected": "🖼️ المحدد:",
+    "removeFromTray": "إزالة من الدرج",
+    "addToAlbum": "إلى الألبوم",
+    "removeFromAlbum": "إزالة من الألبوم",
+    "makeCover": "تعيين كغلاف",
+    "clear": "مسح",
+    "export": "تصدير",
+    "print": "طباعة",
+    "collage": "مجمّعة",
+    "movie": "فيديو"
+  },
+  "album": {
+    "properties": "الخصائص",
+    "delete": "حذف",
+    "deleteTitle": "حذف الألبوم؟",
+    "deleteBody": "سيُحذف الألبوم «{{name}}». ستبقى الصور في مجلداتها.",
+    "deleteConfirm": "حذف الألبوم"
+  },
+  "albumPicker": {
+    "title_zero": "إضافة {{count, number}} صورة إلى ألبوم",
+    "title_one": "إضافة صورة واحدة ({{count, number}}) إلى ألبوم",
+    "title_two": "إضافة صورتين ({{count, number}}) إلى ألبوم",
+    "title_few": "إضافة {{count, number}} صور إلى ألبوم",
+    "title_many": "إضافة {{count, number}} صورة إلى ألبوم",
+    "title_other": "إضافة {{count, number}} صورة إلى ألبوم",
+    "newAlbum": "ألبوم جديد",
+    "newAlbumName": "اسم الألبوم الجديد",
+    "create": "إنشاء ألبوم",
+    "add": "إضافة"
+  },
+  "albumProperties": {
+    "title": "خصائص الألبوم",
+    "name": "الاسم",
+    "description": "الوصف",
+    "location": "المكان",
+    "optional": "(اختياري)"
+  },
+  "editor": {
+    "back": "العودة إلى المكتبة",
+    "holdForOriginal": "اضغط مطولًا لرؤية الأصل",
+    "title": "✏️ محرر الصور",
+    "fillLight": "إضاءة التعبئة: {{value, number}}",
+    "contrast": "التباين: {{value, number}}",
+    "straighten": "تقويم الأفق: {{value, number}}°",
+    "effects": "التأثيرات والأنماط:",
+    "bw": "أبيض وأسود",
+    "sepia": "بني داكن",
+    "saving": "جارٍ الحفظ...",
+    "save": "حفظ التغييرات"
+  },
+  "collage": {
+    "title": "🎨 منشئ المجمّعات في Paloma",
+    "pile": "كومة صور",
+    "grid": "مجمّعة شبكية",
+    "download": "تنزيل PNG"
+  },
+  "export": {
+    "title": "تصدير الصور دفعة واحدة",
+    "done_zero": "تم تصدير {{count, number}} صورة!",
+    "done_one": "تم تصدير صورة واحدة ({{count, number}})!",
+    "done_two": "تم تصدير صورتين ({{count, number}})!",
+    "done_few": "تم تصدير {{count, number}} صور!",
+    "done_many": "تم تصدير {{count, number}} صورة!",
+    "done_other": "تم تصدير {{count, number}} صورة!",
+    "savedTo": "حُفظت الملفات في المجلد:",
+    "destination": "مجلد الوجهة:",
+    "quality": "جودة JPEG ({{value, number}}٪):",
+    "maxWidth": "أقصى عرض (بكسل):",
+    "originalSize": "الحجم الأصلي",
+    "summary_zero": "سيتم تصدير <b>{{count, number}}</b> صورة محددة مع تطبيق التعديلات.",
+    "summary_one": "سيتم تصدير <b>{{count, number}}</b> صورة محددة مع تطبيق التعديلات.",
+    "summary_two": "سيتم تصدير <b>{{count, number}}</b> صورتين محددتين مع تطبيق التعديلات.",
+    "summary_few": "سيتم تصدير <b>{{count, number}}</b> صور محددة مع تطبيق التعديلات.",
+    "summary_many": "سيتم تصدير <b>{{count, number}}</b> صورة محددة مع تطبيق التعديلات.",
+    "summary_other": "سيتم تصدير <b>{{count, number}}</b> صورة محددة مع تطبيق التعديلات.",
+    "exporting": "جارٍ التصدير...",
+    "start": "بدء التصدير"
+  },
+  "print": {
+    "title": "طباعة الصور",
+    "layout": "تخطيط الصفحة:",
+    "single": "📄 صورة واحدة في كل صفحة (A4)",
+    "grid2x2": "🖼️ شبكة 2×2 (4 صور في A4)",
+    "photo10x15": "📸 ورق صور (10×15 سم)",
+    "printNow": "🖨️ اطبع الآن",
+    "preview_zero": "معاينة الطباعة ({{count, number}} صورة)",
+    "preview_one": "معاينة الطباعة ({{count, number}} صورة)",
+    "preview_two": "معاينة الطباعة ({{count, number}} صورتان)",
+    "preview_few": "معاينة الطباعة ({{count, number}} صور)",
+    "preview_many": "معاينة الطباعة ({{count, number}} صورة)",
+    "preview_other": "معاينة الطباعة ({{count, number}} صورة)"
+  },
+  "movie": {
+    "title": "منشئ عرض شرائح فيديو MP4",
+    "done": "تم إنشاء عرض الشرائح!",
+    "path": "ملف الفيديو:",
+    "duration": "مدة الشريحة الواحدة ({{value, number}} ث):",
+    "summary_zero": "سيُنشأ الفيديو من <b>{{count, number}}</b> صورة محددة بصيغة MP4 بدقة 1080p.",
+    "summary_one": "سيُنشأ الفيديو من <b>{{count, number}}</b> صورة محددة بصيغة MP4 بدقة 1080p.",
+    "summary_two": "سيُنشأ الفيديو من <b>{{count, number}}</b> صورتين محددتين بصيغة MP4 بدقة 1080p.",
+    "summary_few": "سيُنشأ الفيديو من <b>{{count, number}}</b> صور محددة بصيغة MP4 بدقة 1080p.",
+    "summary_many": "سيُنشأ الفيديو من <b>{{count, number}}</b> صورة محددة بصيغة MP4 بدقة 1080p.",
+    "summary_other": "سيُنشأ الفيديو من <b>{{count, number}}</b> صورة محددة بصيغة MP4 بدقة 1080p.",
+    "generating": "جارٍ إنشاء MP4...",
+    "create": "إنشاء الفيديو"
+  },
+  "map": {
+    "title": "📍 خريطة صور Paloma",
+    "found_zero": "لم يُعثر على مواقع ({{count, number}})",
+    "found_one": "عُثر على موقع واحد ({{count, number}})",
+    "found_two": "عُثر على موقعين ({{count, number}})",
+    "found_few": "عُثر على {{count, number}} مواقع",
+    "found_many": "عُثر على {{count, number}} موقعًا",
+    "found_other": "عُثر على {{count, number}} موقع"
+  },
+  "people": {
+    "title": "👤 التعرّف على الوجوه والأشخاص",
+    "add": "إضافة شخص جديد",
+    "namePlaceholder": "الاسم (مثلًا: الجدة فاطمة)",
+    "create": "إنشاء ملف تعريف",
+    "catalog": "الأشخاص ({{count, number}})",
+    "empty": "لم تتم إضافة أشخاص بعد. أدخل اسمًا في الجهة المقابلة أو شغّل ماسح الوجوه."
+  },
+  "errors": {
+    "network": "تعذّر الاتصال بخادم Paloma. تأكّد من أنه قيد التشغيل.",
+    "request_failed": "فشل الطلب ({{status}}).",
+    "not_changed": "لم يتغيّر: {{folders}}",
+    "invalid_body": "الطلب غير صالح.",
+    "invalid_field": "قيمة غير صالحة للحقل «{{field}}».",
+    "album_name_required": "أدخل اسم الألبوم.",
+    "photo_ids_required": "اختر صورة واحدة على الأقل.",
+    "no_album_fields": "لا يوجد ما يتغيّر في الألبوم.",
+    "no_photo_fields": "لا يوجد ما يتغيّر في الصورة.",
+    "photo_not_found": "لم يتم العثور على الصورة. ربما أُزيلت من المكتبة.",
+    "album_not_found": "لم يتم العثور على الألبوم. ربما حُذف.",
+    "file_not_found": "لم يتم العثور على الملف.",
+    "cover_not_in_album": "يجب أن يكون الغلاف صورة من هذا الألبوم.",
+    "sidecar_unreadable": "تعذّرت قراءة {{files}}. أصلح الملف أو احذفه لإجراء تغييرات هناك.",
+    "sidecar_write_failed": "تعذّر حفظ التغييرات في ‎.paloma.json في {{folders}}.",
+    "album_empty": "لا يحتوي الألبوم على صور في المكتبة.",
+    "export_params_required": "اختر الصور ومجلد الوجهة.",
+    "person_name_required": "أدخل اسمًا.",
+    "internal": "خطأ في الخادم: {{message}}"
+  }
+}

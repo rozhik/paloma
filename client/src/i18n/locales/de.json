@@ -1,0 +1,167 @@
+{
+  "_meta": { "reviewed": false },
+  "app": {
+    "title": "Paloma — ein moderner Fotomanager (Nachfolger von Google Picasa)"
+  },
+  "common": {
+    "cancel": "Abbrechen",
+    "save": "Speichern",
+    "close": "Schließen",
+    "back": "Zurück",
+    "untitled": "Ohne Titel",
+    "photos_one": "{{count, number}} Foto",
+    "photos_other": "{{count, number}} Fotos"
+  },
+  "language": {
+    "label": "Sprache"
+  },
+  "nav": {
+    "edition": "Senior Edition",
+    "searchPlaceholder": "Fotos nach Name, Tags oder Datum suchen...",
+    "library": "Bibliothek",
+    "people": "Personen",
+    "map": "Karte",
+    "collage": "Collage"
+  },
+  "sidebar": {
+    "collections": "Sammlungen",
+    "allPhotos": "Alle Fotos",
+    "starred": "⭐ Markiert",
+    "recentImport": "📥 Letzter Import",
+    "albums": "Alben",
+    "noAlbums": "Noch keine Alben. Wählen Sie Fotos aus und klicken Sie auf „Zum Album“.",
+    "folders": "Überwachte Ordner",
+    "noFolders": "Keine Ordner. Tragen Sie Ihre Fotoordner in PALOMA_PHOTOS_DIRS in der Datei .env ein und starten Sie den Server neu."
+  },
+  "grid": {
+    "emptyTitle": "Keine Fotos gefunden",
+    "emptyHint": "Prüfen Sie die Ordner in PALOMA_PHOTOS_DIRS in der Datei .env oder ändern Sie die Suche."
+  },
+  "photo": {
+    "star": "Markieren",
+    "unstar": "Markierung entfernen",
+    "edited": "Bearbeitet",
+    "geotagged": "Mit Geotag"
+  },
+  "tray": {
+    "selected": "🖼️ Ausgewählt:",
+    "removeFromTray": "Aus der Ablage entfernen",
+    "addToAlbum": "Zum Album",
+    "removeFromAlbum": "Aus Album entfernen",
+    "makeCover": "Als Titelbild",
+    "clear": "Leeren",
+    "export": "Exportieren",
+    "print": "Drucken",
+    "collage": "Collage",
+    "movie": "Video"
+  },
+  "album": {
+    "properties": "Eigenschaften",
+    "delete": "Löschen",
+    "deleteTitle": "Album löschen?",
+    "deleteBody": "Das Album „{{name}}“ wird gelöscht. Die Fotos bleiben in ihren Ordnern.",
+    "deleteConfirm": "Album löschen"
+  },
+  "albumPicker": {
+    "title_one": "{{count, number}} Foto zu einem Album hinzufügen",
+    "title_other": "{{count, number}} Fotos zu einem Album hinzufügen",
+    "newAlbum": "Neues Album",
+    "newAlbumName": "Name des neuen Albums",
+    "create": "Album erstellen",
+    "add": "Hinzufügen"
+  },
+  "albumProperties": {
+    "title": "Albumeigenschaften",
+    "name": "Name",
+    "description": "Beschreibung",
+    "location": "Ort",
+    "optional": "(optional)"
+  },
+  "editor": {
+    "back": "Zurück zur Bibliothek",
+    "holdForOriginal": "Gedrückt halten für das Original",
+    "title": "✏️ Fotoeditor",
+    "fillLight": "Aufhellen: {{value, number}}",
+    "contrast": "Kontrast: {{value, number}}",
+    "straighten": "Ausrichten: {{value, number}}°",
+    "effects": "Effekte und Stile:",
+    "bw": "Schwarzweiß",
+    "sepia": "Sepia",
+    "saving": "Wird gespeichert...",
+    "save": "Änderungen speichern"
+  },
+  "collage": {
+    "title": "🎨 Paloma-Collage-Editor",
+    "pile": "Fotostapel",
+    "grid": "Raster-Collage",
+    "download": "PNG herunterladen"
+  },
+  "export": {
+    "title": "Fotos stapelweise exportieren",
+    "done_one": "{{count, number}} Foto exportiert!",
+    "done_other": "{{count, number}} Fotos exportiert!",
+    "savedTo": "Dateien gespeichert im Ordner:",
+    "destination": "Zielordner:",
+    "quality": "JPEG-Qualität ({{value, number}} %):",
+    "maxWidth": "Maximale Breite (px):",
+    "originalSize": "Originalgröße",
+    "summary_one": "<b>{{count, number}}</b> ausgewähltes Foto wird mit angewendeten Bearbeitungen exportiert.",
+    "summary_other": "<b>{{count, number}}</b> ausgewählte Fotos werden mit angewendeten Bearbeitungen exportiert.",
+    "exporting": "Wird exportiert...",
+    "start": "Export starten"
+  },
+  "print": {
+    "title": "Fotos drucken",
+    "layout": "Seitenlayout:",
+    "single": "📄 1 Foto pro Seite (A4)",
+    "grid2x2": "🖼️ 2×2-Raster (4 Fotos pro A4)",
+    "photo10x15": "📸 Fotopapier (10×15 cm)",
+    "printNow": "🖨️ Jetzt drucken",
+    "preview_one": "Druckvorschau ({{count, number}} Foto)",
+    "preview_other": "Druckvorschau ({{count, number}} Fotos)"
+  },
+  "movie": {
+    "title": "MP4-Diashow erstellen",
+    "done": "Diashow erstellt!",
+    "path": "Videodatei:",
+    "duration": "Dauer einer Folie ({{value, number}} s):",
+    "summary_one": "Das Video wird aus <b>{{count, number}}</b> ausgewähltem Foto als MP4 in 1080p erstellt.",
+    "summary_other": "Das Video wird aus <b>{{count, number}}</b> ausgewählten Fotos als MP4 in 1080p erstellt.",
+    "generating": "MP4 wird erstellt...",
+    "create": "Video erstellen"
+  },
+  "map": {
+    "title": "📍 Paloma-Fotokarte",
+    "found_one": "{{count, number}} Geotag gefunden",
+    "found_other": "{{count, number}} Geotags gefunden"
+  },
+  "people": {
+    "title": "👤 Gesichtserkennung und Personen",
+    "add": "Neue Person hinzufügen",
+    "namePlaceholder": "Name (zum Beispiel: Oma Helga)",
+    "create": "Profil erstellen",
+    "catalog": "Personen ({{count, number}})",
+    "empty": "Noch keine Personen. Geben Sie links einen Namen ein oder starten Sie die Gesichtserkennung."
+  },
+  "errors": {
+    "network": "Der Paloma-Server ist nicht erreichbar. Prüfen Sie, ob er läuft.",
+    "request_failed": "Die Anfrage ist fehlgeschlagen ({{status}}).",
+    "not_changed": "Nicht geändert: {{folders}}",
+    "invalid_body": "Die Anfrage ist ungültig.",
+    "invalid_field": "Ungültiger Wert für „{{field}}“.",
+    "album_name_required": "Geben Sie einen Albumnamen ein.",
+    "photo_ids_required": "Wählen Sie mindestens ein Foto aus.",
+    "no_album_fields": "Am Album gibt es nichts zu ändern.",
+    "no_photo_fields": "Am Foto gibt es nichts zu ändern.",
+    "photo_not_found": "Das Foto wurde nicht gefunden. Möglicherweise wurde es aus der Bibliothek entfernt.",
+    "album_not_found": "Das Album wurde nicht gefunden. Möglicherweise wurde es gelöscht.",
+    "file_not_found": "Die Datei wurde nicht gefunden.",
+    "cover_not_in_album": "Das Titelbild muss ein Foto aus diesem Album sein.",
+    "sidecar_unreadable": "{{files}} kann nicht gelesen werden. Korrigieren oder entfernen Sie die Datei, um dort Änderungen vorzunehmen.",
+    "sidecar_write_failed": "Änderungen konnten nicht in .paloma.json in {{folders}} gespeichert werden.",
+    "album_empty": "Das Album enthält keine Fotos aus der Bibliothek.",
+    "export_params_required": "Wählen Sie Fotos und einen Zielordner aus.",
+    "person_name_required": "Geben Sie einen Namen ein.",
+    "internal": "Serverfehler: {{message}}"
+  }
+}

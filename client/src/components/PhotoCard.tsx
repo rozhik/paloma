@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Photo } from '../../../shared/types.js';
 import { usePalomaStore } from '../store/usePalomaStore.js';
+import { useTranslation } from 'react-i18next';
 import { Star, CheckCircle, MapPin, Sliders } from 'lucide-react';
 
 interface PhotoCardProps {
@@ -10,6 +11,7 @@ interface PhotoCardProps {
 
 export const PhotoCard: React.FC<PhotoCardProps> = ({ photo, onStarToggle }) => {
   const { toggleSelectPhoto, isPhotoSelected, setActiveEditPhoto } = usePalomaStore();
+  const { t } = useTranslation();
   const selected = isPhotoSelected(photo.id);
 
   return (
@@ -25,7 +27,7 @@ export const PhotoCard: React.FC<PhotoCardProps> = ({ photo, onStarToggle }) => 
           e.stopPropagation();
           onStarToggle(photo.id, photo.isStarred);
         }}
-        title={photo.isStarred ? 'Видалити з обраного' : 'Додати в обране'}
+        title={photo.isStarred ? t('photo.unstar') : t('photo.star')}
       >
         <Star size={20} fill={photo.isStarred ? '#f59e0b' : 'none'} />
       </button>
@@ -46,12 +48,12 @@ export const PhotoCard: React.FC<PhotoCardProps> = ({ photo, onStarToggle }) => 
       </div>
 
       <div className="p-2 d-flex align-items-center justify-content-between bg-white">
-        <span className="text-truncate fs-6 fw-semibold" style={{ maxWidth: '70%' }} title={photo.filename}>
+        <span dir="auto" className="text-truncate fs-6 fw-semibold" style={{ maxWidth: '70%' }} title={photo.filename}>
           {photo.filename}
         </span>
         <div className="d-flex align-items-center gap-1">
-          {photo.edits && <span title="Відредаговано"><Sliders size={16} className="text-primary" /></span>}
-          {photo.latitude !== null && <span title="Геомітка"><MapPin size={16} className="text-danger" /></span>}
+          {photo.edits && <span title={t('photo.edited')}><Sliders size={16} className="text-primary" /></span>}
+          {photo.latitude !== null && <span title={t('photo.geotagged')}><MapPin size={16} className="text-danger" /></span>}
         </div>
       </div>
     </div>

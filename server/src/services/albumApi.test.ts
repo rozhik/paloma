@@ -215,7 +215,8 @@ describe('album changes', () => {
     expect(readSidecar(b).albums?.[token].cover).toBe('3.jpg');
     expect(readSidecar(a).albums?.[token]).not.toHaveProperty('cover');
 
-    expect(api.editAlbumProperties(token, { coverPhotoId: ids['c/4.jpg'] }).status).toBe(400);
+    expect(api.editAlbumProperties(token, { coverPhotoId: ids['c/4.jpg'] }))
+      .toMatchObject({ status: 400, body: { code: 'cover_not_in_album' } });
 
     expect(api.editAlbumProperties(token, { coverPhotoId: null })).toMatchObject({ body: { coverPhotoId: ids['b/3.jpg'] } });
     expect(readSidecar(b).albums?.[token]).not.toHaveProperty('cover');
@@ -254,7 +255,11 @@ describe('album changes', () => {
     fs.writeFileSync(path.join(b, '.paloma.json'), '{broken');
     const result = api.createAlbumFromPhotos({ name: 'Trip', photoIds: [ids['a/1.jpg'], ids['b/3.jpg']] });
 
-    expect(result.status).toBe(409);
+    const file = path.join(b, '.paloma.json');
+    expect(result).toEqual({
+      status: 409,
+      body: { error: expect.any(String), code: 'sidecar_unreadable', params: { files: file }, failedFolders: [b] },
+    });
     expect(hasSidecar(a)).toBe(false);
     expect(fs.readFileSync(path.join(b, '.paloma.json'), 'utf-8')).toBe('{broken');
     expect(api.listAlbums()).toEqual([]);
@@ -266,7 +271,9 @@ describe('album changes', () => {
 
     const result = api.editAlbumProperties(token, { name: 'Renamed' });
 
-    expect(result).toMatchObject({ status: 500, body: { failedFolders: [b] } });
+    expect(result).toMatchObject({
+      status: 500, body: { code: 'sidecar_write_failed', params: { folders: b }, failedFolders: [b] },
+    });
     expect(readSidecar(a).albums?.[token].name).toBe('Renamed');
     expect(readSidecar(b).albums?.[token].name).toBe('Birds');
     expect(console.error).toHaveBeenCalledWith(expect.stringContaining(b), expect.anything());
@@ -274,24 +281,27 @@ describe('album changes', () => {
   });
 
   it.each([
-    [{ name: '  ', photoIds: [1] }],
-    [{ name: 'Trip', photoIds: [] }],
-    [{ name: 'Trip' }],
-    [{ name: 5, photoIds: [1] }],
-    [{ name: 'Trip', photoIds: [1], description: 3 }],
-  ])('rejects an invalid create body %j with 400', (body) => {
-    expect(api.createAlbumFromPhotos(body).status).toBe(400);
+    [{ name: '  ', photoIds: [1] }, 'album_name_required'],
+    [{ name: 'Trip', photoIds: [] }, 'photo_ids_required'],
+    [{ name: 'Trip' }, 'photo_ids_required'],
+    [{ name: 5, photoIds: [1] }, 'album_name_required'],
+    [{ name: 'Trip', photoIds: [1], description: 3 }, 'invalid_field'],
+    [[], 'invalid_body'],
+  ])('rejects an invalid create body %j with 400 and code %s', (body, code) => {
+    expect(api.createAlbumFromPhotos(body)).toMatchObject({ status: 400, body: { code, error: expect.any(String) } });
     expect(api.listAlbums()).toEqual([]);
   });
 
   it('rejects an invalid edit with 400 and unknown albums or photos with 404', () => {
     const token = create('Trip', ['a/1.jpg']);
-    expect(api.editAlbumProperties(token, {}).status).toBe(400);
-    expect(api.editAlbumProperties(token, { name: '' }).status).toBe(400);
-    expect(api.editAlbumProperties(token, { location: 1 }).status).toBe(400);
-    expect(api.editAlbumProperties('nope', { name: 'x' }).status).toBe(404);
-    expect(api.addAlbumPhotos(token, { photoIds: [999999] }).status).toBe(404);
-    expect(api.createAlbumFromPhotos({ name: 'X', photoIds: [999999] }).status).toBe(404);
+    expect(api.editAlbumProperties(token, {})).toMatchObject({ status: 400, body: { code: 'no_album_fields' } });
+    expect(api.editAlbumProperties(token, { name: '' })).toMatchObject({ status: 400, body: { code: 'album_name_required' } });
+    expect(api.editAlbumProperties(token, { location: 1 }))
+      .toMatchObject({ status: 400, body: { code: 'invalid_field', params: { field: 'location' } } });
+    expect(api.editAlbumProperties('nope', { name: 'x' })).toMatchObject({ status: 404, body: { code: 'album_not_found' } });
+    expect(api.addAlbumPhotos(token, { photoIds: [999999] })).toMatchObject({ status: 404, body: { code: 'photo_not_found' } });
+    expect(api.createAlbumFromPhotos({ name: 'X', photoIds: [999999] }))
+      .toMatchObject({ status: 404, body: { code: 'photo_not_found' } });
     expect(readSidecar(a).albums?.[token].name).toBe('Trip');
   });
 });

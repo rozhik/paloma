@@ -1,0 +1,160 @@
+{
+  "_meta": { "reviewed": false },
+  "app": {
+    "title": "Paloma — 现代照片管理器（Google Picasa 的继任者）"
+  },
+  "common": {
+    "cancel": "取消",
+    "save": "保存",
+    "close": "关闭",
+    "back": "返回",
+    "untitled": "无标题",
+    "photos_other": "{{count, number}} 张照片"
+  },
+  "language": {
+    "label": "语言"
+  },
+  "nav": {
+    "edition": "Senior Edition",
+    "searchPlaceholder": "按名称、标签或日期搜索照片...",
+    "library": "图库",
+    "people": "人物",
+    "map": "地图",
+    "collage": "拼贴"
+  },
+  "sidebar": {
+    "collections": "收藏",
+    "allPhotos": "所有照片",
+    "starred": "⭐ 已加星标",
+    "recentImport": "📥 最近导入",
+    "albums": "相册",
+    "noAlbums": "还没有相册。选择照片后点击“加入相册”。",
+    "folders": "监视的文件夹",
+    "noFolders": "没有文件夹。请在 .env 文件的 PALOMA_PHOTOS_DIRS 中填写照片文件夹，然后重启服务器。"
+  },
+  "grid": {
+    "emptyTitle": "未找到照片",
+    "emptyHint": "请检查 .env 文件中 PALOMA_PHOTOS_DIRS 的文件夹，或更改搜索条件。"
+  },
+  "photo": {
+    "star": "加星标",
+    "unstar": "取消星标",
+    "edited": "已编辑",
+    "geotagged": "有地理位置"
+  },
+  "tray": {
+    "selected": "🖼️ 已选择：",
+    "removeFromTray": "从托盘中移除",
+    "addToAlbum": "加入相册",
+    "removeFromAlbum": "从相册中移除",
+    "makeCover": "设为封面",
+    "clear": "清空",
+    "export": "导出",
+    "print": "打印",
+    "collage": "拼贴",
+    "movie": "视频"
+  },
+  "album": {
+    "properties": "属性",
+    "delete": "删除",
+    "deleteTitle": "删除相册？",
+    "deleteBody": "相册“{{name}}”将被删除。照片仍保留在原文件夹中。",
+    "deleteConfirm": "删除相册"
+  },
+  "albumPicker": {
+    "title_other": "将 {{count, number}} 张照片加入相册",
+    "newAlbum": "新相册",
+    "newAlbumName": "新相册名称",
+    "create": "创建相册",
+    "add": "添加"
+  },
+  "albumProperties": {
+    "title": "相册属性",
+    "name": "名称",
+    "description": "描述",
+    "location": "地点",
+    "optional": "（可选）"
+  },
+  "editor": {
+    "back": "返回图库",
+    "holdForOriginal": "按住查看原图",
+    "title": "✏️ 照片编辑器",
+    "fillLight": "补光：{{value, number}}",
+    "contrast": "对比度：{{value, number}}",
+    "straighten": "校正水平：{{value, number}}°",
+    "effects": "效果和风格：",
+    "bw": "黑白",
+    "sepia": "怀旧",
+    "saving": "正在保存...",
+    "save": "保存更改"
+  },
+  "collage": {
+    "title": "🎨 Paloma 拼贴制作",
+    "pile": "照片堆叠",
+    "grid": "网格拼贴",
+    "download": "下载 PNG"
+  },
+  "export": {
+    "title": "批量导出照片",
+    "done_other": "已导出 {{count, number}} 张照片！",
+    "savedTo": "文件已保存到文件夹：",
+    "destination": "目标文件夹：",
+    "quality": "JPEG 质量（{{value, number}}%）：",
+    "maxWidth": "最大宽度（像素）：",
+    "originalSize": "原始尺寸",
+    "summary_other": "将导出所选的 <b>{{count, number}}</b> 张照片，并应用编辑效果。",
+    "exporting": "正在导出...",
+    "start": "开始导出"
+  },
+  "print": {
+    "title": "打印照片",
+    "layout": "页面布局：",
+    "single": "📄 每页 1 张（A4）",
+    "grid2x2": "🖼️ 2×2 网格（每张 A4 4 张）",
+    "photo10x15": "📸 相纸（10×15 厘米）",
+    "printNow": "🖨️ 立即打印",
+    "preview_other": "打印预览（{{count, number}} 张）"
+  },
+  "movie": {
+    "title": "MP4 幻灯片视频制作",
+    "done": "幻灯片已创建！",
+    "path": "视频文件：",
+    "duration": "每张幻灯片的时长（{{value, number}} 秒）：",
+    "summary_other": "将用所选的 <b>{{count, number}}</b> 张照片制作 1080p MP4 视频。",
+    "generating": "正在生成 MP4...",
+    "create": "创建视频"
+  },
+  "map": {
+    "title": "📍 Paloma 照片地图",
+    "found_other": "找到 {{count, number}} 个地理标记"
+  },
+  "people": {
+    "title": "👤 人脸识别与人物",
+    "add": "添加新人物",
+    "namePlaceholder": "姓名（例如：王奶奶）",
+    "create": "创建资料",
+    "catalog": "人物（{{count, number}}）",
+    "empty": "还没有人物。在左侧输入姓名，或运行人脸扫描。"
+  },
+  "errors": {
+    "network": "无法连接到 Paloma 服务器。请检查服务器是否正在运行。",
+    "request_failed": "请求失败（{{status}}）。",
+    "not_changed": "未更改：{{folders}}",
+    "invalid_body": "请求无效。",
+    "invalid_field": "“{{field}}”的值无效。",
+    "album_name_required": "请输入相册名称。",
+    "photo_ids_required": "请至少选择一张照片。",
+    "no_album_fields": "相册没有需要更改的内容。",
+    "no_photo_fields": "照片没有需要更改的内容。",
+    "photo_not_found": "未找到照片。它可能已从图库中移除。",
+    "album_not_found": "未找到相册。它可能已被删除。",
+    "file_not_found": "未找到文件。",
+    "cover_not_in_album": "封面必须是此相册中的照片。",
+    "sidecar_unreadable": "无法读取 {{files}}。请修复或删除该文件后再在那里进行更改。",
+    "sidecar_write_failed": "无法将更改保存到 {{folders}} 中的 .paloma.json。",
+    "album_empty": "该相册在图库中没有照片。",
+    "export_params_required": "请选择照片和目标文件夹。",
+    "person_name_required": "请输入姓名。",
+    "internal": "服务器错误：{{message}}"
+  }
+}

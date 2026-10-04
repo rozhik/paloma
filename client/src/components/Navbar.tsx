@@ -1,16 +1,19 @@
 import React from 'react';
 import { usePalomaStore, AppView } from '../store/usePalomaStore.js';
+import { useTranslation } from 'react-i18next';
 import { Search, Image, Users, MapPin, LayoutGrid } from 'lucide-react';
+import { LanguageSwitcher } from './LanguageSwitcher.js';
 
 export const Navbar: React.FC = () => {
   const { currentView, setCurrentView, searchQuery, setSearchQuery } = usePalomaStore();
+  const { t } = useTranslation();
 
   return (
     <nav className="paloma-navbar d-flex align-items-center justify-content-between">
       <div className="d-flex align-items-center gap-3">
         <div className="paloma-logo cursor-pointer" onClick={() => setCurrentView('library')}>
           🕊️ <span>Paloma</span>
-          <span className="badge bg-primary text-wrap fs-6 ms-2">Senior Edition</span>
+          <span className="badge bg-primary text-wrap fs-6 ms-2">{t('nav.edition')}</span>
         </div>
       </div>
 
@@ -22,7 +25,7 @@ export const Navbar: React.FC = () => {
           <input
             type="text"
             className="form-control form-control-lg border-start-0 fs-5"
-            placeholder="Пошук світлин за назвою, тегами або датою..."
+            placeholder={t('nav.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -35,7 +38,7 @@ export const Navbar: React.FC = () => {
           onClick={() => setCurrentView('library')}
         >
           <Image size={22} />
-          <span>Бібліотека</span>
+          <span>{t('nav.library')}</span>
         </button>
 
         <button
@@ -43,7 +46,7 @@ export const Navbar: React.FC = () => {
           onClick={() => setCurrentView('people')}
         >
           <Users size={22} />
-          <span>Люди</span>
+          <span>{t('nav.people')}</span>
         </button>
 
         <button
@@ -51,7 +54,7 @@ export const Navbar: React.FC = () => {
           onClick={() => setCurrentView('map')}
         >
           <MapPin size={22} />
-          <span>Карта</span>
+          <span>{t('nav.map')}</span>
         </button>
 
         <button
@@ -59,8 +62,10 @@ export const Navbar: React.FC = () => {
           onClick={() => setCurrentView('collage')}
         >
           <LayoutGrid size={22} />
-          <span>Колаж</span>
+          <span>{t('nav.collage')}</span>
         </button>
+
+        <LanguageSwitcher />
       </div>
     </nav>
   );

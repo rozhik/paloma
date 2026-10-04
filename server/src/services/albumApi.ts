@@ -6,10 +6,10 @@ import { FolderScannerService } from './FolderScannerService.js';
 import {
   addToAlbum, createAlbum, deleteAlbum, editAlbum, localIsoWithOffset, newAlbumToken, removeFromAlbum, type AlbumFields,
 } from './albumSidecar.js';
-import type { Album, PalomaAlbumDefinition, PalomaFolderFile } from '../../../shared/types.js';
+import { apiError } from './apiError.js';
+import type { Album, ApiError, ApiErrorCode, PalomaAlbumDefinition, PalomaFolderFile } from '../../../shared/types.js';
 
-type ErrorBody = { error: string; failedFolders?: string[] };
-export type AlbumResult<T> = { status: 200; body: T } | { status: 400 | 404 | 409 | 500; body: ErrorBody };
+export type AlbumResult<T> = { status: 200; body: T } | { status: 400 | 404 | 409 | 500; body: ApiError };
 
 /** One folder's copy of an album definition, as indexed in the library. */
 export interface AlbumCopy {
@@ -171,16 +171,20 @@ interface PhotoRef {
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
-const bad = (error: string): AlbumResult<never> => ({ status: 400, body: { error } });
-const notFound = (error: string): AlbumResult<never> => ({ status: 404, body: { error } });
+const bad = (code: ApiErrorCode, error: string, params?: ApiError['params']): AlbumResult<never> =>
+  ({ status: 400, body: apiError(code, error, params) });
+const notFound = (code: ApiErrorCode, error: string): AlbumResult<never> => ({ status: 404, body: apiError(code, error) });
+const notString = (field: string): AlbumResult<never> => bad('invalid_field', `${field} must be a string`, { field });
+const noName = (): AlbumResult<never> => bad('album_name_required', 'name must be a non-empty string');
+const noPhotoIds = (): AlbumResult<never> => bad('photo_ids_required', 'photoIds must be a non-empty array of photo ids');
 
 function isName(value: unknown): value is string {
   return typeof value === 'string' && value.trim() !== '';
 }
 
-function parsePhotoIds(value: unknown): number[] | string {
-  if (!Array.isArray(value) || value.length === 0) return 'photoIds must be a non-empty array of photo ids';
-  if (!value.every((id) => Number.isInteger(id) && id > 0)) return 'photoIds must be a non-empty array of photo ids';
+function parsePhotoIds(value: unknown): number[] | null {
+  if (!Array.isArray(value) || value.length === 0) return null;
+  if (!value.every((id) => Number.isInteger(id) && id > 0)) return null;
   return [...new Set(value as number[])];
 }
 
@@ -226,7 +230,11 @@ function runAlbumChange(
     console.error(`Album change rejected; unreadable sidecars: ${files.join(', ')}`);
     return {
       status: 409,
-      body: { error: `Unreadable ${files.join(', ')}. Fix or remove the file to change albums there.`, failedFolders: unreadable },
+      body: {
+        ...apiError('sidecar_unreadable', `Unreadable ${files.join(', ')}. Fix or remove the file to change albums there.`,
+          { files: files.join(', ') }),
+        failedFolders: unreadable,
+      },
     };
   }
 
@@ -242,27 +250,33 @@ function runAlbumChange(
     FolderScannerService.applyFolderState(dir, SidecarService.getFolderState(dir));
   }
   if (failed.length > 0) {
-    return { status: 500, body: { error: `Could not write .paloma.json in ${failed.join(', ')}`, failedFolders: failed } };
+    return {
+      status: 500,
+      body: {
+        ...apiError('sidecar_write_failed', `Could not write .paloma.json in ${failed.join(', ')}`, { folders: failed.join(', ') }),
+        failedFolders: failed,
+      },
+    };
   }
   return null;
 }
 
 function currentAlbum(token: string): AlbumResult<Album> {
   const album = getAlbum(token);
-  return album ? { status: 200, body: album } : { status: 500, body: { error: 'Album has no photos in the library' } };
+  return album ? { status: 200, body: album } : { status: 500, body: apiError('album_empty', 'Album has no photos in the library') };
 }
 
 /** `POST /api/albums`: a new album holding the given photos. */
 export function createAlbumFromPhotos(body: unknown): AlbumResult<Album> {
-  if (!isPlainObject(body)) return bad('Body must be a JSON object');
+  if (!isPlainObject(body)) return bad('invalid_body', 'Body must be a JSON object');
   const { name, photoIds, description, location } = body;
-  if (!isName(name)) return bad('name must be a non-empty string');
-  if (description !== undefined && typeof description !== 'string') return bad('description must be a string');
-  if (location !== undefined && typeof location !== 'string') return bad('location must be a string');
+  if (!isName(name)) return noName();
+  if (description !== undefined && typeof description !== 'string') return notString('description');
+  if (location !== undefined && typeof location !== 'string') return notString('location');
   const ids = parsePhotoIds(photoIds);
-  if (typeof ids === 'string') return bad(ids);
+  if (!ids) return noPhotoIds();
   const refs = loadPhotos(ids);
-  if (!refs) return notFound('Photo not found');
+  if (!refs) return notFound('photo_not_found', 'Photo not found');
 
   const token = newAlbumToken();
   const now = new Date();
@@ -273,7 +287,7 @@ export function createAlbumFromPhotos(body: unknown): AlbumResult<Album> {
 }
 
 function requireListed(token: string): AlbumResult<never> | null {
-  return getAlbum(token) ? null : notFound('Album not found');
+  return getAlbum(token) ? null : notFound('album_not_found', 'Album not found');
 }
 
 /** `POST /api/albums/:token/photos`. */
@@ -281,9 +295,9 @@ export function addAlbumPhotos(token: string, body: unknown): AlbumResult<Album>
   const missing = requireListed(token);
   if (missing) return missing;
   const ids = parsePhotoIds(isPlainObject(body) ? body.photoIds : undefined);
-  if (typeof ids === 'string') return bad(ids);
+  if (!ids) return noPhotoIds();
   const refs = loadPhotos(ids);
-  if (!refs) return notFound('Photo not found');
+  if (!refs) return notFound('photo_not_found', 'Photo not found');
 
   const source = resolveAlbum(loadCopies([token]).get(token) ?? []);
   const shown: PalomaAlbumDefinition = {};
@@ -301,9 +315,9 @@ export function removeAlbumPhotos(token: string, body: unknown): AlbumResult<Alb
   const missing = requireListed(token);
   if (missing) return missing;
   const ids = parsePhotoIds(isPlainObject(body) ? body.photoIds : undefined);
-  if (typeof ids === 'string') return bad(ids);
+  if (!ids) return noPhotoIds();
   const refs = loadPhotos(ids);
-  if (!refs) return notFound('Photo not found');
+  if (!refs) return notFound('photo_not_found', 'Photo not found');
 
   const memberIds = new Set((loadMembers([token]).get(token) ?? []).map((m) => m.id));
   const files = filesByFolder(refs.filter((ref) => memberIds.has(ref.id)));
@@ -317,20 +331,20 @@ export function removeAlbumPhotos(token: string, body: unknown): AlbumResult<Alb
 export function editAlbumProperties(token: string, body: unknown): AlbumResult<Album> {
   const missing = requireListed(token);
   if (missing) return missing;
-  if (!isPlainObject(body)) return bad('Body must be a JSON object');
+  if (!isPlainObject(body)) return bad('invalid_body', 'Body must be a JSON object');
   const { name, description, location, coverPhotoId } = body;
   if (name === undefined && description === undefined && location === undefined && coverPhotoId === undefined) {
-    return bad('Expected at least one of name, description, location, coverPhotoId');
+    return bad('no_album_fields', 'Expected at least one of name, description, location, coverPhotoId');
   }
-  if (name !== undefined && !isName(name)) return bad('name must be a non-empty string');
-  if (description !== undefined && typeof description !== 'string') return bad('description must be a string');
-  if (location !== undefined && typeof location !== 'string') return bad('location must be a string');
+  if (name !== undefined && !isName(name)) return noName();
+  if (description !== undefined && typeof description !== 'string') return notString('description');
+  if (location !== undefined && typeof location !== 'string') return notString('location');
 
   let cover: Member | null | undefined;
   if (coverPhotoId === null) cover = null;
   else if (coverPhotoId !== undefined) {
     cover = (loadMembers([token]).get(token) ?? []).find((m) => m.id === coverPhotoId);
-    if (!cover) return bad('coverPhotoId must be a photo in the album');
+    if (!cover) return bad('cover_not_in_album', 'coverPhotoId must be a photo in the album');
   }
 
   const shown = shownFields(resolveAlbum(loadCopies([token]).get(token) ?? []));

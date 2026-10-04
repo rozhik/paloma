@@ -1,0 +1,181 @@
+{
+  "_meta": { "reviewed": false },
+  "app": {
+    "title": "Paloma — сучасний фотоменеджер (спадкоємець Google Picasa)"
+  },
+  "common": {
+    "cancel": "Скасувати",
+    "save": "Зберегти",
+    "close": "Закрити",
+    "back": "Назад",
+    "untitled": "Без назви",
+    "photos_one": "{{count, number}} фотографія",
+    "photos_few": "{{count, number}} фотографії",
+    "photos_many": "{{count, number}} фотографій",
+    "photos_other": "{{count, number}} фотографії"
+  },
+  "language": {
+    "label": "Мова"
+  },
+  "nav": {
+    "edition": "Senior Edition",
+    "searchPlaceholder": "Пошук світлин за назвою, тегами або датою...",
+    "library": "Бібліотека",
+    "people": "Люди",
+    "map": "Карта",
+    "collage": "Колаж"
+  },
+  "sidebar": {
+    "collections": "Колекції",
+    "allPhotos": "Усі світлини",
+    "starred": "⭐ Обране",
+    "recentImport": "📥 Останній імпорт",
+    "albums": "Альбоми",
+    "noAlbums": "Альбомів ще немає. Виберіть світлини й натисніть «До альбому».",
+    "folders": "Відстежувані папки",
+    "noFolders": "Немає папок. Вкажіть папки з фотографіями в PALOMA_PHOTOS_DIRS у файлі .env і перезапустіть сервер."
+  },
+  "grid": {
+    "emptyTitle": "Світлин не знайдено",
+    "emptyHint": "Перевірте папки в PALOMA_PHOTOS_DIRS у файлі .env або змініть параметри пошуку."
+  },
+  "photo": {
+    "star": "Додати в обране",
+    "unstar": "Видалити з обраного",
+    "edited": "Відредаговано",
+    "geotagged": "Геомітка"
+  },
+  "tray": {
+    "selected": "🖼️ Обрано:",
+    "removeFromTray": "Видалити з буфера",
+    "addToAlbum": "До альбому",
+    "removeFromAlbum": "Прибрати з альбому",
+    "makeCover": "Зробити обкладинкою",
+    "clear": "Очистити",
+    "export": "Експорт",
+    "print": "Друк",
+    "collage": "Колаж",
+    "movie": "Відео"
+  },
+  "album": {
+    "properties": "Властивості",
+    "delete": "Видалити",
+    "deleteTitle": "Видалити альбом?",
+    "deleteBody": "Альбом «{{name}}» буде видалено. Світлини залишаться у своїх папках.",
+    "deleteConfirm": "Видалити альбом"
+  },
+  "albumPicker": {
+    "title_one": "Додати {{count, number}} світлину до альбому",
+    "title_few": "Додати {{count, number}} світлини до альбому",
+    "title_many": "Додати {{count, number}} світлин до альбому",
+    "title_other": "Додати {{count, number}} світлини до альбому",
+    "newAlbum": "Новий альбом",
+    "newAlbumName": "Назва нового альбому",
+    "create": "Створити альбом",
+    "add": "Додати"
+  },
+  "albumProperties": {
+    "title": "Властивості альбому",
+    "name": "Назва",
+    "description": "Опис",
+    "location": "Місце",
+    "optional": "(необов'язково)"
+  },
+  "editor": {
+    "back": "Назад до бібліотеки",
+    "holdForOriginal": "Утримуйте для оригіналу",
+    "title": "✏️ Редактор фото",
+    "fillLight": "Освітлення: {{value, number}}",
+    "contrast": "Контраст: {{value, number}}",
+    "straighten": "Вирівнювання горизонту: {{value, number}}°",
+    "effects": "Ефекти та стилі:",
+    "bw": "Чорно-біле",
+    "sepia": "Сепія",
+    "saving": "Збереження...",
+    "save": "Зберегти зміни"
+  },
+  "collage": {
+    "title": "🎨 Конструктор колажів Paloma",
+    "pile": "Купка світлин",
+    "grid": "Колаж-сітка",
+    "download": "Завантажити PNG"
+  },
+  "export": {
+    "title": "Майстер пакетного експорту фотографій",
+    "done_one": "Успішно експортовано {{count, number}} світлину!",
+    "done_few": "Успішно експортовано {{count, number}} світлини!",
+    "done_many": "Успішно експортовано {{count, number}} світлин!",
+    "done_other": "Успішно експортовано {{count, number}} світлини!",
+    "savedTo": "Файли збережено у папці:",
+    "destination": "Папка призначення для збереження:",
+    "quality": "Якість JPEG ({{value, number}}%):",
+    "maxWidth": "Максимальна ширина (px):",
+    "originalSize": "Оригінальний розмір",
+    "summary_one": "Буде експортовано <b>{{count, number}}</b> обрану світлину із застосованими правками.",
+    "summary_few": "Буде експортовано <b>{{count, number}}</b> обрані світлини із застосованими правками.",
+    "summary_many": "Буде експортовано <b>{{count, number}}</b> обраних світлин із застосованими правками.",
+    "summary_other": "Буде експортовано <b>{{count, number}}</b> обраної світлини із застосованими правками.",
+    "exporting": "Експортування...",
+    "start": "Розпочати експорт"
+  },
+  "print": {
+    "title": "Модуль друку світлин",
+    "layout": "Макет аркуша:",
+    "single": "📄 1 фото на сторінку (A4)",
+    "grid2x2": "🖼️ Сітка 2×2 (4 фото на A4)",
+    "photo10x15": "📸 Фотопапір (10×15 см)",
+    "printNow": "🖨️ Друкувати зараз",
+    "preview_one": "Попередній перегляд друку ({{count, number}} фото)",
+    "preview_few": "Попередній перегляд друку ({{count, number}} фото)",
+    "preview_many": "Попередній перегляд друку ({{count, number}} фото)",
+    "preview_other": "Попередній перегляд друку ({{count, number}} фото)"
+  },
+  "movie": {
+    "title": "Генератор MP4 слайд-шоу",
+    "done": "Слайд-шоу створено!",
+    "path": "Шлях до відеофайлу:",
+    "duration": "Тривалість одного слайду ({{value, number}} с):",
+    "summary_one": "Відео буде згенеровано з <b>{{count, number}}</b> обраної світлини у форматі MP4 1080p.",
+    "summary_few": "Відео буде згенеровано з <b>{{count, number}}</b> обраних світлин у форматі MP4 1080p.",
+    "summary_many": "Відео буде згенеровано з <b>{{count, number}}</b> обраних світлин у форматі MP4 1080p.",
+    "summary_other": "Відео буде згенеровано з <b>{{count, number}}</b> обраної світлини у форматі MP4 1080p.",
+    "generating": "Генерація MP4...",
+    "create": "Створити відео"
+  },
+  "map": {
+    "title": "📍 Карта геолокацій світлин Paloma",
+    "found_one": "Знайдено {{count, number}} геомітку",
+    "found_few": "Знайдено {{count, number}} геомітки",
+    "found_many": "Знайдено {{count, number}} геоміток",
+    "found_other": "Знайдено {{count, number}} геомітки"
+  },
+  "people": {
+    "title": "👤 Розпізнавання облич та люди",
+    "add": "Додати нову людину",
+    "namePlaceholder": "Ім'я (наприклад: Бабуся Олена)",
+    "create": "Створити профіль",
+    "catalog": "Каталог людей ({{count, number}})",
+    "empty": "Людей ще не додано. Введіть ім'я ліворуч або запустіть сканер облич."
+  },
+  "errors": {
+    "network": "Не вдалося зв'язатися із сервером Paloma. Перевірте, чи він запущений.",
+    "request_failed": "Запит не вдався ({{status}}).",
+    "not_changed": "Не змінено: {{folders}}",
+    "invalid_body": "Некоректний запит.",
+    "invalid_field": "Некоректне значення поля «{{field}}».",
+    "album_name_required": "Введіть назву альбому.",
+    "photo_ids_required": "Виберіть хоча б одну світлину.",
+    "no_album_fields": "В альбомі нічого не змінено.",
+    "no_photo_fields": "У світлині нічого не змінено.",
+    "photo_not_found": "Світлину не знайдено. Можливо, її прибрали з бібліотеки.",
+    "album_not_found": "Альбом не знайдено. Можливо, його видалили.",
+    "file_not_found": "Файл не знайдено.",
+    "cover_not_in_album": "Обкладинкою може бути лише світлина з цього альбому.",
+    "sidecar_unreadable": "Не вдається прочитати {{files}}. Виправте або видаліть файл, щоб вносити там зміни.",
+    "sidecar_write_failed": "Не вдалося зберегти зміни в .paloma.json у {{folders}}.",
+    "album_empty": "В альбомі немає світлин з бібліотеки.",
+    "export_params_required": "Виберіть світлини й папку призначення.",
+    "person_name_required": "Введіть ім'я.",
+    "internal": "Помилка сервера: {{message}}"
+  }
+}

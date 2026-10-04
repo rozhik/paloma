@@ -10,6 +10,7 @@ import {
   addAlbumPhotos, createAlbumFromPhotos, deleteAlbumEverywhere, editAlbumProperties, listAlbums, removeAlbumPhotos,
 } from '../services/albumApi.js';
 import { MetadataService } from '../services/MetadataService.js';
+import { apiError } from '../services/apiError.js';
 import sharp from 'sharp';
 import ffmpeg from 'fluent-ffmpeg';
 import ffmpegStatic from 'ffmpeg-static';
@@ -47,7 +48,7 @@ router.post('/photos/:id/edit', (req, res) => {
   const { editInstructions } = req.body; // EditDAG object
 
   const photo = db.select().from(photos).where(eq(photos.id, photoId)).get();
-  if (!photo) return res.status(404).json({ error: 'Photo not found' });
+  if (!photo) return res.status(404).json(apiError('photo_not_found', 'Photo not found'));
 
   const existingEdit = db.select().from(edits).where(eq(edits.photoId, photoId)).get();
 
@@ -89,7 +90,7 @@ router.get('/cache/thumbnail/:fileHash', (req, res) => {
     res.setHeader('Content-Type', 'image/webp');
     return res.sendFile(thumbPath);
   }
-  res.status(404).send('Thumbnail not found');
+  res.status(404).json(apiError('file_not_found', 'Thumbnail not found'));
 });
 
 router.get('/cache/preview/:fileHash', (req, res) => {
@@ -98,21 +99,21 @@ router.get('/cache/preview/:fileHash', (req, res) => {
     res.setHeader('Content-Type', 'image/webp');
     return res.sendFile(previewPath);
   }
-  res.status(404).send('Preview not found');
+  res.status(404).json(apiError('file_not_found', 'Preview not found'));
 });
 
 router.get('/raw/:photoId', (req, res) => {
   const photo = db.select().from(photos).where(eq(photos.id, Number(req.params.photoId))).get();
-  if (!photo) return res.status(404).send('Not found');
+  if (!photo) return res.status(404).json(apiError('photo_not_found', 'Photo not found'));
 
   const folder = db.select().from(folders).where(eq(folders.id, photo.folderId)).get();
-  if (!folder) return res.status(404).send('Folder not found');
+  if (!folder) return res.status(404).json(apiError('file_not_found', 'Folder not found'));
 
   const fullPath = path.join(folder.path, photo.filename);
   if (fs.existsSync(fullPath)) {
     return res.sendFile(fullPath);
   }
-  res.status(404).send('File missing');
+  res.status(404).json(apiError('file_not_found', 'File missing'));
 });
 
 // --- Export API ---
@@ -120,7 +121,7 @@ router.post('/export', async (req, res) => {
   const { photoIds, outputDir, quality = 85, resizeWidth, watermarkText } = req.body;
 
   if (!photoIds || !Array.isArray(photoIds) || !outputDir) {
-    return res.status(400).json({ error: 'photoIds array and outputDir are required' });
+    return res.status(400).json(apiError('export_params_required', 'photoIds array and outputDir are required'));
   }
 
   if (!fs.existsSync(outputDir)) {
@@ -180,8 +181,8 @@ router.post('/export', async (req, res) => {
 router.post('/creation/movie', async (req, res) => {
   const { photoIds, durationPerSlide = 3, outputFilename = 'paloma_slideshow.mp4' } = req.body;
 
-  if (!photoIds || photoIds.length === 0) {
-    return res.status(400).json({ error: 'At least one photoId is required' });
+  if (!Array.isArray(photoIds) || photoIds.length === 0) {
+    return res.status(400).json(apiError('photo_ids_required', 'At least one photoId is required'));
   }
 
   const selectedPhotos = db.select({
@@ -216,7 +217,8 @@ router.post('/creation/movie', async (req, res) => {
       res.json({ success: true, moviePath: outputMoviePath });
     })
     .on('error', (err) => {
-      res.status(500).json({ error: err.message });
+      console.error('Failed to make a movie:', err);
+      res.status(500).json(apiError('internal', err.message, { message: err.message }));
     })
     .run();
 });
@@ -229,7 +231,9 @@ router.get('/people', (req, res) => {
 
 router.post('/people', (req, res) => {
   const { name } = req.body;
-  if (!name) return res.status(400).json({ error: 'Name is required' });
+  if (typeof name !== 'string' || name.trim() === '') {
+    return res.status(400).json(apiError('person_name_required', 'Name is required'));
+  }
 
   const inserted = db.insert(people).values({ name }).returning().get();
   res.json(inserted);

@@ -124,3 +124,32 @@ export interface PalomaFolderFile {
   photos: Record<string, PalomaPhotoEntry>;
   [key: string]: unknown;
 }
+
+/** Stable, machine-readable reason of an API error; the client shows a translated message for it. */
+export type ApiErrorCode =
+  | 'invalid_body'
+  | 'invalid_field'
+  | 'album_name_required'
+  | 'photo_ids_required'
+  | 'no_album_fields'
+  | 'no_photo_fields'
+  | 'photo_not_found'
+  | 'album_not_found'
+  | 'file_not_found'
+  | 'cover_not_in_album'
+  | 'sidecar_unreadable'
+  | 'sidecar_write_failed'
+  | 'album_empty'
+  | 'export_params_required'
+  | 'person_name_required'
+  | 'internal';
+
+/** Body of every API error response. `error` is English text for clients that do not know the code. */
+export interface ApiError {
+  error: string;
+  code: ApiErrorCode;
+  /** Values the message refers to, e.g. `field`, `files` or `folders` */
+  params?: Record<string, string | number>;
+  /** Folders an album change could not be saved to */
+  failedFolders?: string[];
+}

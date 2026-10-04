@@ -75,30 +75,33 @@ describe('updatePhoto', () => {
   });
 
   it.each([
-    [{ isHidden: 'yes' }],
-    [{ isStarred: 1 }],
-    [{ caption: 5 }],
-    [{ keywords: 'a,b' }],
-    [{ keywords: ['a', 1] }],
-    [{}],
-    [{ other: true }],
-    [null],
-  ])('rejects %j with 400 and changes nothing', (body) => {
+    [{ isHidden: 'yes' }, 'invalid_field', { field: 'isHidden' }],
+    [{ isStarred: 1 }, 'invalid_field', { field: 'isStarred' }],
+    [{ caption: 5 }, 'invalid_field', { field: 'caption' }],
+    [{ keywords: 'a,b' }, 'invalid_field', { field: 'keywords' }],
+    [{ keywords: ['a', 1] }, 'invalid_field', { field: 'keywords' }],
+    [{}, 'no_photo_fields', undefined],
+    [{ other: true }, 'no_photo_fields', undefined],
+    [null, 'invalid_body', undefined],
+  ])('rejects %j with 400 and code %s and changes nothing', (body, code, params) => {
     const result = api.updatePhoto(ids['a.jpg'], body);
-    expect(result.status).toBe(400);
+    expect(result).toEqual({ status: 400, body: { error: expect.any(String), code, ...(params && { params }) } });
     expect(fs.existsSync(path.join(dir, '.paloma.json'))).toBe(false);
     expect(row('a.jpg').isHidden).toBe(false);
   });
 
   it('responds 404 for an unknown photo', () => {
-    expect(api.updatePhoto(999999, { isStarred: true }).status).toBe(404);
+    expect(api.updatePhoto(999999, { isStarred: true }))
+      .toEqual({ status: 404, body: { error: 'Photo not found', code: 'photo_not_found' } });
   });
 
   it('responds 409 for an unreadable sidecar and leaves the file and the library unchanged', () => {
     fs.writeFileSync(path.join(dir, '.paloma.json'), '{broken');
     const result = api.updatePhoto(ids['a.jpg'], { isStarred: true });
 
-    expect(result.status).toBe(409);
+    expect(result).toMatchObject({
+      status: 409, body: { code: 'sidecar_unreadable', params: { files: path.join(dir, '.paloma.json') } },
+    });
     expect(fs.readFileSync(path.join(dir, '.paloma.json'), 'utf-8')).toBe('{broken');
     expect(row('a.jpg').isStarred).toBe(false);
     expect(console.error).toHaveBeenCalledWith(expect.stringContaining(dir), expect.anything());
@@ -108,7 +111,7 @@ describe('updatePhoto', () => {
     fs.chmodSync(dir, 0o555);
     const result = api.updatePhoto(ids['a.jpg'], { caption: 'x' });
 
-    expect(result.status).toBe(500);
+    expect(result).toMatchObject({ status: 500, body: { code: 'sidecar_write_failed', params: { folders: dir } } });
     expect(row('a.jpg').caption).toBeNull();
   });
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import type { Photo } from '../../../shared/types.js';
+import { useTranslation } from 'react-i18next';
 import { PhotoCard } from './PhotoCard.js';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeGrid as Grid } from 'react-window';
@@ -10,12 +11,14 @@ interface VirtualPhotoGridProps {
 }
 
 export const VirtualPhotoGrid: React.FC<VirtualPhotoGridProps> = ({ photos, onStarToggle }) => {
+  const { t, i18n } = useTranslation();
+
   if (photos.length === 0) {
     return (
       <div className="d-flex flex-column align-items-center justify-content-center h-100 text-center p-5">
         <div className="fs-1 mb-3">🖼️</div>
-        <h4 className="fw-bold">Світлин не знайдено</h4>
-        <p className="text-muted fs-5">Перевірте папки в PALOMA_PHOTOS_DIRS у файлі .env або змініть параметри пошуку.</p>
+        <h4 className="fw-bold">{t('grid.emptyTitle')}</h4>
+        <p className="text-muted fs-5">{t('grid.emptyHint')}</p>
       </div>
     );
   }
@@ -32,6 +35,7 @@ export const VirtualPhotoGrid: React.FC<VirtualPhotoGridProps> = ({ photos, onSt
 
           return (
             <Grid
+              direction={i18n.dir()}
               columnCount={columnCount}
               columnWidth={width / columnCount}
               height={height}

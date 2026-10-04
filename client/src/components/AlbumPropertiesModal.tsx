@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, Button, Form, Alert } from 'react-bootstrap';
+import { useTranslation } from 'react-i18next';
 import type { Album } from '../../../shared/types.js';
-import { albumRequest } from '../api/albums.js';
+import { apiRequest, describeError } from '../api/http.js';
 
 interface AlbumPropertiesModalProps {
   album: Album;
@@ -14,7 +15,8 @@ export const AlbumPropertiesModal: React.FC<AlbumPropertiesModalProps> = ({ albu
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
+  const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -38,11 +40,11 @@ export const AlbumPropertiesModal: React.FC<AlbumPropertiesModalProps> = ({ albu
     setSaving(true);
     setError(null);
     try {
-      await albumRequest('PATCH', `/api/albums/${album.token}`, patch);
+      await apiRequest('PATCH', `/api/albums/${album.token}`, patch);
       onSaved();
       onHide();
     } catch (err) {
-      setError((err as Error).message);
+      setError(err);
     } finally {
       setSaving(false);
     }
@@ -51,29 +53,31 @@ export const AlbumPropertiesModal: React.FC<AlbumPropertiesModalProps> = ({ albu
   return (
     <Modal show={show} onHide={onHide} centered>
       <Modal.Header closeButton>
-        <Modal.Title>Властивості альбому</Modal.Title>
+        <Modal.Title>{t('albumProperties.title')}</Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        {error && <Alert variant="danger">{error}</Alert>}
+        {error != null && <Alert variant="danger">{describeError(error, t)}</Alert>}
         <Form onSubmit={(e) => { e.preventDefault(); save(); }}>
           <Form.Group className="mb-3">
-            <Form.Label className="fw-bold">Назва</Form.Label>
+            <Form.Label className="fw-bold">{t('albumProperties.name')}</Form.Label>
             <Form.Control size="lg" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
           </Form.Group>
           <Form.Group className="mb-3">
-            <Form.Label className="fw-bold">Опис</Form.Label>
+            <Form.Label className="fw-bold">{t('albumProperties.description')}</Form.Label>
             <Form.Control as="textarea" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} />
           </Form.Group>
           <Form.Group>
-            <Form.Label className="fw-bold">Місце <span className="text-muted fw-normal">(необов'язково)</span></Form.Label>
+            <Form.Label className="fw-bold">
+              {t('albumProperties.location')} <span className="text-muted fw-normal">{t('albumProperties.optional')}</span>
+            </Form.Label>
             <Form.Control value={location} onChange={(e) => setLocation(e.target.value)} />
           </Form.Group>
         </Form>
       </Modal.Body>
       <Modal.Footer>
-        <Button variant="secondary" onClick={onHide}>Скасувати</Button>
+        <Button variant="secondary" onClick={onHide}>{t('common.cancel')}</Button>
         <Button variant="primary" onClick={save} disabled={saving || (name !== (album.name ?? '') && name.trim() === '')}>
-          Зберегти
+          {t('common.save')}
         </Button>
       </Modal.Footer>
     </Modal>

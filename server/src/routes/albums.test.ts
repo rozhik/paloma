@@ -75,6 +75,9 @@ describe('album routes', () => {
 
     expect(await send('DELETE', `/albums/${token}`)).toEqual({ status: 200, body: { success: true } });
     expect((await send('GET', '/albums')).body).toEqual([]);
-    expect((await send('PATCH', '/albums/1', { name: 'x' })).status).toBe(404);
+    expect(await send('PATCH', '/albums/1', { name: 'x' }))
+      .toEqual({ status: 404, body: { error: 'Album not found', code: 'album_not_found' } });
+    expect(await send('POST', '/albums', { name: '', photoIds }))
+      .toMatchObject({ status: 400, body: { code: 'album_name_required' } });
   });
 });

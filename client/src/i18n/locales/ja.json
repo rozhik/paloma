@@ -1,0 +1,160 @@
+{
+  "_meta": { "reviewed": false },
+  "app": {
+    "title": "Paloma — モダンな写真管理アプリ（Google Picasa の後継）"
+  },
+  "common": {
+    "cancel": "キャンセル",
+    "save": "保存",
+    "close": "閉じる",
+    "back": "戻る",
+    "untitled": "無題",
+    "photos_other": "{{count, number}} 枚の写真"
+  },
+  "language": {
+    "label": "言語"
+  },
+  "nav": {
+    "edition": "Senior Edition",
+    "searchPlaceholder": "名前、タグ、日付で写真を検索...",
+    "library": "ライブラリ",
+    "people": "人物",
+    "map": "地図",
+    "collage": "コラージュ"
+  },
+  "sidebar": {
+    "collections": "コレクション",
+    "allPhotos": "すべての写真",
+    "starred": "⭐ スター付き",
+    "recentImport": "📥 最近の取り込み",
+    "albums": "アルバム",
+    "noAlbums": "アルバムはまだありません。写真を選んで「アルバムへ」をクリックしてください。",
+    "folders": "監視中のフォルダ",
+    "noFolders": "フォルダがありません。.env ファイルの PALOMA_PHOTOS_DIRS に写真フォルダを指定し、サーバーを再起動してください。"
+  },
+  "grid": {
+    "emptyTitle": "写真が見つかりません",
+    "emptyHint": ".env ファイルの PALOMA_PHOTOS_DIRS のフォルダを確認するか、検索条件を変更してください。"
+  },
+  "photo": {
+    "star": "スターを付ける",
+    "unstar": "スターを外す",
+    "edited": "編集済み",
+    "geotagged": "位置情報あり"
+  },
+  "tray": {
+    "selected": "🖼️ 選択中:",
+    "removeFromTray": "トレイから外す",
+    "addToAlbum": "アルバムへ",
+    "removeFromAlbum": "アルバムから外す",
+    "makeCover": "表紙にする",
+    "clear": "クリア",
+    "export": "書き出し",
+    "print": "印刷",
+    "collage": "コラージュ",
+    "movie": "動画"
+  },
+  "album": {
+    "properties": "プロパティ",
+    "delete": "削除",
+    "deleteTitle": "アルバムを削除しますか？",
+    "deleteBody": "アルバム「{{name}}」を削除します。写真は元のフォルダに残ります。",
+    "deleteConfirm": "アルバムを削除"
+  },
+  "albumPicker": {
+    "title_other": "{{count, number}} 枚の写真をアルバムに追加",
+    "newAlbum": "新しいアルバム",
+    "newAlbumName": "新しいアルバムの名前",
+    "create": "アルバムを作成",
+    "add": "追加"
+  },
+  "albumProperties": {
+    "title": "アルバムのプロパティ",
+    "name": "名前",
+    "description": "説明",
+    "location": "場所",
+    "optional": "（任意）"
+  },
+  "editor": {
+    "back": "ライブラリに戻る",
+    "holdForOriginal": "押している間オリジナルを表示",
+    "title": "✏️ 写真エディタ",
+    "fillLight": "明るさ補正: {{value, number}}",
+    "contrast": "コントラスト: {{value, number}}",
+    "straighten": "傾き補正: {{value, number}}°",
+    "effects": "エフェクトとスタイル:",
+    "bw": "白黒",
+    "sepia": "セピア",
+    "saving": "保存中...",
+    "save": "変更を保存"
+  },
+  "collage": {
+    "title": "🎨 Paloma コラージュ作成",
+    "pile": "写真の山",
+    "grid": "グリッドコラージュ",
+    "download": "PNG をダウンロード"
+  },
+  "export": {
+    "title": "写真の一括書き出し",
+    "done_other": "{{count, number}} 枚の写真を書き出しました！",
+    "savedTo": "保存先フォルダ:",
+    "destination": "保存先フォルダ:",
+    "quality": "JPEG 品質（{{value, number}}%）:",
+    "maxWidth": "最大幅（px）:",
+    "originalSize": "元のサイズ",
+    "summary_other": "選択した <b>{{count, number}}</b> 枚の写真を、編集を適用して書き出します。",
+    "exporting": "書き出し中...",
+    "start": "書き出しを開始"
+  },
+  "print": {
+    "title": "写真を印刷",
+    "layout": "ページレイアウト:",
+    "single": "📄 1 ページに 1 枚（A4）",
+    "grid2x2": "🖼️ 2×2 グリッド（A4 に 4 枚）",
+    "photo10x15": "📸 写真用紙（10×15 cm）",
+    "printNow": "🖨️ 今すぐ印刷",
+    "preview_other": "印刷プレビュー（{{count, number}} 枚）"
+  },
+  "movie": {
+    "title": "MP4 スライドショー動画の作成",
+    "done": "スライドショーを作成しました！",
+    "path": "動画ファイル:",
+    "duration": "1 枚あたりの表示時間（{{value, number}} 秒）:",
+    "summary_other": "選択した <b>{{count, number}}</b> 枚の写真から 1080p の MP4 動画を作成します。",
+    "generating": "MP4 を作成中...",
+    "create": "動画を作成"
+  },
+  "map": {
+    "title": "📍 Paloma 写真マップ",
+    "found_other": "{{count, number}} 件の位置情報が見つかりました"
+  },
+  "people": {
+    "title": "👤 顔認識と人物",
+    "add": "人物を追加",
+    "namePlaceholder": "名前（例: 花子おばあちゃん）",
+    "create": "プロフィールを作成",
+    "catalog": "人物（{{count, number}}）",
+    "empty": "まだ人物がいません。左側に名前を入力するか、顔スキャンを実行してください。"
+  },
+  "errors": {
+    "network": "Paloma サーバーに接続できません。サーバーが起動しているか確認してください。",
+    "request_failed": "リクエストに失敗しました（{{status}}）。",
+    "not_changed": "変更されていません: {{folders}}",
+    "invalid_body": "リクエストが無効です。",
+    "invalid_field": "「{{field}}」の値が無効です。",
+    "album_name_required": "アルバム名を入力してください。",
+    "photo_ids_required": "写真を 1 枚以上選んでください。",
+    "no_album_fields": "アルバムに変更する内容がありません。",
+    "no_photo_fields": "写真に変更する内容がありません。",
+    "photo_not_found": "写真が見つかりません。ライブラリから削除された可能性があります。",
+    "album_not_found": "アルバムが見つかりません。削除された可能性があります。",
+    "file_not_found": "ファイルが見つかりません。",
+    "cover_not_in_album": "表紙にはこのアルバムの写真を指定してください。",
+    "sidecar_unreadable": "{{files}} を読み込めません。変更するには、ファイルを修正するか削除してください。",
+    "sidecar_write_failed": "{{folders}} の .paloma.json に変更を保存できませんでした。",
+    "album_empty": "このアルバムにはライブラリ内の写真がありません。",
+    "export_params_required": "写真と保存先フォルダを選んでください。",
+    "person_name_required": "名前を入力してください。",
+    "internal": "サーバーエラー: {{message}}"
+  }
+}

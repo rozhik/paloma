@@ -1,0 +1,160 @@
+{
+  "_meta": { "reviewed": false },
+  "app": {
+    "title": "Paloma — pengelola foto modern (penerus Google Picasa)"
+  },
+  "common": {
+    "cancel": "Batal",
+    "save": "Simpan",
+    "close": "Tutup",
+    "back": "Kembali",
+    "untitled": "Tanpa judul",
+    "photos_other": "{{count, number}} foto"
+  },
+  "language": {
+    "label": "Bahasa"
+  },
+  "nav": {
+    "edition": "Senior Edition",
+    "searchPlaceholder": "Cari foto menurut nama, tag, atau tanggal...",
+    "library": "Pustaka",
+    "people": "Orang",
+    "map": "Peta",
+    "collage": "Kolase"
+  },
+  "sidebar": {
+    "collections": "Koleksi",
+    "allPhotos": "Semua foto",
+    "starred": "⭐ Berbintang",
+    "recentImport": "📥 Impor terakhir",
+    "albums": "Album",
+    "noAlbums": "Belum ada album. Pilih foto lalu klik “Ke album”.",
+    "folders": "Folder yang dipantau",
+    "noFolders": "Tidak ada folder. Tulis folder foto Anda di PALOMA_PHOTOS_DIRS dalam file .env lalu mulai ulang server."
+  },
+  "grid": {
+    "emptyTitle": "Foto tidak ditemukan",
+    "emptyHint": "Periksa folder di PALOMA_PHOTOS_DIRS dalam file .env atau ubah pencarian."
+  },
+  "photo": {
+    "star": "Beri bintang",
+    "unstar": "Hapus bintang",
+    "edited": "Diedit",
+    "geotagged": "Memiliki geotag"
+  },
+  "tray": {
+    "selected": "🖼️ Dipilih:",
+    "removeFromTray": "Hapus dari baki",
+    "addToAlbum": "Ke album",
+    "removeFromAlbum": "Hapus dari album",
+    "makeCover": "Jadikan sampul",
+    "clear": "Kosongkan",
+    "export": "Ekspor",
+    "print": "Cetak",
+    "collage": "Kolase",
+    "movie": "Video"
+  },
+  "album": {
+    "properties": "Properti",
+    "delete": "Hapus",
+    "deleteTitle": "Hapus album?",
+    "deleteBody": "Album “{{name}}” akan dihapus. Foto tetap berada di foldernya.",
+    "deleteConfirm": "Hapus album"
+  },
+  "albumPicker": {
+    "title_other": "Tambahkan {{count, number}} foto ke album",
+    "newAlbum": "Album baru",
+    "newAlbumName": "Nama album baru",
+    "create": "Buat album",
+    "add": "Tambahkan"
+  },
+  "albumProperties": {
+    "title": "Properti album",
+    "name": "Nama",
+    "description": "Deskripsi",
+    "location": "Lokasi",
+    "optional": "(opsional)"
+  },
+  "editor": {
+    "back": "Kembali ke pustaka",
+    "holdForOriginal": "Tahan untuk melihat aslinya",
+    "title": "✏️ Editor foto",
+    "fillLight": "Pencerahan: {{value, number}}",
+    "contrast": "Kontras: {{value, number}}",
+    "straighten": "Luruskan: {{value, number}}°",
+    "effects": "Efek dan gaya:",
+    "bw": "Hitam putih",
+    "sepia": "Sepia",
+    "saving": "Menyimpan...",
+    "save": "Simpan perubahan"
+  },
+  "collage": {
+    "title": "🎨 Pembuat kolase Paloma",
+    "pile": "Tumpukan foto",
+    "grid": "Kolase kisi",
+    "download": "Unduh PNG"
+  },
+  "export": {
+    "title": "Ekspor foto massal",
+    "done_other": "{{count, number}} foto berhasil diekspor!",
+    "savedTo": "File disimpan di folder:",
+    "destination": "Folder tujuan:",
+    "quality": "Kualitas JPEG ({{value, number}}%):",
+    "maxWidth": "Lebar maksimum (px):",
+    "originalSize": "Ukuran asli",
+    "summary_other": "<b>{{count, number}}</b> foto terpilih akan diekspor dengan hasil editan.",
+    "exporting": "Mengekspor...",
+    "start": "Mulai ekspor"
+  },
+  "print": {
+    "title": "Cetak foto",
+    "layout": "Tata letak halaman:",
+    "single": "📄 1 foto per halaman (A4)",
+    "grid2x2": "🖼️ Kisi 2×2 (4 foto per A4)",
+    "photo10x15": "📸 Kertas foto (10×15 cm)",
+    "printNow": "🖨️ Cetak sekarang",
+    "preview_other": "Pratinjau cetak ({{count, number}} foto)"
+  },
+  "movie": {
+    "title": "Pembuat video tayangan slide MP4",
+    "done": "Tayangan slide selesai dibuat!",
+    "path": "File video:",
+    "duration": "Durasi satu slide ({{value, number}} dtk):",
+    "summary_other": "Video akan dibuat dari <b>{{count, number}}</b> foto terpilih dalam format MP4 1080p.",
+    "generating": "Membuat MP4...",
+    "create": "Buat video"
+  },
+  "map": {
+    "title": "📍 Peta foto Paloma",
+    "found_other": "{{count, number}} geotag ditemukan"
+  },
+  "people": {
+    "title": "👤 Pengenalan wajah dan orang",
+    "add": "Tambahkan orang baru",
+    "namePlaceholder": "Nama (misalnya: Nenek Sari)",
+    "create": "Buat profil",
+    "catalog": "Orang ({{count, number}})",
+    "empty": "Belum ada orang. Masukkan nama di sebelah kiri atau jalankan pemindai wajah."
+  },
+  "errors": {
+    "network": "Tidak dapat terhubung ke server Paloma. Pastikan server sedang berjalan.",
+    "request_failed": "Permintaan gagal ({{status}}).",
+    "not_changed": "Tidak diubah: {{folders}}",
+    "invalid_body": "Permintaan tidak valid.",
+    "invalid_field": "Nilai “{{field}}” tidak valid.",
+    "album_name_required": "Masukkan nama album.",
+    "photo_ids_required": "Pilih setidaknya satu foto.",
+    "no_album_fields": "Tidak ada yang diubah pada album.",
+    "no_photo_fields": "Tidak ada yang diubah pada foto.",
+    "photo_not_found": "Foto tidak ditemukan. Mungkin sudah dihapus dari pustaka.",
+    "album_not_found": "Album tidak ditemukan. Mungkin sudah dihapus.",
+    "file_not_found": "File tidak ditemukan.",
+    "cover_not_in_album": "Sampul harus berupa foto dari album ini.",
+    "sidecar_unreadable": "Tidak dapat membaca {{files}}. Perbaiki atau hapus file tersebut agar bisa membuat perubahan di sana.",
+    "sidecar_write_failed": "Gagal menyimpan perubahan ke .paloma.json di {{folders}}.",
+    "album_empty": "Album tidak memiliki foto di pustaka.",
+    "export_params_required": "Pilih foto dan folder tujuan.",
+    "person_name_required": "Masukkan nama.",
+    "internal": "Kesalahan server: {{message}}"
+  }
+}

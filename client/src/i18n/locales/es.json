@@ -1,0 +1,174 @@
+{
+  "_meta": { "reviewed": false },
+  "app": {
+    "title": "Paloma — un gestor de fotos moderno (sucesor de Google Picasa)"
+  },
+  "common": {
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "close": "Cerrar",
+    "back": "Atrás",
+    "untitled": "Sin título",
+    "photos_one": "{{count, number}} foto",
+    "photos_many": "{{count, number}} de fotos",
+    "photos_other": "{{count, number}} fotos"
+  },
+  "language": {
+    "label": "Idioma"
+  },
+  "nav": {
+    "edition": "Senior Edition",
+    "searchPlaceholder": "Buscar fotos por nombre, etiquetas o fecha...",
+    "library": "Biblioteca",
+    "people": "Personas",
+    "map": "Mapa",
+    "collage": "Collage"
+  },
+  "sidebar": {
+    "collections": "Colecciones",
+    "allPhotos": "Todas las fotos",
+    "starred": "⭐ Destacadas",
+    "recentImport": "📥 Última importación",
+    "albums": "Álbumes",
+    "noAlbums": "Aún no hay álbumes. Selecciona fotos y pulsa «Al álbum».",
+    "folders": "Carpetas vigiladas",
+    "noFolders": "No hay carpetas. Indica tus carpetas de fotos en PALOMA_PHOTOS_DIRS en el archivo .env y reinicia el servidor."
+  },
+  "grid": {
+    "emptyTitle": "No se encontraron fotos",
+    "emptyHint": "Revisa las carpetas de PALOMA_PHOTOS_DIRS en el archivo .env o cambia la búsqueda."
+  },
+  "photo": {
+    "star": "Destacar",
+    "unstar": "Quitar de destacadas",
+    "edited": "Editada",
+    "geotagged": "Con geoetiqueta"
+  },
+  "tray": {
+    "selected": "🖼️ Seleccionadas:",
+    "removeFromTray": "Quitar de la bandeja",
+    "addToAlbum": "Al álbum",
+    "removeFromAlbum": "Quitar del álbum",
+    "makeCover": "Usar como portada",
+    "clear": "Vaciar",
+    "export": "Exportar",
+    "print": "Imprimir",
+    "collage": "Collage",
+    "movie": "Vídeo"
+  },
+  "album": {
+    "properties": "Propiedades",
+    "delete": "Eliminar",
+    "deleteTitle": "¿Eliminar el álbum?",
+    "deleteBody": "Se eliminará el álbum «{{name}}». Las fotos se quedan en sus carpetas.",
+    "deleteConfirm": "Eliminar álbum"
+  },
+  "albumPicker": {
+    "title_one": "Añadir {{count, number}} foto a un álbum",
+    "title_many": "Añadir {{count, number}} de fotos a un álbum",
+    "title_other": "Añadir {{count, number}} fotos a un álbum",
+    "newAlbum": "Álbum nuevo",
+    "newAlbumName": "Nombre del álbum nuevo",
+    "create": "Crear álbum",
+    "add": "Añadir"
+  },
+  "albumProperties": {
+    "title": "Propiedades del álbum",
+    "name": "Nombre",
+    "description": "Descripción",
+    "location": "Lugar",
+    "optional": "(opcional)"
+  },
+  "editor": {
+    "back": "Volver a la biblioteca",
+    "holdForOriginal": "Mantén pulsado para ver el original",
+    "title": "✏️ Editor de fotos",
+    "fillLight": "Luz de relleno: {{value, number}}",
+    "contrast": "Contraste: {{value, number}}",
+    "straighten": "Enderezar: {{value, number}}°",
+    "effects": "Efectos y estilos:",
+    "bw": "Blanco y negro",
+    "sepia": "Sepia",
+    "saving": "Guardando...",
+    "save": "Guardar cambios"
+  },
+  "collage": {
+    "title": "🎨 Creador de collages de Paloma",
+    "pile": "Montón de fotos",
+    "grid": "Collage en cuadrícula",
+    "download": "Descargar PNG"
+  },
+  "export": {
+    "title": "Exportación de fotos por lotes",
+    "done_one": "¡{{count, number}} foto exportada!",
+    "done_many": "¡{{count, number}} de fotos exportadas!",
+    "done_other": "¡{{count, number}} fotos exportadas!",
+    "savedTo": "Archivos guardados en la carpeta:",
+    "destination": "Carpeta de destino:",
+    "quality": "Calidad JPEG ({{value, number}} %):",
+    "maxWidth": "Ancho máximo (px):",
+    "originalSize": "Tamaño original",
+    "summary_one": "Se exportará <b>{{count, number}}</b> foto seleccionada con las ediciones aplicadas.",
+    "summary_many": "Se exportarán <b>{{count, number}}</b> de fotos seleccionadas con las ediciones aplicadas.",
+    "summary_other": "Se exportarán <b>{{count, number}}</b> fotos seleccionadas con las ediciones aplicadas.",
+    "exporting": "Exportando...",
+    "start": "Iniciar exportación"
+  },
+  "print": {
+    "title": "Imprimir fotos",
+    "layout": "Diseño de página:",
+    "single": "📄 1 foto por página (A4)",
+    "grid2x2": "🖼️ Cuadrícula 2×2 (4 fotos por A4)",
+    "photo10x15": "📸 Papel fotográfico (10×15 cm)",
+    "printNow": "🖨️ Imprimir ahora",
+    "preview_one": "Vista previa de impresión ({{count, number}} foto)",
+    "preview_many": "Vista previa de impresión ({{count, number}} de fotos)",
+    "preview_other": "Vista previa de impresión ({{count, number}} fotos)"
+  },
+  "movie": {
+    "title": "Creador de presentaciones en vídeo MP4",
+    "done": "¡Presentación creada!",
+    "path": "Archivo de vídeo:",
+    "duration": "Duración de cada diapositiva ({{value, number}} s):",
+    "summary_one": "El vídeo se creará a partir de <b>{{count, number}}</b> foto seleccionada en MP4 1080p.",
+    "summary_many": "El vídeo se creará a partir de <b>{{count, number}}</b> de fotos seleccionadas en MP4 1080p.",
+    "summary_other": "El vídeo se creará a partir de <b>{{count, number}}</b> fotos seleccionadas en MP4 1080p.",
+    "generating": "Creando MP4...",
+    "create": "Crear vídeo"
+  },
+  "map": {
+    "title": "📍 Mapa de fotos de Paloma",
+    "found_one": "{{count, number}} geoetiqueta encontrada",
+    "found_many": "{{count, number}} de geoetiquetas encontradas",
+    "found_other": "{{count, number}} geoetiquetas encontradas"
+  },
+  "people": {
+    "title": "👤 Reconocimiento facial y personas",
+    "add": "Añadir una persona",
+    "namePlaceholder": "Nombre (por ejemplo: Abuela Carmen)",
+    "create": "Crear perfil",
+    "catalog": "Personas ({{count, number}})",
+    "empty": "Aún no hay personas. Escribe un nombre a la izquierda o ejecuta el escáner de caras."
+  },
+  "errors": {
+    "network": "No se puede conectar con el servidor de Paloma. Comprueba que está en marcha.",
+    "request_failed": "La solicitud ha fallado ({{status}}).",
+    "not_changed": "Sin cambios: {{folders}}",
+    "invalid_body": "La solicitud no es válida.",
+    "invalid_field": "Valor no válido para «{{field}}».",
+    "album_name_required": "Escribe un nombre para el álbum.",
+    "photo_ids_required": "Selecciona al menos una foto.",
+    "no_album_fields": "No hay nada que cambiar en el álbum.",
+    "no_photo_fields": "No hay nada que cambiar en la foto.",
+    "photo_not_found": "No se encontró la foto. Puede que se haya quitado de la biblioteca.",
+    "album_not_found": "No se encontró el álbum. Puede que se haya eliminado.",
+    "file_not_found": "No se encontró el archivo.",
+    "cover_not_in_album": "La portada debe ser una foto de este álbum.",
+    "sidecar_unreadable": "No se puede leer {{files}}. Corrige o elimina el archivo para hacer cambios allí.",
+    "sidecar_write_failed": "No se pudieron guardar los cambios en .paloma.json en {{folders}}.",
+    "album_empty": "El álbum no tiene fotos en la biblioteca.",
+    "export_params_required": "Elige las fotos y una carpeta de destino.",
+    "person_name_required": "Escribe un nombre.",
+    "internal": "Error del servidor: {{message}}"
+  }
+}

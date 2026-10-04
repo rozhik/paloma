@@ -4,13 +4,14 @@ import { db } from '../db/index.js';
 import { albumPhotos, edits, folders, photos } from '../db/schema.js';
 import { SidecarService, SidecarUnreadableError, type FieldPatch } from './SidecarService.js';
 import { FolderScannerService } from './FolderScannerService.js';
-import type { Photo } from '../../../shared/types.js';
+import { apiError } from './apiError.js';
+import type { ApiError, Photo } from '../../../shared/types.js';
 
 type PhotoRow = typeof photos.$inferSelect;
 type FolderRow = typeof folders.$inferSelect;
 type EditRow = typeof edits.$inferSelect;
 
-export type ApiResult<T> = { status: 200; body: T } | { status: 400 | 404 | 409 | 500; body: { error: string } };
+export type ApiResult<T> = { status: 200; body: T } | { status: 400 | 404 | 409 | 500; body: ApiError };
 
 export function toApiPhoto(photo: PhotoRow, folder: FolderRow, edit: EditRow | null, albums: string[] = []): Photo {
   return {
@@ -78,31 +79,38 @@ export function listFolders(): Array<FolderRow & { photoCount: number }> {
   }));
 }
 
-/** Validates a PATCH body into a field patch; returns an error message for an invalid body. */
-export function parsePhotoPatch(body: unknown): FieldPatch | string {
-  if (typeof body !== 'object' || body === null || Array.isArray(body)) return 'Body must be a JSON object';
+const invalidField = (field: string, expected: string): ApiError =>
+  apiError('invalid_field', `${field} must be ${expected}`, { field });
+
+/** Validates a PATCH body into a field patch; returns an error body for an invalid one. */
+export function parsePhotoPatch(body: unknown): FieldPatch | ApiError {
+  if (typeof body !== 'object' || body === null || Array.isArray(body)) {
+    return apiError('invalid_body', 'Body must be a JSON object');
+  }
   const { isStarred, isHidden, caption, keywords } = body as Record<string, unknown>;
 
   const patch: FieldPatch = {};
   if (isStarred !== undefined) {
-    if (typeof isStarred !== 'boolean') return 'isStarred must be a boolean';
+    if (typeof isStarred !== 'boolean') return invalidField('isStarred', 'a boolean');
     patch.star = isStarred;
   }
   if (isHidden !== undefined) {
-    if (typeof isHidden !== 'boolean') return 'isHidden must be a boolean';
+    if (typeof isHidden !== 'boolean') return invalidField('isHidden', 'a boolean');
     patch.hidden = isHidden;
   }
   if (caption !== undefined) {
-    if (typeof caption !== 'string') return 'caption must be a string';
+    if (typeof caption !== 'string') return invalidField('caption', 'a string');
     patch.caption = caption;
   }
   if (keywords !== undefined) {
     if (!Array.isArray(keywords) || !keywords.every((k) => typeof k === 'string')) {
-      return 'keywords must be an array of strings';
+      return invalidField('keywords', 'an array of strings');
     }
     patch.keywords = [...new Set(keywords.filter((k) => k !== ''))];
   }
-  if (Object.keys(patch).length === 0) return 'Expected at least one of isStarred, isHidden, caption, keywords';
+  if (Object.keys(patch).length === 0) {
+    return apiError('no_photo_fields', 'Expected at least one of isStarred, isHidden, caption, keywords');
+  }
   return patch;
 }
 
@@ -119,10 +127,10 @@ function getApiPhoto(photoId: number): Photo | undefined {
 /** Saves a change to a photo's fields in its folder's sidecar first, then updates the library from disk. */
 export function updatePhoto(photoId: number, body: unknown): ApiResult<Photo> {
   const patch = parsePhotoPatch(body);
-  if (typeof patch === 'string') return { status: 400, body: { error: patch } };
+  if ('code' in patch) return { status: 400, body: patch };
 
   const photo = getApiPhoto(photoId);
-  if (!photo?.folderPath) return { status: 404, body: { error: 'Photo not found' } };
+  if (!photo?.folderPath) return { status: 404, body: apiError('photo_not_found', 'Photo not found') };
   const dir = photo.folderPath;
 
   try {
@@ -130,8 +138,12 @@ export function updatePhoto(photoId: number, body: unknown): ApiResult<Photo> {
   } catch (err) {
     console.error(`Failed to save ${photo.filename} to the sidecar in ${dir}:`, err);
     return err instanceof SidecarUnreadableError
-      ? { status: 409, body: { error: `${err.message}. Fix or remove the file to change photos in this folder.` } }
-      : { status: 500, body: { error: `Could not write .paloma.json in ${dir}` } };
+      ? {
+        status: 409,
+        body: apiError('sidecar_unreadable', `${err.message}. Fix or remove the file to change photos in this folder.`,
+          { files: err.filePath }),
+      }
+      : { status: 500, body: apiError('sidecar_write_failed', `Could not write .paloma.json in ${dir}`, { folders: dir }) };
   }
 
   // The whole folder, since saving may also have re-imported a changed Picasa .ini

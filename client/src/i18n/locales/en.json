@@ -1,0 +1,166 @@
+{
+  "app": {
+    "title": "Paloma — a modern photo manager (Google Picasa successor)"
+  },
+  "common": {
+    "cancel": "Cancel",
+    "save": "Save",
+    "close": "Close",
+    "back": "Back",
+    "untitled": "Untitled",
+    "photos_one": "{{count, number}} photo",
+    "photos_other": "{{count, number}} photos"
+  },
+  "language": {
+    "label": "Language"
+  },
+  "nav": {
+    "edition": "Senior Edition",
+    "searchPlaceholder": "Search photos by name, tags or date...",
+    "library": "Library",
+    "people": "People",
+    "map": "Map",
+    "collage": "Collage"
+  },
+  "sidebar": {
+    "collections": "Collections",
+    "allPhotos": "All photos",
+    "starred": "⭐ Starred",
+    "recentImport": "📥 Last import",
+    "albums": "Albums",
+    "noAlbums": "No albums yet. Select photos and click “Add to album”.",
+    "folders": "Watched folders",
+    "noFolders": "No folders. List your photo folders in PALOMA_PHOTOS_DIRS in the .env file and restart the server."
+  },
+  "grid": {
+    "emptyTitle": "No photos found",
+    "emptyHint": "Check the folders in PALOMA_PHOTOS_DIRS in the .env file or change your search."
+  },
+  "photo": {
+    "star": "Add to starred",
+    "unstar": "Remove from starred",
+    "edited": "Edited",
+    "geotagged": "Geotagged"
+  },
+  "tray": {
+    "selected": "🖼️ Selected:",
+    "removeFromTray": "Remove from the tray",
+    "addToAlbum": "Add to album",
+    "removeFromAlbum": "Remove from album",
+    "makeCover": "Make cover",
+    "clear": "Clear",
+    "export": "Export",
+    "print": "Print",
+    "collage": "Collage",
+    "movie": "Video"
+  },
+  "album": {
+    "properties": "Properties",
+    "delete": "Delete",
+    "deleteTitle": "Delete album?",
+    "deleteBody": "The album “{{name}}” will be deleted. The photos stay in their folders.",
+    "deleteConfirm": "Delete album"
+  },
+  "albumPicker": {
+    "title_one": "Add {{count, number}} photo to an album",
+    "title_other": "Add {{count, number}} photos to an album",
+    "newAlbum": "New album",
+    "newAlbumName": "Name of the new album",
+    "create": "Create album",
+    "add": "Add"
+  },
+  "albumProperties": {
+    "title": "Album properties",
+    "name": "Name",
+    "description": "Description",
+    "location": "Location",
+    "optional": "(optional)"
+  },
+  "editor": {
+    "back": "Back to library",
+    "holdForOriginal": "Hold to see the original",
+    "title": "✏️ Photo editor",
+    "fillLight": "Fill light: {{value, number}}",
+    "contrast": "Contrast: {{value, number}}",
+    "straighten": "Straighten: {{value, number}}°",
+    "effects": "Effects and styles:",
+    "bw": "Black and white",
+    "sepia": "Sepia",
+    "saving": "Saving...",
+    "save": "Save changes"
+  },
+  "collage": {
+    "title": "🎨 Paloma collage builder",
+    "pile": "Picture pile",
+    "grid": "Grid collage",
+    "download": "Download PNG"
+  },
+  "export": {
+    "title": "Batch photo export",
+    "done_one": "Exported {{count, number}} photo!",
+    "done_other": "Exported {{count, number}} photos!",
+    "savedTo": "Files saved to the folder:",
+    "destination": "Destination folder:",
+    "quality": "JPEG quality ({{value, number}}%):",
+    "maxWidth": "Maximum width (px):",
+    "originalSize": "Original size",
+    "summary_one": "<b>{{count, number}}</b> selected photo will be exported with edits applied.",
+    "summary_other": "<b>{{count, number}}</b> selected photos will be exported with edits applied.",
+    "exporting": "Exporting...",
+    "start": "Start export"
+  },
+  "print": {
+    "title": "Print photos",
+    "layout": "Page layout:",
+    "single": "📄 1 photo per page (A4)",
+    "grid2x2": "🖼️ 2×2 grid (4 photos per A4)",
+    "photo10x15": "📸 Photo paper (10×15 cm)",
+    "printNow": "🖨️ Print now",
+    "preview_one": "Print preview ({{count, number}} photo)",
+    "preview_other": "Print preview ({{count, number}} photos)"
+  },
+  "movie": {
+    "title": "MP4 slideshow video maker",
+    "done": "Slideshow created!",
+    "path": "Video file:",
+    "duration": "Duration of one slide ({{value, number}} s):",
+    "summary_one": "The video will be made from <b>{{count, number}}</b> selected photo as 1080p MP4.",
+    "summary_other": "The video will be made from <b>{{count, number}}</b> selected photos as 1080p MP4.",
+    "generating": "Making MP4...",
+    "create": "Create video"
+  },
+  "map": {
+    "title": "📍 Paloma photo map",
+    "found_one": "Found {{count, number}} geotag",
+    "found_other": "Found {{count, number}} geotags"
+  },
+  "people": {
+    "title": "👤 Face recognition and people",
+    "add": "Add a new person",
+    "namePlaceholder": "Name (for example: Grandma Helen)",
+    "create": "Create profile",
+    "catalog": "People ({{count, number}})",
+    "empty": "No people added yet. Enter a name on the left or run the face scanner."
+  },
+  "errors": {
+    "network": "Cannot reach the Paloma server. Check that it is running.",
+    "request_failed": "The request failed ({{status}}).",
+    "not_changed": "Not changed: {{folders}}",
+    "invalid_body": "The request is invalid.",
+    "invalid_field": "Invalid value for “{{field}}”.",
+    "album_name_required": "Enter an album name.",
+    "photo_ids_required": "Select at least one photo.",
+    "no_album_fields": "Nothing to change in the album.",
+    "no_photo_fields": "Nothing to change in the photo.",
+    "photo_not_found": "The photo was not found. It may have been removed from the library.",
+    "album_not_found": "The album was not found. It may have been deleted.",
+    "file_not_found": "The file was not found.",
+    "cover_not_in_album": "The cover must be a photo from this album.",
+    "sidecar_unreadable": "Cannot read {{files}}. Fix or remove the file to make changes there.",
+    "sidecar_write_failed": "Could not save changes to .paloma.json in {{folders}}.",
+    "album_empty": "The album has no photos in the library.",
+    "export_params_required": "Choose photos and a destination folder.",
+    "person_name_required": "Enter a name.",
+    "internal": "Server error: {{message}}"
+  }
+}
