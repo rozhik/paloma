@@ -1,0 +1,30 @@
+schema: spec-driven
+
+context: |
+  Language: all committed artifacts (proposal, design, specs, tasks) are written in English.
+  Drafts, explore-mode notes and discussion with the user may be in Ukrainian; translate to English
+  when an artifact is finalized.
+
+  Sources of truth:
+  - openspec/specs/ holds only confirmed behavior; it grows only through archived changes.
+  - docs/paloma/ and docs/picassa/08-paloma-json-format.md are unconfirmed proposals (ideas, not requirements).
+    Use them as input for proposals, but never treat them as decided; ask the user when a change depends on them.
+  - docs/picassa/01-07 describe the original Google Picasa (reverse-engineering reference).
+  - The current code is a demo MVP. It may be reused as a starting point, but its behavior is not a contract:
+    a change may rewrite or drop any part of it. Design docs state what is reused from the MVP.
+
+  Product: Paloma is a local photo manager, a successor to Google Picasa.
+
+  Configuration comes from .env (see .env.example); never hardcode ports or paths.
+  Shared client/server types live in shared/types.ts (never edit the generated shared/types.js).
+
+rules:
+  specs:
+    - Describe observable behavior, not implementation details
+    - Every requirement has at least one WHEN/THEN scenario
+  design:
+    - When touching files in the user's photo folders, state exactly which files are read and written
+    - List which MVP code is reused, rewritten or dropped
+  tasks:
+    - Include tests (vitest, *.test.ts next to sources) for new server logic
+    - Last task verifies `npm run build` and `npm test` pass
