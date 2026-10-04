@@ -26,6 +26,7 @@ Google Picasa — це настільний додаток для каталог
 | **5. Організація та геодані** | Екран розпізнавання облич (People), інтерактивна карта (Places), пакетне перейменування | [05-organizer-tools.md](file:///Users/orozhyk/proj/picassa/docs/picassa/05-organizer-tools.md) |
 | **6. Збереження та метадані** | Неруйнівне редагування, оригінали `.picasaoriginals`, службовий файл `.picasa.ini`, база DB3, EXIF/IPTC/XMP | [06-storage-and-metadata.md](file:///Users/orozhyk/proj/picassa/docs/picassa/06-storage-and-metadata.md) |
 | **7. Формат `.picasa.ini`** | Специфікація для reverse engineering: секції, ключі, ланцюжки фільтрів, `rect64`, текстові шари | [07-picasa-ini-format.md](07-picasa-ini-format.md) |
+| **8. Формат `.paloma.json`** | Власний sidecar Paloma (`.ini` лише імпортується): структура JSON, відповідність ключам `.picasa.ini`, злиття, Save/Revert через `.picasaoriginals` | [08-paloma-json-format.md](08-paloma-json-format.md) |
 
 ---
 

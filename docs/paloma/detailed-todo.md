@@ -62,6 +62,11 @@
 - [x] **4.3. Збереження та серверний рендеринг:**
   - [x] Налаштувати запис опису правок у форматі JSON DAG у базу SQLite та сайдкар-файл `.paloma.json`.
   - [x] Реалізувати підсистему Node.js `sharp` для запікання фінальних зображень при експорті.
+- [ ] **4.4. Перехід на формат `.paloma.json` v2 ([08-paloma-json-format.md](../picassa/08-paloma-json-format.md)):**
+  - [ ] Описати типи v2 у `shared/types.ts`: `folder`, `albums`, `people`, `photos` з `edits` як впорядкованим масивом фільтрів, `import`, `extra`.
+  - [ ] Мігрувати v1 → v2: `is_starred` → `star`, `edits.crop` `[x, y, w, h]` → `crop64` з `left/top/right/bottom`, `straighten` → `tilt`, `tuning` → `finetune2`/`fill`/`unsharp2` у масиві `edits`.
+  - [ ] Переписати `SidecarService` під v2 (атомарний запис, стабільний порядок ключів) і читати v1-файли з автоматичною міграцією.
+  - [ ] Тести міграції на прикладах v1-файлів.
 
 ---
 
