@@ -9,7 +9,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "better-sqlite3": "^9.4.0",
+    "better-sqlite3": "^13.0.3",
     "chokidar": "^3.6.0",
     "cors": "^2.8.5",
     "dotenv": "^18.0.5",

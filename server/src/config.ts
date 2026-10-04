@@ -19,6 +19,14 @@ function resolveDir(value: string | undefined, fallback: string): string {
   return path.isAbsolute(value) ? value : path.resolve(process.cwd(), value);
 }
 
+function resolveDirList(value: string | undefined): string[] {
+  return (value ?? '')
+    .split(',')
+    .map((dir) => dir.trim())
+    .filter(Boolean)
+    .map((dir) => resolveDir(dir, dir));
+}
+
 const dataDir = resolveDir(
   process.env.PALOMA_DATA_DIR,
   path.join(process.cwd(), '.paloma_data'),
@@ -28,9 +36,6 @@ export const config = {
   port: Number(process.env.PORT) || 3001,
   dataDir,
   cacheDir: resolveDir(process.env.PALOMA_CACHE_DIR, path.join(dataDir, 'cache')),
-  photosDirs: (process.env.PALOMA_PHOTOS_DIRS ?? '')
-    .split(',')
-    .map((dir) => dir.trim())
-    .filter(Boolean)
-    .map((dir) => resolveDir(dir, dir)),
+  photosDirs: resolveDirList(process.env.PALOMA_PHOTOS_DIRS),
+  excludeDirs: resolveDirList(process.env.PALOMA_EXCLUDE_DIRS),
 } as const;
