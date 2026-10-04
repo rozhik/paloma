@@ -6,3 +6,6 @@ build/
 .env
 *.log
 .DS_Store
+
+# Obsidian vault settings
+.obsidian/
