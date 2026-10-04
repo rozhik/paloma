@@ -1,21 +1,20 @@
 import sharp from 'sharp';
 import path from 'node:path';
 import fs from 'node:fs';
+import { config } from '../config.js';
 
-const cacheDir = process.env.PALOMA_CACHE_DIR || path.join(process.cwd(), '.paloma_data', 'cache');
-
-if (!fs.existsSync(cacheDir)) {
-  fs.mkdirSync(cacheDir, { recursive: true });
+if (!fs.existsSync(config.cacheDir)) {
+  fs.mkdirSync(config.cacheDir, { recursive: true });
 }
 
 export class ThumbnailService {
   public static getCacheDir(): string {
-    return cacheDir;
+    return config.cacheDir;
   }
 
   public static getThumbnailPath(fileHash: string, size: 'thumb' | 'preview'): string {
     const filename = `${fileHash}_${size}.webp`;
-    return path.join(cacheDir, filename);
+    return path.join(config.cacheDir, filename);
   }
 
   public static async generateThumbnails(filePath: string, fileHash: string): Promise<{ width: number; height: number }> {

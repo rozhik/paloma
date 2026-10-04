@@ -2,15 +2,14 @@ import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import path from 'node:path';
 import fs from 'node:fs';
+import { config } from '../config.js';
 import * as schema from './schema.js';
 
-const appDir = process.env.PALOMA_DATA_DIR || path.join(process.cwd(), '.paloma_data');
-
-if (!fs.existsSync(appDir)) {
-  fs.mkdirSync(appDir, { recursive: true });
+if (!fs.existsSync(config.dataDir)) {
+  fs.mkdirSync(config.dataDir, { recursive: true });
 }
 
-const dbPath = path.join(appDir, 'paloma.db');
+const dbPath = path.join(config.dataDir, 'paloma.db');
 const sqlite = new Database(dbPath);
 
 sqlite.pragma('journal_mode = WAL');

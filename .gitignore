@@ -3,5 +3,6 @@ dist/
 build/
 .paloma_data/
 .paloma/
+.env
 *.log
 .DS_Store
