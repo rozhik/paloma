@@ -13,6 +13,31 @@ export interface PhotoMetadata {
   longitude: number | null;
 }
 
+type GpsInfo = ReturnType<typeof exifReader>['GPSInfo'];
+
+/** Signed decimal degrees from EXIF degrees/minutes/seconds and a hemisphere ref; null when malformed. */
+function toDegrees(dms: unknown, ref: unknown, negativeRef: 'S' | 'W'): number | null {
+  if (!Array.isArray(dms) || dms.length === 0 || dms.length > 3) return null;
+  if (!dms.every((part) => typeof part === 'number' && Number.isFinite(part) && part >= 0)) return null;
+  const [degrees, minutes = 0, seconds = 0] = dms as number[];
+  const value = degrees + minutes / 60 + seconds / 3600;
+  return typeof ref === 'string' && ref.trim().toUpperCase() === negativeRef ? -value : value;
+}
+
+/**
+ * The camera location from the EXIF GPS block (`GPSInfo` in exif-reader 2.x), in decimal degrees.
+ * Out-of-range coordinates and the 0,0 that some cameras write without a fix count as no location.
+ */
+export function gpsLocation(gps: GpsInfo): { latitude: number; longitude: number } | null {
+  if (!gps) return null;
+  const latitude = toDegrees(gps.GPSLatitude, gps.GPSLatitudeRef, 'S');
+  const longitude = toDegrees(gps.GPSLongitude, gps.GPSLongitudeRef, 'W');
+  if (latitude === null || longitude === null) return null;
+  if (Math.abs(latitude) > 90 || Math.abs(longitude) > 180) return null;
+  if (latitude === 0 && longitude === 0) return null;
+  return { latitude, longitude };
+}
+
 export class MetadataService {
   public static calculateFileHash(filePath: string): string {
     const buffer = fs.readFileSync(filePath);
@@ -40,24 +65,14 @@ export class MetadataService {
       if (metadata.exif) {
         try {
           const parsedExif = exifReader(metadata.exif);
+          // Before the date: an invalid date throws and must not cost the photo its location
+          const location = gpsLocation(parsedExif.GPSInfo);
+          if (location) ({ latitude, longitude } = location);
+
           if (parsedExif.Photo?.DateTimeOriginal) {
             dateTaken = new Date(parsedExif.Photo.DateTimeOriginal).toISOString();
           } else if (parsedExif.Image?.DateTime) {
             dateTaken = new Date(parsedExif.Image.DateTime).toISOString();
-          }
-
-          const gps = (parsedExif as any).gps || (parsedExif as any).GPS;
-          if (gps?.GPSLatitude && gps?.GPSLongitude) {
-            const lat = gps.GPSLatitude;
-            const lon = gps.GPSLongitude;
-            if (Array.isArray(lat) && lat.length >= 3) {
-              const calcLat = lat[0] + lat[1] / 60 + lat[2] / 3600;
-              latitude = gps.GPSLatitudeRef === 'S' ? -calcLat : calcLat;
-            }
-            if (Array.isArray(lon) && lon.length >= 3) {
-              const calcLon = lon[0] + lon[1] / 60 + lon[2] / 3600;
-              longitude = gps.GPSLongitudeRef === 'W' ? -calcLon : calcLon;
-            }
           }
         } catch {
           // EXIF parsing fallback
