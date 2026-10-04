@@ -216,6 +216,8 @@ export class FolderScannerService {
 
     await new Promise<void>((resolve) => watcher.once('ready', resolve));
     await queue;
+    // Photos already in the library skip indexing; bring their fields and albums in line with the folder files
+    for (const dir of folderIds.keys()) this.applyFolderState(dir, getFolderState(dir));
     ready = true;
     return rootFolderId;
   }

@@ -540,6 +540,23 @@ describe('FolderScannerService', () => {
       await vi.waitFor(() => expect(albumMembers()).toEqual({ c9ea: [path.join(photosRoot, 'a.jpg')] }), WAIT);
     });
 
+    it('applies folder files to photos already in the library on restart', async () => {
+      await makeImage(path.join(photosRoot, 'a.jpg'));
+      await makeImage(path.join(photosRoot, 'b.jpg'));
+      await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
+      await Scanner.stopAll();
+      expect(fieldsOf('a.jpg')).toEqual(NO_FIELDS);
+
+      // Changed while the server was down; the album tables start empty, as after the upgrade
+      writeSidecar(photosRoot, { 'a.jpg': { star: true, albums: ['c9ea'] } }, { albums: { c9ea: { name: 'Birds' } } });
+      for (const table of [schema.albumPhotos, schema.folderAlbums]) db.delete(table).run();
+      await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
+
+      expect(fieldsOf('a.jpg').isStarred).toBe(true);
+      expect(albumMembers()).toEqual({ c9ea: [path.join(photosRoot, 'a.jpg')] });
+      expect(folderAlbumNames()).toEqual({ [photosRoot]: { c9ea: 'Birds' } });
+    });
+
     it('takes no albums from an unreadable sidecar', async () => {
       const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
       await makeImage(path.join(photosRoot, 'a.jpg'));
