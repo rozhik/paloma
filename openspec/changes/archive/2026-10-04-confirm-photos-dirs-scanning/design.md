@@ -8,7 +8,7 @@ Current MVP state:
 - `server/src/index.ts` calls `FolderScannerService.scanAndWatchFolder(dir)` for each entry of `config.photosDirs` after `app.listen`.
 - `FolderScannerService` starts one chokidar watcher per root (`ignoreInitial: false`), so the initial scan and live watching use the same `add` events. Files are indexed one at a time through a promise queue per watcher. `isIgnored` skips dot-names, `node_modules` and `config.excludeDirs`.
 - `indexPhoto` skips a file if a row with the same folder and filename exists; otherwise it extracts metadata, generates thumbnails (cache files named by content hash), applies the folder's `.paloma.json` (star, geo, edits) and inserts a row.
-- `unlink` deletes only the `photos` row. SQLite foreign keys are **not** enabled (`PRAGMA foreign_keys` is never set), so `ON DELETE CASCADE` in the schema does nothing and `edits`, `face_annotations`, `photo_tags`, `album_photos` rows are orphaned.
+- `unlink` deletes only the `photos` row. SQLite foreign keys are enabled (better-sqlite3 turns `PRAGMA foreign_keys` on by default, verified during implementation), so `ON DELETE CASCADE` removes the dependent `edits`, `face_annotations`, `photo_tags`, `album_photos` rows. The code never sets the pragma itself.
 - `change` events are not handled.
 - Each root has its own watcher, queue and folder-id map; with nested roots both watchers index the same files concurrently and can insert duplicates.
 
@@ -21,7 +21,7 @@ Current MVP state:
 **Non-Goals:**
 - Reconciling files deleted or changed while the server was off.
 - Changing metadata extraction, thumbnail sizes or the `.paloma.json` format.
-- Enabling SQLite foreign keys globally.
+- Changing the SQLite `foreign_keys` setting.
 - Cleaning up stale thumbnail cache files.
 
 ## Decisions
@@ -36,7 +36,9 @@ Alternative considered: prune lazily per root after its scan finishes. Rejected:
 ### 2. Explicit deletion of dependent rows
 Add one internal helper that removes photos by id in a single transaction: `edits`, `face_annotations`, `photo_tags`, `album_photos`, then `photos`. Use it both for pruning and for the `unlink` handler, so a deleted photo leaves no data behind (spec: "Photos deleted while running leave the library").
 
-Alternative considered: `PRAGMA foreign_keys = ON`. Rejected for now: it changes behavior of every MVP route (e.g. inserts with unknown ids start failing) and is outside this change.
+Cascades already do the same work today, so this is a safeguard: removal stays complete even if the `foreign_keys` pragma is ever turned off, since the code doesn't set it explicitly.
+
+Alternative considered: delete only `photos`/`folders` rows and rely on `ON DELETE CASCADE`. Not chosen: correctness would depend on a driver default rather than on this code. (The original draft of this design wrongly assumed foreign keys were off.)
 
 ### 3. Collapse nested roots
 Before scanning, resolve and de-duplicate `config.photosDirs` and drop every root that lies inside another configured root. Only the outer roots get a watcher, so each file is seen by exactly one queue. Pruning still uses the full list (the result is identical, since inner roots are covered by outer ones).
