@@ -28,4 +28,9 @@ export const config = {
   port: Number(process.env.PORT) || 3001,
   dataDir,
   cacheDir: resolveDir(process.env.PALOMA_CACHE_DIR, path.join(dataDir, 'cache')),
+  photosDirs: (process.env.PALOMA_PHOTOS_DIRS ?? '')
+    .split(',')
+    .map((dir) => dir.trim())
+    .filter(Boolean)
+    .map((dir) => resolveDir(dir, dir)),
 } as const;
