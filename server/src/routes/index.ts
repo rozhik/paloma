@@ -3,9 +3,9 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { db } from '../db/index.js';
 import { folders, photos, edits, people, faceAnnotations, tags, photoTags, albums, albumPhotos } from '../db/schema.js';
-import { eq, like, and, inArray, desc } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { ThumbnailService } from '../services/ThumbnailService.js';
-import { SidecarService } from '../services/SidecarService.js';
+import { listFolders, listPhotos, updatePhoto } from '../services/photoApi.js';
 import { MetadataService } from '../services/MetadataService.js';
 import sharp from 'sharp';
 import ffmpeg from 'fluent-ffmpeg';
@@ -19,91 +19,23 @@ const router = Router();
 
 // --- Folders API ---
 router.get('/folders', (req, res) => {
-  const allFolders = db.select().from(folders).all();
-  const result = allFolders.map((f) => {
-    const photoCountResult = db.select({ id: photos.id }).from(photos).where(eq(photos.folderId, f.id)).all();
-    return {
-      ...f,
-      photoCount: photoCountResult.length,
-    };
-  });
-  res.json(result);
+  res.json(listFolders());
 });
 
 // --- Photos API ---
 router.get('/photos', (req, res) => {
-  const { folderId, starred, query, limit = '500', offset = '0' } = req.query;
-
-  let queryBuilder = db.select({
-    photo: photos,
-    folder: folders,
-    edit: edits,
-  })
-    .from(photos)
-    .innerJoin(folders, eq(photos.folderId, folders.id))
-    .leftJoin(edits, eq(photos.id, edits.photoId));
-
-  const conditions = [];
-  if (folderId) {
-    conditions.push(eq(photos.folderId, Number(folderId)));
-  }
-  if (starred === 'true') {
-    conditions.push(eq(photos.isStarred, true));
-  }
-  if (query && typeof query === 'string') {
-    conditions.push(like(photos.filename, `%${query}%`));
-  }
-
-  const rows = db.select({
-    photo: photos,
-    folder: folders,
-    edit: edits,
-  })
-    .from(photos)
-    .innerJoin(folders, eq(photos.folderId, folders.id))
-    .leftJoin(edits, eq(photos.id, edits.photoId))
-    .where(conditions.length > 0 ? and(...conditions) : undefined)
-    .orderBy(desc(photos.dateTaken))
-    .limit(Number(limit))
-    .offset(Number(offset))
-    .all();
-
-  const result = rows.map(({ photo, folder, edit }) => {
-    const fullPath = path.join(folder.path, photo.filename);
-    const parsedEdits = edit ? JSON.parse(edit.editInstructionsJson) : null;
-    return {
-      ...photo,
-      folderPath: folder.path,
-      filePath: fullPath,
-      edits: parsedEdits,
-      thumbnailUrl: `/api/cache/thumbnail/${photo.fileHash}`,
-      previewUrl: `/api/cache/preview/${photo.fileHash}`,
-    };
-  });
-
-  res.json(result);
+  res.json(listPhotos(req.query));
 });
 
+router.patch('/photos/:id', (req, res) => {
+  const result = updatePhoto(Number(req.params.id), req.body);
+  res.status(result.status).json(result.body);
+});
+
+// Shortcut kept for the client's star toggle
 router.patch('/photos/:id/star', (req, res) => {
-  const photoId = Number(req.params.id);
-  const { isStarred } = req.body;
-
-  const photo = db.select().from(photos).where(eq(photos.id, photoId)).get();
-  if (!photo) return res.status(404).json({ error: 'Photo not found' });
-
-  db.update(photos)
-    .set({ isStarred: Boolean(isStarred) })
-    .where(eq(photos.id, photoId))
-    .run();
-
-  const folder = db.select().from(folders).where(eq(folders.id, photo.folderId)).get();
-  if (folder) {
-    SidecarService.updatePhotoSidecar(folder.path, folder.name, photo.filename, {
-      is_starred: Boolean(isStarred),
-    });
-  }
-
-  res.json({ success: true, isStarred });
+  const result = updatePhoto(Number(req.params.id), { isStarred: req.body?.isStarred });
+  res.status(result.status).json(result.body);
 });
 
 // --- Edits API ---
@@ -142,10 +74,6 @@ router.post('/photos/:id/edit', (req, res) => {
     if (!fs.existsSync(origBackup) && fs.existsSync(srcFile)) {
       fs.copyFileSync(srcFile, origBackup);
     }
-
-    SidecarService.updatePhotoSidecar(folder.path, folder.name, photo.filename, {
-      edits: editInstructions,
-    });
   }
 
   res.json({ success: true, edits: editInstructions });

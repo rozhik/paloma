@@ -40,6 +40,9 @@ export interface Photo {
   dateTaken: string | null;
   createdAt: string;
   edits?: EditDAG | null;
+  caption: string | null;
+  keywords: string[];
+  isHidden: boolean;
   tags?: string[];
   facesCount?: number;
   thumbnailUrl?: string;
@@ -77,24 +80,23 @@ export interface Album {
   coverPhotoPath?: string;
 }
 
-export interface SidecarPhoto {
-  is_starred?: boolean;
+/** One photo's entry in `.paloma.json`. Keys Paloma does not interpret are preserved as is. */
+export interface PalomaPhotoEntry {
+  star?: boolean;
+  hidden?: boolean;
   caption?: string;
-  tags?: string[];
-  geo?: {
-    latitude: number;
-    longitude: number;
-  };
-  edits?: EditDAG;
-  faces?: Array<{
-    box: [number, number, number, number];
-    person_name?: string;
-    confirmed: boolean;
-  }>;
+  keywords?: string[];
+  /** UTC ISO 8601 time of the last change made in Paloma; absent for entries only imported from .picasa.ini */
+  modified?: string;
+  [key: string]: unknown;
 }
 
-export interface SidecarFile {
-  version: string;
-  folder_name: string;
-  photos: Record<string, SidecarPhoto>;
+/** `.paloma.json`, the per-folder sidecar (format v2). Unknown top-level sections are preserved. */
+export interface PalomaFolderFile {
+  format: 'paloma-folder';
+  version: 2;
+  /** Lowercase hex SHA-256 of the Picasa .ini the entries were last imported from */
+  iniHash?: string;
+  photos: Record<string, PalomaPhotoEntry>;
+  [key: string]: unknown;
 }

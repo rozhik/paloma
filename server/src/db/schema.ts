@@ -20,6 +20,9 @@ export const photos = sqliteTable('photos', {
   longitude: real('longitude'),
   dateTaken: text('date_taken'),
   createdAt: text('created_at').notNull(),
+  caption: text('caption'),
+  keywords: text('keywords'), // JSON array of strings
+  isHidden: integer('is_hidden', { mode: 'boolean' }).notNull().default(false),
 });
 
 export const edits = sqliteTable('edits', {

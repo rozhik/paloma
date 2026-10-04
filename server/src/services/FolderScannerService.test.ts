@@ -70,6 +70,27 @@ async function dropImage(filePath: string): Promise<void> {
 
 const WAIT = { timeout: 10000, interval: 50 };
 
+function writeSidecar(dir: string, photos: Record<string, unknown>, extra: Record<string, unknown> = {}): void {
+  fs.writeFileSync(path.join(dir, '.paloma.json'), JSON.stringify({ format: 'paloma-folder', version: 2, ...extra, photos }));
+}
+
+function writeIni(dir: string, ...lines: string[]): void {
+  fs.writeFileSync(path.join(dir, '.picasa.ini'), lines.map((line) => `${line}\r\n`).join(''));
+}
+
+function fieldsOf(filename: string) {
+  const photo = db.select().from(schema.photos).where(eq(schema.photos.filename, filename)).get();
+  if (!photo) throw new Error(`${filename} is not indexed`);
+  return {
+    isStarred: photo.isStarred,
+    isHidden: photo.isHidden,
+    caption: photo.caption,
+    keywords: photo.keywords ? JSON.parse(photo.keywords) : null,
+  };
+}
+
+const NO_FIELDS = { isStarred: false, isHidden: false, caption: null, keywords: null };
+
 describe('FolderScannerService', () => {
   it('indexes a photo from a scanned folder', async () => {
     await makeImage(path.join(photosRoot, 'a.jpg'));
@@ -251,7 +272,8 @@ describe('FolderScannerService', () => {
     await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
 
     const before = db.select().from(schema.photos).where(eq(schema.photos.filename, 'rotate.jpg')).get()!;
-    db.update(schema.photos).set({ isStarred: true }).where(eq(schema.photos.id, before.id)).run();
+    writeSidecar(photosRoot, { 'rotate.jpg': { star: true } });
+    await vi.waitFor(() => expect(fieldsOf('rotate.jpg').isStarred).toBe(true), WAIT);
     db.insert(schema.edits).values({ photoId: before.id, editInstructionsJson: '{"tuning":{"bw":true}}', updatedAt: '' }).run();
 
     // Rewrite the same file in place, as an editor saving a rotated image would
@@ -303,5 +325,148 @@ describe('FolderScannerService', () => {
     const folder = db.select().from(schema.folders)
       .where(eq(schema.folders.path, path.join(photosRoot, 'new-folder'))).get();
     expect(folder?.name).toBe('new-folder');
+  });
+
+  describe('folder sidecar and Picasa .ini', () => {
+    it('rebuilds the library fields from .paloma.json', async () => {
+      await makeImage(path.join(photosRoot, 'a.jpg'));
+      await makeImage(path.join(photosRoot, 'b.jpg'));
+      writeSidecar(photosRoot, {
+        'a.jpg': { star: true, hidden: true, caption: 'Sunrise', keywords: ['dawn'], geo: { latitude: 1, longitude: 2 } },
+      });
+
+      await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
+
+      expect(fieldsOf('a.jpg')).toEqual({ isStarred: true, isHidden: true, caption: 'Sunrise', keywords: ['dawn'] });
+      expect(fieldsOf('b.jpg')).toEqual(NO_FIELDS);
+      const a = db.select().from(schema.photos).where(eq(schema.photos.filename, 'a.jpg')).get()!;
+      expect([a.latitude, a.longitude]).toEqual([null, null]);
+    });
+
+    it('shows a Picasa folder from its .ini without writing anything', async () => {
+      await makeImage(path.join(photosRoot, 'a.jpg'));
+      writeIni(photosRoot, '[A.JPG]', 'star=yes', 'caption=From Picasa');
+
+      await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
+
+      expect(fieldsOf('a.jpg')).toMatchObject({ isStarred: true, caption: 'From Picasa' });
+      expect(fs.readdirSync(photosRoot).sort()).toEqual(['.picasa.ini', 'a.jpg']);
+      expect(indexedPaths()).toEqual([path.join(photosRoot, 'a.jpg')]);
+    });
+
+    it('ignores an MVP v1 sidecar and leaves it unchanged', async () => {
+      const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+      await makeImage(path.join(photosRoot, 'a.jpg'));
+      const v1 = JSON.stringify({ version: '1.0', folder_name: 'x', photos: { 'a.jpg': { is_starred: true } } });
+      fs.writeFileSync(path.join(photosRoot, '.paloma.json'), v1);
+
+      await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
+
+      expect(fieldsOf('a.jpg')).toEqual(NO_FIELDS);
+      expect(fs.readFileSync(path.join(photosRoot, '.paloma.json'), 'utf-8')).toBe(v1);
+      expect(errors).toHaveBeenCalledWith(expect.stringContaining('.paloma.json'));
+      errors.mockRestore();
+    });
+
+    it('applies an outside edit of .paloma.json without a restart', async () => {
+      await makeImage(path.join(photosRoot, 'a.jpg'));
+      await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
+
+      writeSidecar(photosRoot, { 'a.jpg': { star: true, caption: 'Edited' } });
+
+      await vi.waitFor(() => expect(fieldsOf('a.jpg')).toMatchObject({ isStarred: true, caption: 'Edited' }), WAIT);
+      expect(indexedPaths()).toEqual([path.join(photosRoot, 'a.jpg')]);
+    });
+
+    it('clears the fields when .paloma.json is deleted and does not recreate it', async () => {
+      await makeImage(path.join(photosRoot, 'a.jpg'));
+      writeSidecar(photosRoot, { 'a.jpg': { star: true } });
+      await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
+      expect(fieldsOf('a.jpg').isStarred).toBe(true);
+
+      fs.rmSync(path.join(photosRoot, '.paloma.json'));
+
+      await vi.waitFor(() => expect(fieldsOf('a.jpg').isStarred).toBe(false), WAIT);
+      expect(fs.existsSync(path.join(photosRoot, '.paloma.json'))).toBe(false);
+    });
+
+    it('clears the fields when .paloma.json becomes corrupt and leaves it unchanged', async () => {
+      const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+      await makeImage(path.join(photosRoot, 'a.jpg'));
+      writeSidecar(photosRoot, { 'a.jpg': { star: true } });
+      await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
+
+      fs.writeFileSync(path.join(photosRoot, '.paloma.json'), '{broken');
+
+      await vi.waitFor(() => expect(fieldsOf('a.jpg').isStarred).toBe(false), WAIT);
+      expect(fs.readFileSync(path.join(photosRoot, '.paloma.json'), 'utf-8')).toBe('{broken');
+      errors.mockRestore();
+    });
+
+    it('follows a changed .ini in a folder without .paloma.json, writing nothing', async () => {
+      await makeImage(path.join(photosRoot, 'a.jpg'));
+      writeIni(photosRoot, '[b.jpg]', 'star=yes');
+      await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
+      expect(fieldsOf('a.jpg').isStarred).toBe(false);
+
+      writeIni(photosRoot, '[a.jpg]', 'star=yes');
+
+      await vi.waitFor(() => expect(fieldsOf('a.jpg').isStarred).toBe(true), WAIT);
+      expect(fs.existsSync(path.join(photosRoot, '.paloma.json'))).toBe(false);
+    });
+
+    it('re-imports a changed .ini into an existing .paloma.json and the library', async () => {
+      const { SidecarService } = await import('./SidecarService.js');
+      const warnings = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      await makeImage(path.join(photosRoot, 'a.jpg'));
+      await makeImage(path.join(photosRoot, 'b.jpg'));
+      writeIni(photosRoot, '[a.jpg]', 'caption=Old');
+      await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
+      SidecarService.updatePhotoFields(photosRoot, 'a.jpg', { star: true });
+
+      writeIni(photosRoot, '[a.jpg]', 'caption=New', '[b.jpg]', 'star=yes');
+
+      await vi.waitFor(() => expect(fieldsOf('b.jpg').isStarred).toBe(true), WAIT);
+      const sidecar = JSON.parse(fs.readFileSync(path.join(photosRoot, '.paloma.json'), 'utf-8'));
+      expect(sidecar.photos['b.jpg']).toEqual({ star: true });
+      // a.jpg was changed in Paloma, so it keeps its imported caption
+      expect(sidecar.photos['a.jpg']).toMatchObject({ star: true, caption: 'Old' });
+      expect(fieldsOf('a.jpg')).toMatchObject({ isStarred: true, caption: 'Old' });
+      expect(warnings).toHaveBeenCalledWith(expect.stringContaining('Conflict'));
+      warnings.mockRestore();
+    });
+
+    it('ignores a Picasa .ini in .picasaoriginals and sidecars in excluded folders', async () => {
+      await makeImage(path.join(photosRoot, 'a.jpg'));
+      fs.mkdirSync(path.join(photosRoot, '.picasaoriginals'));
+      writeIni(path.join(photosRoot, '.picasaoriginals'), '[a.jpg]', 'star=yes');
+      fs.mkdirSync(path.join(photosRoot, 'tmp'));
+      writeSidecar(path.join(photosRoot, 'tmp'), { 'x.jpg': { star: true } });
+
+      await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [path.join(photosRoot, 'tmp')] });
+      writeSidecar(path.join(photosRoot, 'tmp'), { 'x.jpg': { star: true, caption: 'changed' } });
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      expect(fieldsOf('a.jpg').isStarred).toBe(false);
+      expect(db.select().from(schema.folders).all().map((f) => f.path)).toEqual([photosRoot]);
+    });
+
+    it('keeps the entry of a photo moved out and applies it when the photo comes back', async () => {
+      const file = path.join(photosRoot, 'a.jpg');
+      await makeImage(file);
+      writeSidecar(photosRoot, { 'a.jpg': { star: true } });
+      const sidecar = fs.readFileSync(path.join(photosRoot, '.paloma.json'), 'utf-8');
+      await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
+
+      const outside = path.join(tmpDir, `moved_${Date.now()}.jpg`);
+      fs.renameSync(file, outside);
+      await vi.waitFor(() => expect(indexedPaths()).toEqual([]), WAIT);
+      expect(fs.readFileSync(path.join(photosRoot, '.paloma.json'), 'utf-8')).toBe(sidecar);
+
+      fs.renameSync(outside, file);
+      await vi.waitFor(() => expect(indexedPaths()).toEqual([file]), WAIT);
+      expect(fieldsOf('a.jpg').isStarred).toBe(true);
+      expect(fs.readFileSync(path.join(photosRoot, '.paloma.json'), 'utf-8')).toBe(sidecar);
+    });
   });
 });

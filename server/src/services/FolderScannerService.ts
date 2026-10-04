@@ -6,10 +6,9 @@ import { folders, photos, edits, faceAnnotations, photoTags, albumPhotos } from 
 import { eq, and, inArray } from 'drizzle-orm';
 import { MetadataService } from './MetadataService.js';
 import { ThumbnailService } from './ThumbnailService.js';
-import { SidecarService } from './SidecarService.js';
+import { SidecarService, type FolderState, type PhotoFields } from './SidecarService.js';
 import { config } from '../config.js';
-import { isIgnoredName, isExcluded, isPathCovered, collapseRoots } from './scanPaths.js';
-import type { SidecarFile } from '../../../shared/types.js';
+import { isIgnoredName, isExcluded, isPathCovered, collapseRoots, isFolderMetaFile } from './scanPaths.js';
 
 const SUPPORTED_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.tiff', '.bmp', '.heic']);
 
@@ -52,6 +51,15 @@ async function waitUntilStable(filePath: string): Promise<boolean> {
   }
 }
 
+function toPhotoColumns(fields: PhotoFields | undefined) {
+  return {
+    isStarred: fields?.star === true,
+    isHidden: fields?.hidden === true,
+    caption: fields?.caption ?? null,
+    keywords: fields?.keywords ? JSON.stringify(fields.keywords) : null,
+  };
+}
+
 export class FolderScannerService {
   private static watchers: Map<string, FSWatcher> = new Map();
 
@@ -82,7 +90,7 @@ export class FolderScannerService {
 
     // Each subdirectory with photos becomes its own folder, with its own sidecar
     const folderIds = new Map<string, number>([[absPath, rootFolderId]]);
-    const sidecars = new Map<string, SidecarFile | null>();
+    const folderStates = new Map<string, FolderState>();
     let ready = false;
     const getFolderId = (dir: string): number => {
       let id = folderIds.get(dir);
@@ -92,11 +100,14 @@ export class FolderScannerService {
       }
       return id;
     };
-    // Cache sidecars only during the initial scan; later events may follow a sidecar update
-    const getSidecar = (dir: string): SidecarFile | null => {
-      if (ready) return SidecarService.readSidecar(dir);
-      if (!sidecars.has(dir)) sidecars.set(dir, SidecarService.readSidecar(dir));
-      return sidecars.get(dir) ?? null;
+    // Photo fields per folder from .paloma.json or the Picasa .ini; refreshed when either file changes
+    const getFolderState = (dir: string): FolderState => {
+      let state = folderStates.get(dir);
+      if (!state) {
+        state = SidecarService.getFolderState(dir);
+        folderStates.set(dir, state);
+      }
+      return state;
     };
 
     // Watch folder using chokidar
@@ -116,7 +127,21 @@ export class FolderScannerService {
     // Live events can arrive while a file is still being copied; index it once writing stops.
     // Initial-scan events go straight to the queue so large libraries aren't slowed down.
     const settling = new Set<string>();
+    // The initial scan reads these files lazily per folder; later changes re-apply the folder's fields
+    const onFolderMetaFile = (filePath: string): void => {
+      if (!ready) return;
+      const dir = path.dirname(filePath);
+      queue = queue.then(() => {
+        if (this.watchers.get(absPath) !== watcher) return;
+        folderStates.delete(dir);
+        this.applyFolderState(dir, getFolderState(dir));
+      });
+    };
     const enqueue = (event: IndexEvent) => async (filePath: string) => {
+      if (isFolderMetaFile(path.basename(filePath))) {
+        onFolderMetaFile(filePath);
+        return;
+      }
       const ext = path.extname(filePath).toLowerCase();
       if (!SUPPORTED_EXTENSIONS.has(ext)) return;
 
@@ -131,13 +156,17 @@ export class FolderScannerService {
       // A closed or replaced watcher drops work that was still pending
       queue = queue.then(async () => {
         if (this.watchers.get(absPath) !== watcher) return;
-        await this.indexPhoto(filePath, event, getFolderId, getSidecar);
+        await this.indexPhoto(filePath, event, getFolderId, getFolderState);
       });
     };
     watcher.on('add', enqueue('add'));
     watcher.on('change', enqueue('change'));
 
     watcher.on('unlink', (filePath) => {
+      if (isFolderMetaFile(path.basename(filePath))) {
+        onFolderMetaFile(filePath);
+        return;
+      }
       const folder = db.select().from(folders).where(eq(folders.path, path.dirname(filePath))).get();
       if (!folder) return;
 
@@ -206,7 +235,7 @@ export class FolderScannerService {
     filePath: string,
     event: IndexEvent,
     getFolderId: (dir: string) => number,
-    getSidecar: (dir: string) => SidecarFile | null,
+    getFolderState: (dir: string) => FolderState,
   ): Promise<void> {
     const dir = path.dirname(filePath);
     const filename = path.basename(filePath);
@@ -222,43 +251,49 @@ export class FolderScannerService {
       if (existingPhoto?.fileHash === meta.fileHash) return;
       await ThumbnailService.generateThumbnails(filePath, meta.fileHash);
 
-      const sidecarPhoto = getSidecar(dir)?.photos?.[filename];
       const fromContent = {
         fileHash: meta.fileHash,
         width: meta.width,
         height: meta.height,
         fileSize: meta.fileSize,
-        latitude: sidecarPhoto?.geo?.latitude ?? meta.latitude,
-        longitude: sidecarPhoto?.geo?.longitude ?? meta.longitude,
+        latitude: meta.latitude,
+        longitude: meta.longitude,
         dateTaken: meta.dateTaken,
       };
+      // User fields come from the folder's sidecar (or Picasa .ini), so they survive a content change
+      const fromSidecar = toPhotoColumns(getFolderState(dir)[filename]);
 
-      // Star and edits belong to the user and survive a content change
       if (existingPhoto) {
-        db.update(photos).set(fromContent).where(eq(photos.id, existingPhoto.id)).run();
+        db.update(photos).set({ ...fromContent, ...fromSidecar }).where(eq(photos.id, existingPhoto.id)).run();
         return;
       }
 
-      const isStarred = sidecarPhoto?.is_starred ?? false;
-
-      const inserted = db.insert(photos).values({
+      db.insert(photos).values({
         folderId,
         filename,
         ...fromContent,
-        isStarred,
+        ...fromSidecar,
         createdAt: new Date().toISOString(),
-      }).returning({ id: photos.id }).get();
-
-      if (sidecarPhoto?.edits) {
-        db.insert(edits).values({
-          photoId: inserted.id,
-          editInstructionsJson: JSON.stringify(sidecarPhoto.edits),
-          updatedAt: new Date().toISOString(),
-        }).run();
-      }
+      }).run();
     } catch (err) {
       console.error(`Error scanning ${filePath}:`, err);
     }
+  }
+
+  /** Sets the user fields of every library photo in a folder; a folder not in the library is left alone. */
+  public static applyFolderState(dir: string, state: FolderState): void {
+    const folder = db.select().from(folders).where(eq(folders.path, dir)).get();
+    if (!folder) return;
+
+    const folderPhotos = db.select({ id: photos.id, filename: photos.filename })
+      .from(photos)
+      .where(eq(photos.folderId, folder.id))
+      .all();
+    db.transaction((tx) => {
+      for (const photo of folderPhotos) {
+        tx.update(photos).set(toPhotoColumns(state[photo.filename])).where(eq(photos.id, photo.id)).run();
+      }
+    });
   }
 
   public static stopWatching(folderPath: string): void {

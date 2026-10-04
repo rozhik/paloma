@@ -1,10 +1,16 @@
 import path from 'node:path';
 
-// Skip dotfiles/dot-directories (incl. .paloma.json) and dependency trees
+// Skip dotfiles/dot-directories and dependency trees
 const IGNORED_NAME = /^(\..*|node_modules)$/;
 
+/** The folder's own metadata files: the Paloma sidecar and the Picasa .ini (read-only), any case. */
+export function isFolderMetaFile(name: string): boolean {
+  const lower = name.toLowerCase();
+  return lower === '.paloma.json' || lower === '.picasa.ini' || lower === 'picasa.ini';
+}
+
 export function isIgnoredName(name: string): boolean {
-  return IGNORED_NAME.test(name);
+  return IGNORED_NAME.test(name) && !isFolderMetaFile(name);
 }
 
 function isInside(absPath: string, dir: string): boolean {

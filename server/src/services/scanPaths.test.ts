@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isPathCovered, collapseRoots } from './scanPaths.js';
+import { isPathCovered, collapseRoots, isIgnoredName, isFolderMetaFile } from './scanPaths.js';
 
 describe('isPathCovered', () => {
   const roots = ['/photos', '/archive'];
@@ -46,5 +46,21 @@ describe('collapseRoots', () => {
 
   it('keeps siblings that only share a name prefix', () => {
     expect(collapseRoots(['/photos', '/photos-old']).sort()).toEqual(['/photos', '/photos-old']);
+  });
+});
+
+describe('isIgnoredName', () => {
+  it('lets the sidecar and the Picasa .ini through in any case', () => {
+    for (const name of ['.paloma.json', '.picasa.ini', '.Picasa.INI', 'Picasa.ini']) {
+      expect(isIgnoredName(name)).toBe(false);
+      expect(isFolderMetaFile(name)).toBe(true);
+    }
+  });
+
+  it('still ignores other dotfiles, sidecar temp files and hidden folders', () => {
+    for (const name of ['.DS_Store', '.paloma.json.123.ab12cd34.tmp', '.paloma', '.picasaoriginals', 'node_modules']) {
+      expect(isIgnoredName(name)).toBe(true);
+      expect(isFolderMetaFile(name)).toBe(false);
+    }
   });
 });
