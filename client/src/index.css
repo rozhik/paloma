@@ -113,6 +113,20 @@ body {
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
 }
 
+.photo-tray-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  overflow-x: auto;
+  padding: 4px 0;
+}
+
+.photo-tray-actions .btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
 .photo-tray-thumbnails {
   display: flex;
   gap: 8px;

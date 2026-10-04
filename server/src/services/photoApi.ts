@@ -1,7 +1,7 @@
 import path from 'node:path';
-import { and, desc, eq, like } from 'drizzle-orm';
+import { and, desc, eq, inArray, like } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { edits, folders, photos } from '../db/schema.js';
+import { albumPhotos, edits, folders, photos } from '../db/schema.js';
 import { SidecarService, SidecarUnreadableError, type FieldPatch } from './SidecarService.js';
 import { FolderScannerService } from './FolderScannerService.js';
 import type { Photo } from '../../../shared/types.js';
@@ -12,10 +12,11 @@ type EditRow = typeof edits.$inferSelect;
 
 export type ApiResult<T> = { status: 200; body: T } | { status: 400 | 404 | 409 | 500; body: { error: string } };
 
-export function toApiPhoto(photo: PhotoRow, folder: FolderRow, edit: EditRow | null): Photo {
+export function toApiPhoto(photo: PhotoRow, folder: FolderRow, edit: EditRow | null, albums: string[] = []): Photo {
   return {
     ...photo,
     keywords: photo.keywords ? JSON.parse(photo.keywords) : [],
+    albums,
     folderPath: folder.path,
     filePath: path.join(folder.path, photo.filename),
     edits: edit ? JSON.parse(edit.editInstructionsJson) : null,
@@ -27,29 +28,43 @@ export function toApiPhoto(photo: PhotoRow, folder: FolderRow, edit: EditRow | n
 export interface PhotoListQuery {
   folderId?: unknown;
   starred?: unknown;
+  album?: unknown;
   query?: unknown;
   includeHidden?: unknown;
   limit?: unknown;
   offset?: unknown;
 }
 
-export function listPhotos({ folderId, starred, query, includeHidden, limit = '500', offset = '0' }: PhotoListQuery): Photo[] {
+/** Album tokens of each photo, keyed by photo id. */
+function albumsOf(photoIds: number[]): Map<number, string[]> {
+  const byPhoto = new Map<number, string[]>();
+  if (photoIds.length === 0) return byPhoto;
+  const rows = db.select().from(albumPhotos).where(inArray(albumPhotos.photoId, photoIds)).all();
+  for (const { photoId, token } of rows) byPhoto.set(photoId, [...(byPhoto.get(photoId) ?? []), token]);
+  return byPhoto;
+}
+
+export function listPhotos({ folderId, starred, album, query, includeHidden, limit = '500', offset = '0' }: PhotoListQuery): Photo[] {
   const conditions = [];
   if (folderId) conditions.push(eq(photos.folderId, Number(folderId)));
   if (starred === 'true') conditions.push(eq(photos.isStarred, true));
+  if (album && typeof album === 'string') {
+    conditions.push(inArray(photos.id, db.select({ id: albumPhotos.photoId }).from(albumPhotos).where(eq(albumPhotos.token, album))));
+  }
   if (includeHidden !== 'true') conditions.push(eq(photos.isHidden, false));
   if (query && typeof query === 'string') conditions.push(like(photos.filename, `%${query}%`));
 
-  return db.select({ photo: photos, folder: folders, edit: edits })
+  const rows = db.select({ photo: photos, folder: folders, edit: edits })
     .from(photos)
     .innerJoin(folders, eq(photos.folderId, folders.id))
     .leftJoin(edits, eq(photos.id, edits.photoId))
     .where(conditions.length > 0 ? and(...conditions) : undefined)
-    .orderBy(desc(photos.dateTaken))
+    .orderBy(desc(photos.dateTaken), photos.id)
     .limit(Number(limit))
     .offset(Number(offset))
-    .all()
-    .map(({ photo, folder, edit }) => toApiPhoto(photo, folder, edit));
+    .all();
+  const albums = albumsOf(rows.map(({ photo }) => photo.id));
+  return rows.map(({ photo, folder, edit }) => toApiPhoto(photo, folder, edit, albums.get(photo.id)));
 }
 
 /** Folders with the number of photos that are not hidden. */
@@ -98,7 +113,7 @@ function getApiPhoto(photoId: number): Photo | undefined {
     .leftJoin(edits, eq(photos.id, edits.photoId))
     .where(eq(photos.id, photoId))
     .get();
-  return row && toApiPhoto(row.photo, row.folder, row.edit);
+  return row && toApiPhoto(row.photo, row.folder, row.edit, albumsOf([photoId]).get(photoId));
 }
 
 /** Saves a change to a photo's fields in its folder's sidecar first, then updates the library from disk. */

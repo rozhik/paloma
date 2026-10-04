@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import type { PalomaFolderFile, PalomaPhotoEntry } from '../../../shared/types.js';
-import { readPicasaIni, type PhotoFields } from './picasaIni.js';
+import type { PalomaAlbumDefinition, PalomaFolderFile, PalomaPhotoEntry } from '../../../shared/types.js';
+import { ALBUM_KEYS, readPicasaIni, type IniAlbum, type PhotoFields, type PicasaIniRead } from './picasaIni.js';
 
 export type { PhotoFields } from './picasaIni.js';
 
@@ -13,8 +13,13 @@ export type SidecarRead =
   | { kind: 'ok'; data: PalomaFolderFile }
   | { kind: 'unreadable'; reason: string };
 
-/** Effective photo fields of a folder, keyed by file name; photos without fields are absent. */
-export type FolderState = Record<string, PhotoFields>;
+/** What a folder's files say: photo fields keyed by file name (photos without fields are absent) and album definitions keyed by token. */
+export interface FolderState {
+  photos: Record<string, PhotoFields>;
+  albums: Record<string, PalomaAlbumDefinition>;
+}
+
+const EMPTY_STATE: FolderState = { photos: {}, albums: {} };
 
 /** A change to a photo's fields. `false`, `''` and `[]` clear the field. */
 export interface FieldPatch {
@@ -31,10 +36,21 @@ export class SidecarUnreadableError extends Error {
   }
 }
 
-const SUPPORTED_FIELDS = ['star', 'hidden', 'caption', 'keywords'] as const;
+const SUPPORTED_FIELDS = ['star', 'hidden', 'caption', 'keywords', 'albums'] as const;
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isObjectOfObjects(value: unknown): boolean {
+  return isPlainObject(value) && Object.values(value).every(isPlainObject);
+}
+
+/** Non-empty strings of an array, without duplicates; undefined for anything else or when none remain. */
+function stringList(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const list = [...new Set(value.filter((item): item is string => typeof item === 'string' && item !== ''))];
+  return list.length > 0 ? list : undefined;
 }
 
 function listDir(dir: string): string[] {
@@ -49,7 +65,8 @@ function sameFields(a: PhotoFields, b: PhotoFields): boolean {
   return a.star === b.star
     && a.hidden === b.hidden
     && a.caption === b.caption
-    && JSON.stringify(a.keywords ?? []) === JSON.stringify(b.keywords ?? []);
+    && JSON.stringify(a.keywords ?? []) === JSON.stringify(b.keywords ?? [])
+    && JSON.stringify(a.albums ?? []) === JSON.stringify(b.albums ?? []);
 }
 
 function sortNames(names: string[]): string[] {
@@ -84,8 +101,11 @@ export class SidecarService {
       return { kind: 'unreadable', reason: 'iniHash is not a string' };
     }
     if (parsed.photos === undefined) parsed.photos = {};
-    if (!isPlainObject(parsed.photos) || !Object.values(parsed.photos).every(isPlainObject)) {
+    if (!isObjectOfObjects(parsed.photos)) {
       return { kind: 'unreadable', reason: 'photos is not an object of objects' };
+    }
+    if (parsed.albums !== undefined && !isObjectOfObjects(parsed.albums)) {
+      return { kind: 'unreadable', reason: 'albums is not an object of objects' };
     }
     return { kind: 'ok', data: parsed as PalomaFolderFile };
   }
@@ -101,6 +121,8 @@ export class SidecarService {
       const keywords = entry.keywords.filter((k): k is string => typeof k === 'string' && k !== '');
       if (keywords.length > 0) fields.keywords = keywords;
     }
+    const albums = stringList(entry.albums);
+    if (albums) fields.albums = albums;
     return fields;
   }
 
@@ -136,6 +158,7 @@ export class SidecarService {
     imported: Record<string, PhotoFields>,
     iniHash: string,
     dir = '',
+    iniAlbums: Record<string, IniAlbum> = {},
   ): PalomaFolderFile {
     const photos: Record<string, PalomaPhotoEntry> = {};
     for (const [name, entry] of Object.entries(data.photos)) {
@@ -155,7 +178,18 @@ export class SidecarService {
     for (const [name, fields] of Object.entries(imported)) {
       if (!(name in data.photos)) photos[name] = { ...fields };
     }
-    return { ...data, iniHash, photos };
+
+    // Definitions changed in Paloma are kept; definitions missing from the .ini are never removed
+    if (data.albums === undefined && Object.keys(iniAlbums).length === 0) return { ...data, iniHash, photos };
+    const albums: Record<string, PalomaAlbumDefinition> = { ...data.albums };
+    for (const [token, fromIni] of Object.entries(iniAlbums)) {
+      const current = albums[token];
+      if (typeof current?.modified === 'string') continue;
+      const next: PalomaAlbumDefinition = { ...current };
+      for (const key of ALBUM_KEYS) delete next[key];
+      albums[token] = Object.assign(next, fromIni);
+    }
+    return { ...data, iniHash, albums, photos };
   }
 
   /** Serializes with sorted photo keys, 2-space indent and a trailing LF, keeping other keys in their order. */
@@ -190,7 +224,20 @@ export class SidecarService {
     if (data.iniHash === undefined) return null;
     const ini = readPicasaIni(dir, names);
     if (ini.kind !== 'ok' || ini.sha256 === data.iniHash) return null;
-    return this.reimport(data, this.matchSections(ini.sections, names), ini.sha256, dir);
+    return this.reimport(data, this.matchSections(ini.sections, names), ini.sha256, dir, ini.albums);
+  }
+
+  /** A new sidecar holding a snapshot of the folder's Picasa .ini, or an empty one without an .ini. */
+  private static importIni(ini: PicasaIniRead, names: readonly string[]): PalomaFolderFile {
+    if (ini.kind !== 'ok') return { format: 'paloma-folder', version: 2, photos: {} };
+    const albums = Object.fromEntries(Object.entries(ini.albums).map(([token, album]) => [token, { ...album }]));
+    return {
+      format: 'paloma-folder',
+      version: 2,
+      iniHash: ini.sha256,
+      ...(Object.keys(albums).length > 0 ? { albums } : {}),
+      photos: { ...this.matchSections(ini.sections, names) } as Record<string, PalomaPhotoEntry>,
+    };
   }
 
   /**
@@ -202,9 +249,10 @@ export class SidecarService {
     const sidecar = this.readFolderSidecar(dir);
 
     let photos: Record<string, PalomaPhotoEntry | PhotoFields>;
+    let albums: Record<string, PalomaAlbumDefinition>;
     if (sidecar.kind === 'unreadable') {
       console.error(`Ignoring ${this.getSidecarPath(dir)}: ${sidecar.reason}`);
-      return {};
+      return EMPTY_STATE;
     } else if (sidecar.kind === 'ok') {
       let data = sidecar.data;
       const reimported = this.reconcileIni(dir, data, names);
@@ -217,17 +265,55 @@ export class SidecarService {
         }
       }
       photos = data.photos;
+      albums = data.albums ?? {};
     } else {
       const ini = readPicasaIni(dir, names);
       photos = ini.kind === 'ok' ? this.matchSections(ini.sections, names) : {};
+      albums = ini.kind === 'ok' ? ini.albums : {};
     }
 
-    const state: FolderState = {};
+    const state: FolderState = { photos: {}, albums };
     for (const [name, entry] of Object.entries(photos)) {
       const fields = this.fieldsOf(entry as PalomaPhotoEntry);
-      if (Object.keys(fields).length > 0) state[name] = fields;
+      if (Object.keys(fields).length > 0) state.photos[name] = fields;
     }
     return state;
+  }
+
+  /**
+   * Applies `mutate` to a folder's sidecar and writes the result atomically. The base is the readable
+   * sidecar (re-importing a changed Picasa .ini first), else a snapshot of the Picasa .ini, else an empty file.
+   * Throws SidecarUnreadableError if the existing sidecar is unreadable, or the write error.
+   */
+  public static updateFolderSidecar(dir: string, mutate: (data: PalomaFolderFile) => PalomaFolderFile): void {
+    const names = listDir(dir);
+    const sidecar = this.readFolderSidecar(dir);
+    if (sidecar.kind === 'unreadable') throw new SidecarUnreadableError(this.getSidecarPath(dir), sidecar.reason);
+
+    const data = sidecar.kind === 'ok'
+      ? this.reconcileIni(dir, sidecar.data, names) ?? sidecar.data
+      : this.importIni(readPicasaIni(dir, names), names);
+    this.writeFolderSidecar(dir, mutate(data));
+  }
+
+  /**
+   * Returns `data` with one photo entry changed by `edit` and marked `modified`. An entry left with only
+   * `modified` is removed, unless a Picasa import could otherwise bring old values back.
+   */
+  public static changeEntry(
+    data: PalomaFolderFile,
+    filename: string,
+    edit: (entry: PalomaPhotoEntry) => void,
+    modified = new Date().toISOString(),
+  ): PalomaFolderFile {
+    const entry: PalomaPhotoEntry = { ...data.photos[filename] };
+    edit(entry);
+    entry.modified = modified;
+
+    const photos = { ...data.photos };
+    if (Object.keys(entry).length === 1 && data.iniHash === undefined) delete photos[filename];
+    else photos[filename] = entry;
+    return { ...data, photos };
   }
 
   /**
@@ -235,40 +321,19 @@ export class SidecarService {
    * Throws SidecarUnreadableError if the existing sidecar is unreadable, or the write error.
    */
   public static updatePhotoFields(dir: string, filename: string, patch: FieldPatch): void {
-    const names = listDir(dir);
-    const sidecar = this.readFolderSidecar(dir);
-    if (sidecar.kind === 'unreadable') throw new SidecarUnreadableError(this.getSidecarPath(dir), sidecar.reason);
-
-    let data: PalomaFolderFile;
-    if (sidecar.kind === 'ok') {
-      data = this.reconcileIni(dir, sidecar.data, names) ?? sidecar.data;
-    } else {
-      const ini = readPicasaIni(dir, names);
-      data = ini.kind === 'ok'
-        ? { format: 'paloma-folder', version: 2, iniHash: ini.sha256, photos: { ...this.matchSections(ini.sections, names) } as Record<string, PalomaPhotoEntry> }
-        : { format: 'paloma-folder', version: 2, photos: {} };
-    }
-
-    const entry: PalomaPhotoEntry = { ...data.photos[filename] };
-    if (patch.star !== undefined) {
-      if (patch.star) entry.star = true; else delete entry.star;
-    }
-    if (patch.hidden !== undefined) {
-      if (patch.hidden) entry.hidden = true; else delete entry.hidden;
-    }
-    if (patch.caption !== undefined) {
-      if (patch.caption !== '') entry.caption = patch.caption; else delete entry.caption;
-    }
-    if (patch.keywords !== undefined) {
-      if (patch.keywords.length > 0) entry.keywords = patch.keywords; else delete entry.keywords;
-    }
-    entry.modified = new Date().toISOString();
-
-    const photos = { ...data.photos };
-    // An entry with only `modified` is kept when a Picasa import could otherwise bring old values back
-    if (Object.keys(entry).length === 1 && data.iniHash === undefined) delete photos[filename];
-    else photos[filename] = entry;
-
-    this.writeFolderSidecar(dir, { ...data, photos });
+    this.updateFolderSidecar(dir, (data) => this.changeEntry(data, filename, (entry) => {
+      if (patch.star !== undefined) {
+        if (patch.star) entry.star = true; else delete entry.star;
+      }
+      if (patch.hidden !== undefined) {
+        if (patch.hidden) entry.hidden = true; else delete entry.hidden;
+      }
+      if (patch.caption !== undefined) {
+        if (patch.caption !== '') entry.caption = patch.caption; else delete entry.caption;
+      }
+      if (patch.keywords !== undefined) {
+        if (patch.keywords.length > 0) entry.keywords = patch.keywords; else delete entry.keywords;
+      }
+    }));
   }
 }

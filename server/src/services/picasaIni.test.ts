@@ -5,6 +5,8 @@ import os from 'node:os';
 import crypto from 'node:crypto';
 import { findPicasaIni, parsePicasaIni, readPicasaIni } from './picasaIni.js';
 
+const sectionsOf = (bytes: Buffer) => parsePicasaIni(bytes).sections;
+
 const crlf = (...lines: string[]): Buffer => Buffer.from(lines.map((line) => `${line}\r\n`).join(''));
 
 describe('findPicasaIni', () => {
@@ -18,7 +20,7 @@ describe('findPicasaIni', () => {
 
 describe('parsePicasaIni', () => {
   it('maps star, hidden, caption and keywords and ignores other keys', () => {
-    const sections = parsePicasaIni(crlf(
+    const sections = sectionsOf(crlf(
       '[a.jpg]',
       'star=yes',
       'hidden=yes',
@@ -35,23 +37,23 @@ describe('parsePicasaIni', () => {
   });
 
   it('keeps spaces in values', () => {
-    expect(parsePicasaIni(crlf('[a.jpg]', 'caption= Sunrise ', 'keywords= hills ,dawn'))).toEqual({
+    expect(sectionsOf(crlf('[a.jpg]', 'caption= Sunrise ', 'keywords= hills ,dawn'))).toEqual({
       'a.jpg': { caption: ' Sunrise ', keywords: [' hills ', 'dawn'] },
     });
   });
 
   it('only treats star=yes as starred', () => {
-    expect(parsePicasaIni(crlf('[a.jpg]', 'star=no', 'hidden=1'))).toEqual({});
+    expect(sectionsOf(crlf('[a.jpg]', 'star=no', 'hidden=1'))).toEqual({});
   });
 
   it('uses the first occurrence of a duplicate key and ignores a repeated section', () => {
-    expect(parsePicasaIni(crlf('[a.jpg]', 'caption=first', 'caption=second', '[a.jpg]', 'star=yes'))).toEqual({
+    expect(sectionsOf(crlf('[a.jpg]', 'caption=first', 'caption=second', '[a.jpg]', 'star=yes'))).toEqual({
       'a.jpg': { caption: 'first' },
     });
   });
 
   it('skips folder, album, contact and other non-file sections', () => {
-    expect(parsePicasaIni(crlf(
+    expect(sectionsOf(crlf(
       '[Picasa]', 'name=Trip', 'caption=x',
       '[.album:c9ea9fa67022f38a3c771894d2a8a468]', 'name=Birds', 'caption=x',
       '[Contacts2]', 'b8e4117cf1d6615b=Roy;;',
@@ -61,25 +63,50 @@ describe('parsePicasaIni', () => {
     ))).toEqual({});
   });
 
+  it('reads album sections with their mapped keys verbatim', () => {
+    expect(parsePicasaIni(crlf(
+      '[.album:c9ea9fa67022f38a3c771894d2a8a468]',
+      'name= Birds  of Ukraine',
+      'token=c9ea9fa67022f38a3c771894d2a8a468',
+      'date=2018-10-23T15:33:29+03:00',
+      'location= ',
+      'description=Spring',
+      'name_lh=web',
+      '[.album:7f01]',
+      'token=7f01',
+      '[.album:7f01]',
+      'name=Repeated',
+    )).albums).toEqual({
+      c9ea9fa67022f38a3c771894d2a8a468: {
+        name: ' Birds  of Ukraine', date: '2018-10-23T15:33:29+03:00', location: ' ', description: 'Spring',
+      },
+      '7f01': {},
+    });
+  });
+
+  it('reads album membership without empty items or duplicates', () => {
+    expect(sectionsOf(crlf('[a.jpg]', 'albums=a,,a,b'))).toEqual({ 'a.jpg': { albums: ['a', 'b'] } });
+  });
+
   it('reads LF line endings and skips blank lines', () => {
-    expect(parsePicasaIni(Buffer.from('[a.jpg]\n\nstar=yes\n'))).toEqual({ 'a.jpg': { star: true } });
+    expect(sectionsOf(Buffer.from('[a.jpg]\n\nstar=yes\n'))).toEqual({ 'a.jpg': { star: true } });
   });
 
   it('decodes windows-1251 when the file is not valid UTF-8', () => {
     // "Захід" in windows-1251
     const caption = Buffer.from([0xc7, 0xe0, 0xf5, 0xb3, 0xe4]);
     const bytes = Buffer.concat([Buffer.from('[a.jpg]\r\ncaption='), caption, Buffer.from('\r\n')]);
-    expect(parsePicasaIni(bytes)).toEqual({ 'a.jpg': { caption: 'Захід' } });
+    expect(sectionsOf(bytes)).toEqual({ 'a.jpg': { caption: 'Захід' } });
   });
 
   it('reads UTF-8 Cyrillic as is', () => {
-    expect(parsePicasaIni(crlf('[Зйомка 1.bmp]', 'keywords=гори,схід сонця'))).toEqual({
+    expect(sectionsOf(crlf('[Зйомка 1.bmp]', 'keywords=гори,схід сонця'))).toEqual({
       'Зйомка 1.bmp': { keywords: ['гори', 'схід сонця'] },
     });
   });
 
   it('treats an empty file as having no data', () => {
-    expect(parsePicasaIni(Buffer.alloc(0))).toEqual({});
+    expect(sectionsOf(Buffer.alloc(0))).toEqual({});
   });
 });
 
@@ -108,6 +135,7 @@ describe('readPicasaIni', () => {
       fileName: 'Picasa.ini',
       sha256: crypto.createHash('sha256').update(bytes).digest('hex'),
       sections: { 'a.jpg': { star: true } },
+      albums: {},
     });
   });
 

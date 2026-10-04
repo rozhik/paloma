@@ -52,6 +52,8 @@ describe('readFolderSidecar', () => {
     ['a non-object entry', JSON.stringify({ format: 'paloma-folder', version: 2, photos: { 'a.jpg': true } })],
     ['an array', '[]'],
     ['a non-string iniHash', JSON.stringify({ format: 'paloma-folder', version: 2, iniHash: 1, photos: {} })],
+    ['albums that is an array', JSON.stringify({ format: 'paloma-folder', version: 2, albums: ['Birds'], photos: {} })],
+    ['a non-object album definition', JSON.stringify({ format: 'paloma-folder', version: 2, albums: { c9ea: 'Birds' }, photos: {} })],
   ])('reports %s as unreadable', (_, content) => {
     fs.writeFileSync(sidecarPath(), content);
     expect(SidecarService.readFolderSidecar(dir).kind).toBe('unreadable');
@@ -64,6 +66,12 @@ describe('fieldsOf', () => {
     expect(SidecarService.fieldsOf({ caption: '', keywords: ['a', 3, '', 'b'] } as unknown as PalomaPhotoEntry)).toEqual({ keywords: ['a', 'b'] });
     expect(SidecarService.fieldsOf({ star: true, hidden: true, caption: 'x', modified: 't', rotate: 90 }))
       .toEqual({ star: true, hidden: true, caption: 'x' });
+  });
+
+  it('reads albums as a list of tokens without empty items or duplicates', () => {
+    expect(SidecarService.fieldsOf({ albums: ['c9ea', '', 'c9ea', 3, '7f01'] } as unknown as PalomaPhotoEntry))
+      .toEqual({ albums: ['c9ea', '7f01'] });
+    expect(SidecarService.fieldsOf({ albums: 'c9ea' } as unknown as PalomaPhotoEntry)).toEqual({});
   });
 });
 
@@ -101,6 +109,38 @@ describe('reimport', () => {
     expect(console.warn).not.toHaveBeenCalled();
   });
 
+  it('makes memberships of unmodified entries follow the .ini', () => {
+    const result = SidecarService.reimport(
+      base({ 'a.jpg': { albums: ['old'] }, 'b.jpg': { albums: ['mine'], modified: 't' } }),
+      { 'a.jpg': { albums: ['new'] }, 'b.jpg': { albums: ['new'] } },
+      'new',
+    );
+    expect(result.photos).toEqual({ 'a.jpg': { albums: ['new'] }, 'b.jpg': { albums: ['mine'], modified: 't' } });
+  });
+
+  it('re-imports album definitions without removing any', () => {
+    const result = SidecarService.reimport(
+      {
+        ...base({}),
+        albums: {
+          renamed: { name: 'Old', date: 'd', extra: { name_lh: 'x' } },
+          mine: { name: 'Mine', modified: 't' },
+          gone: { name: 'Gone' },
+        },
+      },
+      {},
+      'new',
+      '',
+      { renamed: { name: 'New' }, mine: { name: 'Theirs' }, added: { name: 'Added' } },
+    );
+    expect(result.albums).toEqual({
+      renamed: { name: 'New', extra: { name_lh: 'x' } },
+      mine: { name: 'Mine', modified: 't' },
+      gone: { name: 'Gone' },
+      added: { name: 'Added' },
+    });
+  });
+
   it('keeps unknown top-level sections', () => {
     const result = SidecarService.reimport({ ...base({}), albums: { x: {} } }, {}, 'new');
     expect(result.albums).toEqual({ x: {} });
@@ -110,13 +150,31 @@ describe('reimport', () => {
 describe('getFolderState', () => {
   it('reads the fields from .paloma.json', () => {
     writeJson({ format: 'paloma-folder', version: 2, photos: { 'a.jpg': { star: true, caption: 'Sunrise' }, 'b.jpg': { rotate: 90 } } });
-    expect(SidecarService.getFolderState(dir)).toEqual({ 'a.jpg': { star: true, caption: 'Sunrise' } });
+    expect(SidecarService.getFolderState(dir).photos).toEqual({ 'a.jpg': { star: true, caption: 'Sunrise' } });
   });
 
   it('shows a Picasa folder live without writing anything', () => {
     touch('img_0042.jpg');
     writeIni('[IMG_0042.JPG]', 'star=yes', '[gone.jpg]', 'caption=x');
-    expect(SidecarService.getFolderState(dir)).toEqual({ 'img_0042.jpg': { star: true }, 'gone.jpg': { caption: 'x' } });
+    expect(SidecarService.getFolderState(dir).photos).toEqual({ 'img_0042.jpg': { star: true }, 'gone.jpg': { caption: 'x' } });
+    expect(fs.existsSync(sidecarPath())).toBe(false);
+  });
+
+  it('returns album definitions from .paloma.json', () => {
+    writeJson({ format: 'paloma-folder', version: 2, albums: { c9ea: { name: 'Birds', cover: 'a.jpg' } }, photos: { 'a.jpg': { albums: ['c9ea'] } } });
+    expect(SidecarService.getFolderState(dir)).toEqual({
+      photos: { 'a.jpg': { albums: ['c9ea'] } },
+      albums: { c9ea: { name: 'Birds', cover: 'a.jpg' } },
+    });
+  });
+
+  it('shows Picasa albums live without writing anything', () => {
+    touch('a.jpg');
+    writeIni('[.album:c9ea]', 'name= Birds', 'token=c9ea', '[a.jpg]', 'albums=c9ea');
+    expect(SidecarService.getFolderState(dir)).toEqual({
+      photos: { 'a.jpg': { albums: ['c9ea'] } },
+      albums: { c9ea: { name: ' Birds' } },
+    });
     expect(fs.existsSync(sidecarPath())).toBe(false);
   });
 
@@ -124,7 +182,7 @@ describe('getFolderState', () => {
     writeIni('[a.jpg]', 'star=yes', '[d.jpg]', 'star=yes');
     writeJson({ format: 'paloma-folder', version: 2, iniHash: 'stale', photos: { 'a.jpg': { star: true } } });
 
-    expect(SidecarService.getFolderState(dir)).toEqual({ 'a.jpg': { star: true }, 'd.jpg': { star: true } });
+    expect(SidecarService.getFolderState(dir).photos).toEqual({ 'a.jpg': { star: true }, 'd.jpg': { star: true } });
     const written = readJson();
     expect(written.photos['d.jpg']).toEqual({ star: true });
     expect(written.iniHash).toBe(sha256(fs.readFileSync(path.join(dir, '.picasa.ini'))));
@@ -135,22 +193,22 @@ describe('getFolderState', () => {
     writeJson({ format: 'paloma-folder', version: 2, iniHash: sha256(bytes), photos: { 'a.jpg': { caption: 'x' } } });
     const before = fs.readFileSync(sidecarPath(), 'utf-8');
 
-    expect(SidecarService.getFolderState(dir)).toEqual({ 'a.jpg': { caption: 'x' } });
+    expect(SidecarService.getFolderState(dir).photos).toEqual({ 'a.jpg': { caption: 'x' } });
     fs.rmSync(path.join(dir, '.picasa.ini'));
-    expect(SidecarService.getFolderState(dir)).toEqual({ 'a.jpg': { caption: 'x' } });
+    expect(SidecarService.getFolderState(dir).photos).toEqual({ 'a.jpg': { caption: 'x' } });
     expect(fs.readFileSync(sidecarPath(), 'utf-8')).toBe(before);
   });
 
   it('ignores the .ini when there is a sidecar without iniHash', () => {
     writeIni('[a.jpg]', 'star=yes');
     writeJson({ format: 'paloma-folder', version: 2, photos: {} });
-    expect(SidecarService.getFolderState(dir)).toEqual({});
+    expect(SidecarService.getFolderState(dir).photos).toEqual({});
   });
 
   it('gives no fields for an unreadable sidecar, ignores the .ini and keeps the file', () => {
     writeIni('[a.jpg]', 'star=yes');
     fs.writeFileSync(sidecarPath(), '{broken');
-    expect(SidecarService.getFolderState(dir)).toEqual({});
+    expect(SidecarService.getFolderState(dir)).toEqual({ photos: {}, albums: {} });
     expect(fs.readFileSync(sidecarPath(), 'utf-8')).toBe('{broken');
     expect(console.error).toHaveBeenCalledWith(expect.stringContaining('.paloma.json'));
   });
@@ -212,6 +270,19 @@ describe('updatePhotoFields', () => {
     expect(fs.readFileSync(path.join(dir, '.picasa.ini')).equals(iniBefore)).toBe(true);
   });
 
+  it('imports Picasa album definitions and memberships on the first change', () => {
+    touch('a.jpg', 'b.jpg');
+    writeIni('[.album:c9ea]', 'name=Birds', 'token=c9ea', '[.album:7f01]', 'token=7f01', '[a.jpg]', 'albums=c9ea');
+
+    SidecarService.updatePhotoFields(dir, 'b.jpg', { star: true });
+
+    const written = readJson();
+    expect(Object.keys(written)).toEqual(['format', 'version', 'iniHash', 'albums', 'photos']);
+    expect(written.albums).toEqual({ c9ea: { name: 'Birds' }, '7f01': {} });
+    expect(written.photos['a.jpg']).toEqual({ albums: ['c9ea'] });
+    expect(written.photos['b.jpg']).toEqual({ star: true, modified: expect.any(String) });
+  });
+
   it('keeps an unstarred imported entry with modified so a re-import does not bring the star back', () => {
     touch('a.jpg');
     writeIni('[a.jpg]', 'star=yes');
@@ -219,7 +290,7 @@ describe('updatePhotoFields', () => {
     expect(readJson().photos['a.jpg']).toEqual({ modified: expect.any(String) });
 
     writeIni('[a.jpg]', 'star=yes', '[b.jpg]', 'star=yes');
-    expect(SidecarService.getFolderState(dir)).toEqual({ 'b.jpg': { star: true } });
+    expect(SidecarService.getFolderState(dir).photos).toEqual({ 'b.jpg': { star: true } });
     expect(fs.readFileSync(path.join(dir, '.picasa.ini'), 'utf-8')).toContain('[b.jpg]');
   });
 
@@ -264,6 +335,15 @@ describe('updatePhotoFields', () => {
     const before = fs.readFileSync(sidecarPath(), 'utf-8');
 
     expect(() => SidecarService.updatePhotoFields(dir, 'a.jpg', { star: true })).toThrow(SidecarUnreadableError);
+    expect(fs.readFileSync(sidecarPath(), 'utf-8')).toBe(before);
+  });
+
+  it('refuses to touch a sidecar with a malformed albums section', () => {
+    writeJson({ format: 'paloma-folder', version: 2, albums: ['Birds'], photos: { 'a.jpg': { star: true } } });
+    const before = fs.readFileSync(sidecarPath(), 'utf-8');
+
+    expect(SidecarService.getFolderState(dir)).toEqual({ photos: {}, albums: {} });
+    expect(() => SidecarService.updatePhotoFields(dir, 'a.jpg', { caption: 'x' })).toThrow(SidecarUnreadableError);
     expect(fs.readFileSync(sidecarPath(), 'utf-8')).toBe(before);
   });
 

@@ -4,7 +4,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { config } from '../config.js';
 import * as schema from './schema.js';
-import { addMissingPhotoColumns } from './columns.js';
+import { addMissingPhotoColumns, migrateAlbumTables } from './columns.js';
 
 if (!fs.existsSync(config.dataDir)) {
   fs.mkdirSync(config.dataDir, { recursive: true });
@@ -76,20 +76,7 @@ sqlite.exec(`
     tag_id INTEGER NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
     PRIMARY KEY (photo_id, tag_id)
   );
-
-  CREATE TABLE IF NOT EXISTS albums (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    description TEXT,
-    created_at TEXT NOT NULL
-  );
-
-  CREATE TABLE IF NOT EXISTS album_photos (
-    album_id INTEGER NOT NULL REFERENCES albums(id) ON DELETE CASCADE,
-    photo_id INTEGER NOT NULL REFERENCES photos(id) ON DELETE CASCADE,
-    added_at TEXT NOT NULL,
-    PRIMARY KEY (album_id, photo_id)
-  );
 `);
 
 addMissingPhotoColumns(sqlite);
+migrateAlbumTables(sqlite);

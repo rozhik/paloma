@@ -2,11 +2,12 @@ import chokidar, { FSWatcher } from 'chokidar';
 import path from 'node:path';
 import fs from 'node:fs';
 import { db } from '../db/index.js';
-import { folders, photos, edits, faceAnnotations, photoTags, albumPhotos } from '../db/schema.js';
+import { folders, photos, edits, faceAnnotations, photoTags, albumPhotos, folderAlbums } from '../db/schema.js';
 import { eq, and, inArray } from 'drizzle-orm';
 import { MetadataService } from './MetadataService.js';
 import { ThumbnailService } from './ThumbnailService.js';
 import { SidecarService, type FolderState, type PhotoFields } from './SidecarService.js';
+import type { PalomaAlbumDefinition } from '../../../shared/types.js';
 import { config } from '../config.js';
 import { isIgnoredName, isExcluded, isPathCovered, collapseRoots, isFolderMetaFile } from './scanPaths.js';
 
@@ -60,6 +61,37 @@ function toPhotoColumns(fields: PhotoFields | undefined) {
   };
 }
 
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+const str = (value: unknown): string | null => (typeof value === 'string' ? value : null);
+
+function folderAlbumRow(folderId: number, token: string, definition: PalomaAlbumDefinition) {
+  return {
+    folderId,
+    token,
+    name: str(definition.name),
+    date: str(definition.date),
+    location: str(definition.location),
+    description: str(definition.description),
+    cover: str(definition.cover),
+    modified: str(definition.modified),
+  };
+}
+
+function setFolderAlbums(tx: Tx | typeof db, folderId: number, albums: FolderState['albums']): void {
+  tx.delete(folderAlbums).where(eq(folderAlbums.folderId, folderId)).run();
+  for (const [token, definition] of Object.entries(albums)) {
+    tx.insert(folderAlbums).values(folderAlbumRow(folderId, token, definition)).run();
+  }
+}
+
+function setPhotoAlbums(tx: Tx | typeof db, photoId: number, fields: PhotoFields | undefined): void {
+  tx.delete(albumPhotos).where(eq(albumPhotos.photoId, photoId)).run();
+  for (const token of fields?.albums ?? []) {
+    tx.insert(albumPhotos).values({ photoId, token }).run();
+  }
+}
+
 export class FolderScannerService {
   private static watchers: Map<string, FSWatcher> = new Map();
 
@@ -106,6 +138,9 @@ export class FolderScannerService {
       if (!state) {
         state = SidecarService.getFolderState(dir);
         folderStates.set(dir, state);
+        // The folder's album definitions enter the library with the first look at its files
+        const folderId = folderIds.get(dir);
+        if (folderId !== undefined) setFolderAlbums(db, folderId, state.albums);
       }
       return state;
     };
@@ -192,6 +227,7 @@ export class FolderScannerService {
 
       const folderPhotos = db.select({ id: photos.id }).from(photos).where(eq(photos.folderId, folder.id)).all();
       this.removePhotos(folderPhotos.map((p) => p.id));
+      db.delete(folderAlbums).where(eq(folderAlbums.folderId, folder.id)).run();
       db.delete(folders).where(eq(folders.id, folder.id)).run();
       console.log(`Removed folder from library (not in PALOMA_PHOTOS_DIRS or excluded): ${folder.path}`);
     }
@@ -261,26 +297,31 @@ export class FolderScannerService {
         dateTaken: meta.dateTaken,
       };
       // User fields come from the folder's sidecar (or Picasa .ini), so they survive a content change
-      const fromSidecar = toPhotoColumns(getFolderState(dir)[filename]);
+      const fields = getFolderState(dir).photos[filename];
+      const fromSidecar = toPhotoColumns(fields);
 
-      if (existingPhoto) {
-        db.update(photos).set({ ...fromContent, ...fromSidecar }).where(eq(photos.id, existingPhoto.id)).run();
-        return;
-      }
-
-      db.insert(photos).values({
-        folderId,
-        filename,
-        ...fromContent,
-        ...fromSidecar,
-        createdAt: new Date().toISOString(),
-      }).run();
+      db.transaction((tx) => {
+        let photoId: number;
+        if (existingPhoto) {
+          tx.update(photos).set({ ...fromContent, ...fromSidecar }).where(eq(photos.id, existingPhoto.id)).run();
+          photoId = existingPhoto.id;
+        } else {
+          photoId = tx.insert(photos).values({
+            folderId,
+            filename,
+            ...fromContent,
+            ...fromSidecar,
+            createdAt: new Date().toISOString(),
+          }).returning({ id: photos.id }).get().id;
+        }
+        setPhotoAlbums(tx, photoId, fields);
+      });
     } catch (err) {
       console.error(`Error scanning ${filePath}:`, err);
     }
   }
 
-  /** Sets the user fields of every library photo in a folder; a folder not in the library is left alone. */
+  /** Sets the user fields and albums of every library photo in a folder; a folder not in the library is left alone. */
   public static applyFolderState(dir: string, state: FolderState): void {
     const folder = db.select().from(folders).where(eq(folders.path, dir)).get();
     if (!folder) return;
@@ -291,8 +332,11 @@ export class FolderScannerService {
       .all();
     db.transaction((tx) => {
       for (const photo of folderPhotos) {
-        tx.update(photos).set(toPhotoColumns(state[photo.filename])).where(eq(photos.id, photo.id)).run();
+        const fields = state.photos[photo.filename];
+        tx.update(photos).set(toPhotoColumns(fields)).where(eq(photos.id, photo.id)).run();
+        setPhotoAlbums(tx, photo.id, fields);
       }
+      setFolderAlbums(tx, folder.id, state.albums);
     });
   }
 

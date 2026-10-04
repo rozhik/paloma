@@ -33,7 +33,7 @@ let folderId: number;
 const ids: Record<string, number> = {};
 
 beforeEach(() => {
-  for (const table of [schema.edits, schema.photos, schema.folders]) db.delete(table).run();
+  for (const table of [schema.edits, schema.albumPhotos, schema.folderAlbums, schema.photos, schema.folders]) db.delete(table).run();
   dir = fs.mkdtempSync(path.join(tmpDir, 'photos_'));
   folderId = db.insert(schema.folders)
     .values({ path: dir, name: path.basename(dir), indexedAt: '' })
@@ -136,5 +136,27 @@ describe('listPhotos and listFolders', () => {
 
     expect(photos.find((p) => p.filename === 'a.jpg')).toMatchObject({ caption: 'Sunrise', keywords: ['dawn'], isHidden: false });
     expect(photos.find((p) => p.filename === 'c.jpg')).toMatchObject({ caption: null, keywords: [], isHidden: false });
+  });
+
+  it('lists the photos of an album across folders, with their album tokens', () => {
+    const other = fs.mkdtempSync(path.join(tmpDir, 'photos_'));
+    const otherId = db.insert(schema.folders).values({ path: other, name: 'other', indexedAt: '' })
+      .returning({ id: schema.folders.id }).get().id;
+    const d = db.insert(schema.photos).values({ folderId: otherId, filename: 'd.jpg', fileHash: 'd', createdAt: '' })
+      .returning({ id: schema.photos.id }).get().id;
+    db.insert(schema.albumPhotos).values([
+      { photoId: ids['a.jpg'], token: 'c9ea' },
+      { photoId: ids['b.jpg'], token: 'c9ea' },
+      { photoId: ids['b.jpg'], token: '7f01' },
+      { photoId: d, token: 'c9ea' },
+    ]).run();
+    db.update(schema.photos).set({ isHidden: true }).where(eq(schema.photos.id, ids['b.jpg'])).run();
+
+    const inAlbum = api.listPhotos({ album: 'c9ea' });
+    expect(inAlbum.map((p) => p.filename).sort()).toEqual(['a.jpg', 'd.jpg']);
+    expect(inAlbum.every((p) => p.albums.includes('c9ea'))).toBe(true);
+    expect(api.listPhotos({ album: 'c9ea', includeHidden: 'true' }).find((p) => p.filename === 'b.jpg')?.albums.sort())
+      .toEqual(['7f01', 'c9ea']);
+    expect(api.listPhotos({}).find((p) => p.filename === 'c.jpg')?.albums).toEqual([]);
   });
 });

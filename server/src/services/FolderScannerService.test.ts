@@ -45,7 +45,7 @@ beforeEach(() => {
   photosRoot = fs.mkdtempSync(path.join(tmpDir, 'photos_'));
   for (const table of [
     schema.edits, schema.faceAnnotations, schema.photoTags, schema.albumPhotos,
-    schema.albums, schema.photos, schema.folders,
+    schema.folderAlbums, schema.photos, schema.folders,
   ]) {
     db.delete(table).run();
   }
@@ -90,6 +90,30 @@ function fieldsOf(filename: string) {
 }
 
 const NO_FIELDS = { isStarred: false, isHidden: false, caption: null, keywords: null };
+
+/** Library album membership as sorted `folder/file` paths per token. */
+function albumMembers(): Record<string, string[]> {
+  const rows = db.select({ token: schema.albumPhotos.token, filename: schema.photos.filename, folder: schema.folders.path })
+    .from(schema.albumPhotos)
+    .innerJoin(schema.photos, eq(schema.albumPhotos.photoId, schema.photos.id))
+    .innerJoin(schema.folders, eq(schema.photos.folderId, schema.folders.id))
+    .all();
+  const members: Record<string, string[]> = {};
+  for (const row of rows) (members[row.token] ??= []).push(path.join(row.folder, row.filename));
+  for (const list of Object.values(members)) list.sort();
+  return members;
+}
+
+/** Library album definition names per folder path and token. */
+function folderAlbumNames(): Record<string, Record<string, string | null>> {
+  const rows = db.select({ token: schema.folderAlbums.token, name: schema.folderAlbums.name, folder: schema.folders.path })
+    .from(schema.folderAlbums)
+    .innerJoin(schema.folders, eq(schema.folderAlbums.folderId, schema.folders.id))
+    .all();
+  const names: Record<string, Record<string, string | null>> = {};
+  for (const row of rows) (names[row.folder] ??= {})[row.token] = row.name;
+  return names;
+}
 
 describe('FolderScannerService', () => {
   it('indexes a photo from a scanned folder', async () => {
@@ -187,8 +211,7 @@ describe('FolderScannerService', () => {
     const photo = db.select().from(schema.photos).where(eq(schema.photos.filename, 'gone.jpg')).get()!;
     const now = new Date().toISOString();
     db.insert(schema.edits).values({ photoId: photo.id, editInstructionsJson: '{}', updatedAt: now }).run();
-    const album = db.insert(schema.albums).values({ name: 'A', createdAt: now }).returning().get();
-    db.insert(schema.albumPhotos).values({ albumId: album.id, photoId: photo.id, addedAt: now }).run();
+    db.insert(schema.albumPhotos).values({ photoId: photo.id, token: 'c9ea' }).run();
     db.insert(schema.faceAnnotations).values({ photoId: photo.id, boundingBox: '[0,0,1,1]' }).run();
     const tag = db.insert(schema.tags).values({ name: `t${photo.id}` }).returning().get();
     db.insert(schema.photoTags).values({ photoId: photo.id, tagId: tag.id }).run();
@@ -234,6 +257,15 @@ describe('FolderScannerService', () => {
       expect(indexedPaths()).toEqual([path.join(a, 'a1.jpg'), path.join(a, 'private', 'p1.jpg')]);
       expect(db.select().from(schema.folders).where(eq(schema.folders.path, b)).get()).toBeUndefined();
       expect(snapshot()).toEqual(before);
+    });
+
+    it('drops the album definitions of a removed folder', async () => {
+      const bFolder = db.select().from(schema.folders).where(eq(schema.folders.path, b)).get()!;
+      db.insert(schema.folderAlbums).values({ folderId: bFolder.id, token: 'c9ea', name: 'Birds' }).run();
+
+      await Scanner.startConfiguredFolders({ photosDirs: [a], excludeDirs: [] });
+
+      expect(db.select().from(schema.folderAlbums).where(eq(schema.folderAlbums.folderId, bFolder.id)).all()).toEqual([]);
     });
 
     it('removes a newly excluded subfolder', async () => {
@@ -467,6 +499,58 @@ describe('FolderScannerService', () => {
       await vi.waitFor(() => expect(indexedPaths()).toEqual([file]), WAIT);
       expect(fieldsOf('a.jpg').isStarred).toBe(true);
       expect(fs.readFileSync(path.join(photosRoot, '.paloma.json'), 'utf-8')).toBe(sidecar);
+    });
+
+    it('rebuilds albums spanning two folders from .paloma.json', async () => {
+      const a = path.join(photosRoot, 'a');
+      const b = path.join(photosRoot, 'b');
+      await makeImage(path.join(a, '1.jpg'));
+      await makeImage(path.join(a, '2.jpg'));
+      await makeImage(path.join(b, '3.jpg'));
+      writeSidecar(a, { '1.jpg': { albums: ['c9ea'] }, '2.jpg': { star: true } }, { albums: { c9ea: { name: 'Birds' } } });
+      writeSidecar(b, { '3.jpg': { albums: ['c9ea', 'c9ea', 7] } }, { albums: { c9ea: { name: 'Birds', cover: '3.jpg' } } });
+
+      await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
+
+      expect(albumMembers()).toEqual({ c9ea: [path.join(a, '1.jpg'), path.join(b, '3.jpg')] });
+      expect(folderAlbumNames()).toEqual({ [a]: { c9ea: 'Birds' }, [b]: { c9ea: 'Birds' } });
+      expect(db.select({ cover: schema.folderAlbums.cover }).from(schema.folderAlbums).all().map((r) => r.cover).sort())
+        .toEqual(['3.jpg', null]);
+    });
+
+    it('shows a Picasa album from the .ini without writing anything', async () => {
+      await makeImage(path.join(photosRoot, 'a.jpg'));
+      writeIni(photosRoot, '[.album:c9ea]', 'name= Birds', 'token=c9ea', '[a.jpg]', 'albums=c9ea');
+
+      await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
+
+      expect(albumMembers()).toEqual({ c9ea: [path.join(photosRoot, 'a.jpg')] });
+      expect(folderAlbumNames()).toEqual({ [photosRoot]: { c9ea: ' Birds' } });
+      expect(fs.readdirSync(photosRoot).sort()).toEqual(['.picasa.ini', 'a.jpg']);
+    });
+
+    it('applies an album token added to .paloma.json by hand without a restart', async () => {
+      await makeImage(path.join(photosRoot, 'a.jpg'));
+      writeSidecar(photosRoot, {}, { albums: { c9ea: { name: 'Birds' } } });
+      await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
+      expect(albumMembers()).toEqual({});
+
+      writeSidecar(photosRoot, { 'a.jpg': { albums: ['c9ea'] } }, { albums: { c9ea: { name: 'Birds' } } });
+
+      await vi.waitFor(() => expect(albumMembers()).toEqual({ c9ea: [path.join(photosRoot, 'a.jpg')] }), WAIT);
+    });
+
+    it('takes no albums from an unreadable sidecar', async () => {
+      const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+      await makeImage(path.join(photosRoot, 'a.jpg'));
+      writeIni(photosRoot, '[.album:c9ea]', 'name=Birds', '[a.jpg]', 'albums=c9ea');
+      fs.writeFileSync(path.join(photosRoot, '.paloma.json'), JSON.stringify({ format: 'paloma-folder', version: 2, albums: ['x'], photos: { 'a.jpg': { albums: ['c9ea'] } } }));
+
+      await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
+
+      expect(albumMembers()).toEqual({});
+      expect(folderAlbumNames()).toEqual({});
+      errors.mockRestore();
     });
   });
 });

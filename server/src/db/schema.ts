@@ -1,4 +1,4 @@
-import { sqliteTable, integer, text, real } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, integer, text, real, primaryKey, index } from 'drizzle-orm/sqlite-core';
 
 export const folders = sqliteTable('folders', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -57,15 +57,24 @@ export const photoTags = sqliteTable('photo_tags', {
   tagId: integer('tag_id').notNull().references(() => tags.id, { onDelete: 'cascade' }),
 });
 
-export const albums = sqliteTable('albums', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  name: text('name').notNull(),
+// One row per album definition copy in a folder's .paloma.json (or Picasa .ini); rebuilt from disk
+export const folderAlbums = sqliteTable('folder_albums', {
+  folderId: integer('folder_id').notNull().references(() => folders.id, { onDelete: 'cascade' }),
+  token: text('token').notNull(),
+  name: text('name'),
+  date: text('date'),
+  location: text('location'),
   description: text('description'),
-  createdAt: text('created_at').notNull(),
-});
+  cover: text('cover'),
+  modified: text('modified'),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.folderId, table.token] }),
+}));
 
 export const albumPhotos = sqliteTable('album_photos', {
-  albumId: integer('album_id').notNull().references(() => albums.id, { onDelete: 'cascade' }),
   photoId: integer('photo_id').notNull().references(() => photos.id, { onDelete: 'cascade' }),
-  addedAt: text('added_at').notNull(),
-});
+  token: text('token').notNull(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.photoId, table.token] }),
+  byToken: index('album_photos_token').on(table.token),
+}));

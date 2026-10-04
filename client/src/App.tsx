@@ -12,9 +12,12 @@ import { MovieMakerModal } from './components/MovieMakerModal.js';
 import { CollageBuilder } from './components/CollageBuilder.js';
 import { PlacesMap } from './components/PlacesMap.js';
 import { PeopleView } from './components/PeopleView.js';
+import { AlbumHeader } from './components/AlbumHeader.js';
 
 export const App: React.FC = () => {
-  const { currentView, activeEditPhoto, selectedFolderId, selectedFilter, searchQuery } = usePalomaStore();
+  const {
+    currentView, activeEditPhoto, selectedFolderId, selectedFilter, selectedAlbumToken, searchQuery, libraryVersion,
+  } = usePalomaStore();
 
   const [photosList, setPhotosList] = useState<Photo[]>([]);
   const [showExportModal, setShowExportModal] = useState(false);
@@ -25,6 +28,7 @@ export const App: React.FC = () => {
     try {
       const params = new URLSearchParams();
       if (selectedFolderId !== null) params.append('folderId', String(selectedFolderId));
+      if (selectedAlbumToken !== null) params.append('album', selectedAlbumToken);
       if (selectedFilter === 'starred') params.append('starred', 'true');
       if (searchQuery.trim()) params.append('query', searchQuery.trim());
 
@@ -40,7 +44,7 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     fetchPhotos();
-  }, [selectedFolderId, selectedFilter, searchQuery]);
+  }, [selectedFolderId, selectedFilter, selectedAlbumToken, searchQuery, libraryVersion]);
 
   const handleStarToggle = async (photoId: number, currentStarred: boolean) => {
     try {
@@ -80,6 +84,7 @@ export const App: React.FC = () => {
       <div className="d-flex flex-grow-1 overflow-hidden" style={{ marginBottom: '80px' }}>
         <LeftSidebar />
         <main className="flex-grow-1 bg-light d-flex flex-column overflow-hidden">
+          {selectedAlbumToken !== null && <AlbumHeader token={selectedAlbumToken} />}
           <VirtualPhotoGrid photos={photosList} onStarToggle={handleStarToggle} />
         </main>
       </div>

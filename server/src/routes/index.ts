@@ -2,10 +2,13 @@ import { Router } from 'express';
 import path from 'node:path';
 import fs from 'node:fs';
 import { db } from '../db/index.js';
-import { folders, photos, edits, people, faceAnnotations, tags, photoTags, albums, albumPhotos } from '../db/schema.js';
+import { folders, photos, edits, people, faceAnnotations, tags, photoTags } from '../db/schema.js';
 import { eq, inArray } from 'drizzle-orm';
 import { ThumbnailService } from '../services/ThumbnailService.js';
 import { listFolders, listPhotos, updatePhoto } from '../services/photoApi.js';
+import {
+  addAlbumPhotos, createAlbumFromPhotos, deleteAlbumEverywhere, editAlbumProperties, listAlbums, removeAlbumPhotos,
+} from '../services/albumApi.js';
 import { MetadataService } from '../services/MetadataService.js';
 import sharp from 'sharp';
 import ffmpeg from 'fluent-ffmpeg';
@@ -248,42 +251,32 @@ router.post('/faces/annotate', (req, res) => {
 
 // --- Albums API ---
 router.get('/albums', (req, res) => {
-  const allAlbums = db.select().from(albums).all();
-  res.json(allAlbums);
+  res.json(listAlbums());
 });
 
 router.post('/albums', (req, res) => {
-  const { name, description } = req.body;
-  if (!name) return res.status(400).json({ error: 'Name is required' });
-
-  const inserted = db.insert(albums).values({
-    name,
-    description,
-    createdAt: new Date().toISOString(),
-  }).returning().get();
-
-  res.json(inserted);
+  const result = createAlbumFromPhotos(req.body);
+  res.status(result.status).json(result.body);
 });
 
-router.post('/albums/:id/photos', (req, res) => {
-  const albumId = Number(req.params.id);
-  const { photoIds } = req.body;
+router.patch('/albums/:token', (req, res) => {
+  const result = editAlbumProperties(req.params.token, req.body);
+  res.status(result.status).json(result.body);
+});
 
-  if (!Array.isArray(photoIds)) return res.status(400).json({ error: 'photoIds array required' });
+router.delete('/albums/:token', (req, res) => {
+  const result = deleteAlbumEverywhere(req.params.token);
+  res.status(result.status).json(result.body);
+});
 
-  for (const pid of photoIds) {
-    try {
-      db.insert(albumPhotos).values({
-        albumId,
-        photoId: Number(pid),
-        addedAt: new Date().toISOString(),
-      }).run();
-    } catch {
-      // ignore duplicates
-    }
-  }
+router.post('/albums/:token/photos', (req, res) => {
+  const result = addAlbumPhotos(req.params.token, req.body);
+  res.status(result.status).json(result.body);
+});
 
-  res.json({ success: true, count: photoIds.length });
+router.delete('/albums/:token/photos', (req, res) => {
+  const result = removeAlbumPhotos(req.params.token, req.body);
+  res.status(result.status).json(result.body);
 });
 
 export default router;

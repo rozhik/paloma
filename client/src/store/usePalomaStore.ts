@@ -11,12 +11,17 @@ interface PalomaStore {
   searchQuery: string;
   selectedFolderId: number | null;
   selectedFilter: FilterType;
+  selectedAlbumToken: string | null;
+  /** Bumped after a change so the sidebar and the photo grid refetch without waiting for the poll */
+  libraryVersion: number;
 
   setCurrentView: (view: AppView) => void;
   setActiveEditPhoto: (photo: Photo | null) => void;
   setSearchQuery: (query: string) => void;
   setSelectedFolderId: (folderId: number | null) => void;
   setSelectedFilter: (filter: FilterType) => void;
+  setSelectedAlbum: (token: string | null) => void;
+  bumpLibrary: () => void;
 
   toggleSelectPhoto: (photo: Photo) => void;
   removePhotoFromTray: (photoId: number) => void;
@@ -31,12 +36,16 @@ export const usePalomaStore = create<PalomaStore>((set, get) => ({
   searchQuery: '',
   selectedFolderId: null,
   selectedFilter: 'all',
+  selectedAlbumToken: null,
+  libraryVersion: 0,
 
   setCurrentView: (view) => set({ currentView: view }),
   setActiveEditPhoto: (photo) => set({ activeEditPhoto: photo, currentView: photo ? 'editor' : 'library' }),
   setSearchQuery: (searchQuery) => set({ searchQuery }),
-  setSelectedFolderId: (selectedFolderId) => set({ selectedFolderId, selectedFilter: 'all' }),
-  setSelectedFilter: (selectedFilter) => set({ selectedFilter, selectedFolderId: null }),
+  setSelectedFolderId: (selectedFolderId) => set({ selectedFolderId, selectedFilter: 'all', selectedAlbumToken: null }),
+  setSelectedFilter: (selectedFilter) => set({ selectedFilter, selectedFolderId: null, selectedAlbumToken: null }),
+  setSelectedAlbum: (selectedAlbumToken) => set({ selectedAlbumToken, selectedFolderId: null, selectedFilter: 'all' }),
+  bumpLibrary: () => set({ libraryVersion: get().libraryVersion + 1 }),
 
   toggleSelectPhoto: (photo) => {
     const { selectedPhotos } = get();

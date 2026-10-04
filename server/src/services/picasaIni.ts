@@ -8,11 +8,32 @@ export interface PhotoFields {
   hidden?: true;
   caption?: string;
   keywords?: string[];
+  /** Album tokens, without duplicates */
+  albums?: string[];
+}
+
+/** The keys of a Picasa `[.album:<token>]` section that Paloma maps; values are kept verbatim. */
+export type IniAlbum = {
+  name?: string;
+  date?: string;
+  location?: string;
+  description?: string;
+};
+
+export const ALBUM_KEYS = ['name', 'date', 'location', 'description'] as const;
+
+export interface PicasaIniData {
+  /** Supported fields of each file section that has any */
+  sections: Record<string, PhotoFields>;
+  /** Album definitions keyed by token */
+  albums: Record<string, IniAlbum>;
 }
 
 export type PicasaIniRead =
   | { kind: 'missing' }
-  | { kind: 'ok'; fileName: string; sha256: string; sections: Record<string, PhotoFields> };
+  | ({ kind: 'ok'; fileName: string; sha256: string } & PicasaIniData);
+
+const ALBUM_PREFIX = '.album:';
 
 // Sections that describe the folder, albums or contacts rather than a file
 const NON_FILE_SECTIONS = new Set(['Picasa', 'Contacts', 'Contacts2', 'encoding', 'photoid', '(null)']);
@@ -49,11 +70,22 @@ function toFields(entries: Map<string, string>): PhotoFields {
   if (caption) fields.caption = caption;
   const keywords = entries.get('keywords')?.split(',').filter((keyword) => keyword !== '');
   if (keywords?.length) fields.keywords = keywords;
+  const albums = [...new Set(entries.get('albums')?.split(',').filter((token) => token !== ''))];
+  if (albums.length) fields.albums = albums;
   return fields;
 }
 
-/** Parses Picasa .ini bytes into the supported fields of each file section; values are never trimmed. */
-export function parsePicasaIni(bytes: Buffer): Record<string, PhotoFields> {
+function toAlbum(entries: Map<string, string>): IniAlbum {
+  const album: IniAlbum = {};
+  for (const key of ALBUM_KEYS) {
+    const value = entries.get(key);
+    if (value !== undefined) album[key] = value;
+  }
+  return album;
+}
+
+/** Parses Picasa .ini bytes into file-section fields and album definitions; values are never trimmed. */
+export function parsePicasaIni(bytes: Buffer): PicasaIniData {
   const text = decode(bytes);
   const lines = text.includes('\r\n') ? text.split('\r\n') : text.split('\n');
 
@@ -75,12 +107,18 @@ export function parsePicasaIni(bytes: Buffer): Record<string, PhotoFields> {
   }
 
   const sections: Record<string, PhotoFields> = {};
+  const albums: Record<string, IniAlbum> = {};
   for (const [name, entries] of raw) {
-    if (NON_FILE_SECTIONS.has(name) || name.startsWith('.album:')) continue;
+    if (name.startsWith(ALBUM_PREFIX)) {
+      const token = name.slice(ALBUM_PREFIX.length);
+      if (token !== '') albums[token] = toAlbum(entries);
+      continue;
+    }
+    if (NON_FILE_SECTIONS.has(name)) continue;
     const fields = toFields(entries);
     if (Object.keys(fields).length > 0) sections[name] = fields;
   }
-  return sections;
+  return { sections, albums };
 }
 
 /** Reads the folder's Picasa .ini, if any. Paloma never writes these files. */
@@ -98,6 +136,6 @@ export function readPicasaIni(dir: string, names: readonly string[] = fs.readdir
     kind: 'ok',
     fileName,
     sha256: crypto.createHash('sha256').update(bytes).digest('hex'),
-    sections: parsePicasaIni(bytes),
+    ...parsePicasaIni(bytes),
   };
 }
