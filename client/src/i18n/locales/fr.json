@@ -32,7 +32,8 @@
     "albums": "Albums",
     "noAlbums": "Aucun album pour l’instant. Sélectionnez des photos et cliquez sur « Vers l’album ».",
     "folders": "Dossiers surveillés",
-    "noFolders": "Aucun dossier. Indiquez vos dossiers de photos dans PALOMA_PHOTOS_DIRS du fichier .env et redémarrez le serveur."
+    "noFolders": "Aucun dossier. Indiquez vos dossiers de photos dans PALOMA_PHOTOS_DIRS du fichier .env et redémarrez le serveur.",
+    "geotagged": "📍 Géolocalisées"
   },
   "grid": {
     "emptyTitle": "Aucune photo trouvée",
@@ -169,6 +170,45 @@
     "album_empty": "L’album ne contient aucune photo de la bibliothèque.",
     "export_params_required": "Choisissez des photos et un dossier de destination.",
     "person_name_required": "Saisissez un nom.",
-    "internal": "Erreur du serveur : {{message}}"
+    "internal": "Erreur du serveur : {{message}}",
+    "invalid_location": "Lieu non valide : la latitude doit être comprise entre -90 et 90 et la longitude entre -180 et 180.",
+    "query_required": "Saisissez un lieu ou une adresse à rechercher.",
+    "geocoder_disabled": "La recherche de lieux est désactivée dans les paramètres du serveur.",
+    "geocoder_failed": "Le service de recherche de lieux n’est pas disponible. Vérifiez la connexion Internet et réessayez."
+  },
+  "geo": {
+    "coordinates": "{{lat}} ; {{lon}}",
+    "setLocation": "Définir le lieu",
+    "cancelSetLocation": "Annuler",
+    "selectPhotosFirst": "Sélectionnez d’abord des photos, puis placez-les sur la carte.",
+    "clickToPlace_one": "Cliquez sur la carte à l’endroit où {{count, number}} photo sélectionnée a été prise.",
+    "clickToPlace_many": "Cliquez sur la carte à l’endroit où les {{count, number}} de photos sélectionnées ont été prises.",
+    "clickToPlace_other": "Cliquez sur la carte à l’endroit où les {{count, number}} photos sélectionnées ont été prises.",
+    "removeLocation": "Retirer le lieu",
+    "removeLocationTitle": "Retirer le lieu ?",
+    "removeLocationBody_one": "Retirer le lieu de {{count, number}} photo ? Le fichier photo n’est pas modifié.",
+    "removeLocationBody_many": "Retirer le lieu de {{count, number}} de photos ? Les fichiers photo ne sont pas modifiés.",
+    "removeLocationBody_other": "Retirer le lieu de {{count, number}} photos ? Les fichiers photo ne sont pas modifiés.",
+    "replaceTitle": "Remplacer le lieu ?",
+    "replaceBody_one": "{{count, number}} photo sélectionnée a déjà un lieu. Le remplacer ?",
+    "replaceBody_many": "{{count, number}} de photos sélectionnées ont déjà un lieu. Le remplacer ?",
+    "replaceBody_other": "{{count, number}} photos sélectionnées ont déjà un lieu. Le remplacer ?",
+    "replaceConfirm": "Remplacer",
+    "searchPlaceholder": "Rechercher un lieu ou une adresse",
+    "search": "Rechercher",
+    "results": "Résultats de la recherche",
+    "noResults": "Aucun résultat.",
+    "places": "Lieux",
+    "noPlaces": "Aucun lieu pour le moment.",
+    "resolving_one": "Recherche du lieu de {{count, number}} photo…",
+    "resolving_many": "Recherche des lieux de {{count, number}} de photos…",
+    "resolving_other": "Recherche des lieux de {{count, number}} photos…",
+    "placeHere_one": "Placer ici {{count, number}} photo sélectionnée",
+    "placeHere_many": "Placer ici {{count, number}} de photos sélectionnées",
+    "placeHere_other": "Placer ici {{count, number}} photos sélectionnées",
+    "addToSelection": "Ajouter à la sélection",
+    "clickToSelect": "Cliquez sur une photo pour l’ajouter à la sélection.",
+    "noGeotagged": "Aucune photo géolocalisée ici.",
+    "noGeotaggedHint": "Sélectionnez des photos et placez-les sur la carte avec « Définir le lieu », ou faites-les glisser ici depuis le bac."
   }
 }

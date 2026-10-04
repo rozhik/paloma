@@ -30,7 +30,8 @@
     "albums": "アルバム",
     "noAlbums": "アルバムはまだありません。写真を選んで「アルバムへ」をクリックしてください。",
     "folders": "監視中のフォルダ",
-    "noFolders": "フォルダがありません。.env ファイルの PALOMA_PHOTOS_DIRS に写真フォルダを指定し、サーバーを再起動してください。"
+    "noFolders": "フォルダがありません。.env ファイルの PALOMA_PHOTOS_DIRS に写真フォルダを指定し、サーバーを再起動してください。",
+    "geotagged": "📍 位置情報あり"
   },
   "grid": {
     "emptyTitle": "写真が見つかりません",
@@ -155,6 +156,35 @@
     "album_empty": "このアルバムにはライブラリ内の写真がありません。",
     "export_params_required": "写真と保存先フォルダを選んでください。",
     "person_name_required": "名前を入力してください。",
-    "internal": "サーバーエラー: {{message}}"
+    "internal": "サーバーエラー: {{message}}",
+    "invalid_location": "位置が無効です。緯度は -90～90、経度は -180～180 の範囲で指定してください。",
+    "query_required": "検索する場所または住所を入力してください。",
+    "geocoder_disabled": "場所の検索はサーバー設定で無効になっています。",
+    "geocoder_failed": "場所の検索サービスを利用できません。インターネット接続を確認して、もう一度お試しください。"
+  },
+  "geo": {
+    "coordinates": "{{lat}}、{{lon}}",
+    "setLocation": "場所を設定",
+    "cancelSetLocation": "キャンセル",
+    "selectPhotosFirst": "先に写真を選択してから、地図上に配置してください。",
+    "clickToPlace_other": "選択した {{count, number}} 枚の写真を撮影した場所を地図上でクリックしてください。",
+    "removeLocation": "場所を削除",
+    "removeLocationTitle": "場所を削除しますか？",
+    "removeLocationBody_other": "{{count, number}} 枚の写真の場所を削除しますか？写真ファイルは変更されません。",
+    "replaceTitle": "場所を置き換えますか？",
+    "replaceBody_other": "選択した写真のうち {{count, number}} 枚にはすでに場所があります。置き換えますか？",
+    "replaceConfirm": "置き換える",
+    "searchPlaceholder": "場所または住所を検索",
+    "search": "検索",
+    "results": "検索結果",
+    "noResults": "見つかりませんでした。",
+    "places": "場所",
+    "noPlaces": "まだ場所はありません。",
+    "resolving_other": "{{count, number}} 枚の写真の場所を調べています…",
+    "placeHere_other": "選択した {{count, number}} 枚の写真をここに配置",
+    "addToSelection": "選択に追加",
+    "clickToSelect": "写真をクリックすると選択に追加されます。",
+    "noGeotagged": "ここには位置情報付きの写真がありません。",
+    "noGeotaggedHint": "写真を選択して「場所を設定」で地図上に配置するか、トレイからここへドラッグしてください。"
   }
 }

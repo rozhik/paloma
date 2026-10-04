@@ -3,12 +3,16 @@ import sharp from 'sharp';
 import exifReader from 'exif-reader';
 import XXH from 'xxhashjs';
 
+/** Bumped when parsing improves; photos read by an older version are read again on the next scan. */
+export const METADATA_VERSION = 1;
+
 export interface PhotoMetadata {
   fileHash: string;
   width: number;
   height: number;
   fileSize: number;
   dateTaken: string | null;
+  /** Camera location from EXIF GPS */
   latitude: number | null;
   longitude: number | null;
 }

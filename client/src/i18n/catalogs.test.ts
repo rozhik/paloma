@@ -47,7 +47,8 @@ describe('catalogs', () => {
       invalid_body: true, invalid_field: true, album_name_required: true, photo_ids_required: true, no_album_fields: true,
       no_photo_fields: true, photo_not_found: true, album_not_found: true, file_not_found: true, cover_not_in_album: true,
       sidecar_unreadable: true, sidecar_write_failed: true, album_empty: true, export_params_required: true,
-      person_name_required: true, internal: true,
+      person_name_required: true, internal: true, invalid_location: true, query_required: true, geocoder_disabled: true,
+      geocoder_failed: true,
     };
     for (const code of Object.keys(codes)) expect(english.has(`errors.${code}`), code).toBe(true);
   });

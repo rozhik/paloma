@@ -31,7 +31,8 @@
     "albums": "Alben",
     "noAlbums": "Noch keine Alben. Wählen Sie Fotos aus und klicken Sie auf „Zum Album“.",
     "folders": "Überwachte Ordner",
-    "noFolders": "Keine Ordner. Tragen Sie Ihre Fotoordner in PALOMA_PHOTOS_DIRS in der Datei .env ein und starten Sie den Server neu."
+    "noFolders": "Keine Ordner. Tragen Sie Ihre Fotoordner in PALOMA_PHOTOS_DIRS in der Datei .env ein und starten Sie den Server neu.",
+    "geotagged": "📍 Mit Ortsangabe"
   },
   "grid": {
     "emptyTitle": "Keine Fotos gefunden",
@@ -162,6 +163,40 @@
     "album_empty": "Das Album enthält keine Fotos aus der Bibliothek.",
     "export_params_required": "Wählen Sie Fotos und einen Zielordner aus.",
     "person_name_required": "Geben Sie einen Namen ein.",
-    "internal": "Serverfehler: {{message}}"
+    "internal": "Serverfehler: {{message}}",
+    "invalid_location": "Ungültiger Ort: Der Breitengrad muss zwischen -90 und 90 und der Längengrad zwischen -180 und 180 liegen.",
+    "query_required": "Geben Sie einen Ort oder eine Adresse ein.",
+    "geocoder_disabled": "Die Ortssuche ist in den Servereinstellungen deaktiviert.",
+    "geocoder_failed": "Der Ortssuchdienst ist nicht erreichbar. Prüfen Sie die Internetverbindung und versuchen Sie es erneut."
+  },
+  "geo": {
+    "coordinates": "{{lat}}; {{lon}}",
+    "setLocation": "Ort festlegen",
+    "cancelSetLocation": "Abbrechen",
+    "selectPhotosFirst": "Wählen Sie zuerst Fotos aus und platzieren Sie sie dann auf der Karte.",
+    "clickToPlace_one": "Klicken Sie auf der Karte dorthin, wo {{count, number}} ausgewähltes Foto aufgenommen wurde.",
+    "clickToPlace_other": "Klicken Sie auf der Karte dorthin, wo die {{count, number}} ausgewählten Fotos aufgenommen wurden.",
+    "removeLocation": "Ort entfernen",
+    "removeLocationTitle": "Ort entfernen?",
+    "removeLocationBody_one": "Den Ort von {{count, number}} Foto entfernen? Die Fotodatei wird nicht verändert.",
+    "removeLocationBody_other": "Den Ort von {{count, number}} Fotos entfernen? Die Fotodateien werden nicht verändert.",
+    "replaceTitle": "Ort ersetzen?",
+    "replaceBody_one": "{{count, number}} ausgewähltes Foto hat bereits einen Ort. Ersetzen?",
+    "replaceBody_other": "{{count, number}} ausgewählte Fotos haben bereits einen Ort. Ersetzen?",
+    "replaceConfirm": "Ersetzen",
+    "searchPlaceholder": "Ort oder Adresse suchen",
+    "search": "Suchen",
+    "results": "Suchergebnisse",
+    "noResults": "Nichts gefunden.",
+    "places": "Orte",
+    "noPlaces": "Noch keine Orte.",
+    "resolving_one": "Ort von {{count, number}} Foto wird ermittelt …",
+    "resolving_other": "Orte von {{count, number}} Fotos werden ermittelt …",
+    "placeHere_one": "{{count, number}} ausgewähltes Foto hier platzieren",
+    "placeHere_other": "{{count, number}} ausgewählte Fotos hier platzieren",
+    "addToSelection": "Zur Auswahl hinzufügen",
+    "clickToSelect": "Klicken Sie auf ein Foto, um es zur Auswahl hinzuzufügen.",
+    "noGeotagged": "Hier gibt es keine Fotos mit Ortsangabe.",
+    "noGeotaggedHint": "Wählen Sie Fotos aus und platzieren Sie sie mit „Ort festlegen“ auf der Karte, oder ziehen Sie sie aus der Leiste hierher."
   }
 }

@@ -4,7 +4,8 @@ import fs from 'node:fs';
 import { db } from '../db/index.js';
 import { folders, photos, edits, faceAnnotations, photoTags, albumPhotos, folderAlbums } from '../db/schema.js';
 import { eq, and, inArray } from 'drizzle-orm';
-import { MetadataService } from './MetadataService.js';
+import { METADATA_VERSION, MetadataService } from './MetadataService.js';
+import { effectiveLocation } from './location.js';
 import { ThumbnailService } from './ThumbnailService.js';
 import { SidecarService, type FolderState, type PhotoFields } from './SidecarService.js';
 import type { PalomaAlbumDefinition } from '../../../shared/types.js';
@@ -52,12 +53,16 @@ async function waitUntilStable(filePath: string): Promise<boolean> {
   }
 }
 
-function toPhotoColumns(fields: PhotoFields | undefined) {
+type ExifLocation = { latitude: number | null; longitude: number | null };
+
+/** Library columns that come from the folder files, with the location resolved against the camera's. */
+function toPhotoColumns(fields: PhotoFields | undefined, exif: ExifLocation) {
   return {
     isStarred: fields?.star === true,
     isHidden: fields?.hidden === true,
     caption: fields?.caption ?? null,
     keywords: fields?.keywords ? JSON.stringify(fields.keywords) : null,
+    ...effectiveLocation(fields?.geotag, exif),
   };
 }
 
@@ -283,24 +288,28 @@ export class FolderScannerService {
         .from(photos)
         .where(and(eq(photos.folderId, folderId), eq(photos.filename, filename)))
         .get();
-      if (existingPhoto && event === 'add') return;
+      const outdated = existingPhoto !== undefined && existingPhoto.metadataVersion < METADATA_VERSION;
+      if (existingPhoto && event === 'add' && !outdated) return;
 
       const meta = await MetadataService.extractMetadata(filePath);
-      if (existingPhoto?.fileHash === meta.fileHash) return;
-      await ThumbnailService.generateThumbnails(filePath, meta.fileHash);
+      const sameContent = existingPhoto?.fileHash === meta.fileHash;
+      if (sameContent && !outdated) return;
+      if (!sameContent) await ThumbnailService.generateThumbnails(filePath, meta.fileHash);
 
+      const exif = { latitude: meta.latitude, longitude: meta.longitude };
       const fromContent = {
         fileHash: meta.fileHash,
         width: meta.width,
         height: meta.height,
         fileSize: meta.fileSize,
-        latitude: meta.latitude,
-        longitude: meta.longitude,
+        exifLatitude: meta.latitude,
+        exifLongitude: meta.longitude,
         dateTaken: meta.dateTaken,
+        metadataVersion: METADATA_VERSION,
       };
       // User fields come from the folder's sidecar (or Picasa .ini), so they survive a content change
       const fields = getFolderState(dir).photos[filename];
-      const fromSidecar = toPhotoColumns(fields);
+      const fromSidecar = toPhotoColumns(fields, exif);
 
       db.transaction((tx) => {
         let photoId: number;
@@ -328,14 +337,16 @@ export class FolderScannerService {
     const folder = db.select().from(folders).where(eq(folders.path, dir)).get();
     if (!folder) return;
 
-    const folderPhotos = db.select({ id: photos.id, filename: photos.filename })
+    const folderPhotos = db.select({
+      id: photos.id, filename: photos.filename, latitude: photos.exifLatitude, longitude: photos.exifLongitude,
+    })
       .from(photos)
       .where(eq(photos.folderId, folder.id))
       .all();
     db.transaction((tx) => {
       for (const photo of folderPhotos) {
         const fields = state.photos[photo.filename];
-        tx.update(photos).set(toPhotoColumns(fields)).where(eq(photos.id, photo.id)).run();
+        tx.update(photos).set(toPhotoColumns(fields, photo)).where(eq(photos.id, photo.id)).run();
         setPhotoAlbums(tx, photo.id, fields);
       }
       setFolderAlbums(tx, folder.id, state.albums);

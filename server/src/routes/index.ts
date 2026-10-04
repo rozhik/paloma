@@ -5,10 +5,11 @@ import { db } from '../db/index.js';
 import { folders, photos, edits, people, faceAnnotations, tags, photoTags } from '../db/schema.js';
 import { eq, inArray } from 'drizzle-orm';
 import { ThumbnailService } from '../services/ThumbnailService.js';
-import { listFolders, listPhotos, updatePhoto } from '../services/photoApi.js';
+import { listFolders, listPhotos, setPhotosLocation, updatePhoto } from '../services/photoApi.js';
 import {
   addAlbumPhotos, createAlbumFromPhotos, deleteAlbumEverywhere, editAlbumProperties, listAlbums, removeAlbumPhotos,
 } from '../services/albumApi.js';
+import { getGeoSettings, listGeoPoints, listPlaces, searchPlaces } from '../services/geoApi.js';
 import { MetadataService } from '../services/MetadataService.js';
 import { apiError } from '../services/apiError.js';
 import sharp from 'sharp';
@@ -29,6 +30,11 @@ router.get('/folders', (req, res) => {
 // --- Photos API ---
 router.get('/photos', (req, res) => {
   res.json(listPhotos(req.query));
+});
+
+router.post('/photos/location', (req, res) => {
+  const result = setPhotosLocation(req.body);
+  res.status(result.status).json(result.body);
 });
 
 router.patch('/photos/:id', (req, res) => {
@@ -251,6 +257,29 @@ router.post('/faces/annotate', (req, res) => {
   }).returning().get();
 
   res.json(inserted);
+});
+
+// --- Geo API ---
+router.get('/geo/settings', (req, res) => {
+  res.json(getGeoSettings());
+});
+
+router.get('/geo/points', (req, res) => {
+  res.json(listGeoPoints(req.query));
+});
+
+router.get('/geo/places', (req, res) => {
+  const result = listPlaces(req.query);
+  res.status(result.status).json(result.body);
+});
+
+router.get('/geo/search', async (req, res, next) => {
+  try {
+    const result = await searchPlaces(req.query.q, req.query.lang);
+    res.status(result.status).json(result.body);
+  } catch (err) {
+    next(err);
+  }
 });
 
 // --- Albums API ---

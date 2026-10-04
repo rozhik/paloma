@@ -5,6 +5,11 @@ const PHOTO_COLUMNS: Array<[name: string, definition: string]> = [
   ['caption', 'TEXT'],
   ['keywords', 'TEXT'],
   ['is_hidden', 'INTEGER NOT NULL DEFAULT 0'],
+  ['exif_latitude', 'REAL'],
+  ['exif_longitude', 'REAL'],
+  ['location_source', 'TEXT'],
+  ['geo_cell', 'TEXT'],
+  ['metadata_version', 'INTEGER NOT NULL DEFAULT 0'],
 ];
 
 export function addMissingPhotoColumns(sqlite: Database.Database): void {
@@ -14,6 +19,7 @@ export function addMissingPhotoColumns(sqlite: Database.Database): void {
   for (const [name, definition] of PHOTO_COLUMNS) {
     if (!existing.has(name)) sqlite.exec(`ALTER TABLE photos ADD COLUMN ${name} ${definition}`);
   }
+  sqlite.exec('CREATE INDEX IF NOT EXISTS photos_geo_cell ON photos(geo_cell)');
 }
 
 /**
@@ -45,5 +51,30 @@ export function migrateAlbumTables(sqlite: Database.Database): void {
     );
 
     CREATE INDEX IF NOT EXISTS album_photos_token ON album_photos(token);
+  `);
+}
+
+/** Caches of the geocoder's answers, kept across restarts. */
+export function createGeoTables(sqlite: Database.Database): void {
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS geo_places (
+      cell TEXT NOT NULL,
+      lang TEXT NOT NULL,
+      name TEXT,
+      search_text TEXT,
+      status TEXT NOT NULL,
+      attempts INTEGER NOT NULL DEFAULT 0,
+      retry_at TEXT,
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (cell, lang)
+    );
+
+    CREATE TABLE IF NOT EXISTS geo_search (
+      lang TEXT NOT NULL,
+      query TEXT NOT NULL,
+      results_json TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      PRIMARY KEY (lang, query)
+    );
   `);
 }

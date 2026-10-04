@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { usePalomaStore } from '../store/usePalomaStore.js';
 import { useTranslation } from 'react-i18next';
-import { Star, Folder, Image, Clock, BookImage } from 'lucide-react';
+import { Star, Folder, Image, Clock, BookImage, MapPin } from 'lucide-react';
 import { useFormat } from '../i18n/format.js';
 import type { Album, Folder as FolderType } from '../../../shared/types.js';
 
@@ -66,6 +66,16 @@ export const LeftSidebar: React.FC = () => {
           >
             <Clock size={20} className="text-info" />
             <span>{t('sidebar.recentImport')}</span>
+          </button>
+
+          <button
+            className={`list-group-item list-group-item-action d-flex align-items-center gap-2 rounded fs-5 py-2 ${
+              selectedFilter === 'geotagged' ? 'active fw-bold' : ''
+            }`}
+            onClick={() => setSelectedFilter('geotagged')}
+          >
+            <MapPin size={20} className="text-danger" />
+            <span>{t('sidebar.geotagged')}</span>
           </button>
         </div>
       </div>

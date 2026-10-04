@@ -20,6 +20,24 @@ async function makeImage(filePath: string, width = 40, height = 30): Promise<voi
     .toFile(filePath);
 }
 
+/** A JPEG whose EXIF GPS is 48°9'39" N, 24°30'1" E (48.160833, 24.500278). */
+async function makeGpsImage(filePath: string): Promise<void> {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  await sharp({ create: { width: 40, height: 30, channels: 3, background: '#468' } })
+    .jpeg()
+    .withExif({ IFD3: { GPSLatitudeRef: 'N', GPSLatitude: '48/1 9/1 39/1', GPSLongitudeRef: 'E', GPSLongitude: '24/1 30/1 1/1' } })
+    .toFile(filePath);
+}
+
+const CAMERA = { lat: 48 + 9 / 60 + 39 / 3600, lon: 24 + 30 / 60 + 1 / 3600 };
+
+/** Effective location of an indexed photo. */
+function locationOf(filename: string) {
+  const photo = db.select().from(schema.photos).where(eq(schema.photos.filename, filename)).get();
+  if (!photo) throw new Error(`${filename} is not indexed`);
+  return { latitude: photo.latitude, longitude: photo.longitude, source: photo.locationSource, cell: photo.geoCell };
+}
+
 function indexedPaths(): string[] {
   return db.select({ filename: schema.photos.filename, folder: schema.folders.path })
     .from(schema.photos)
@@ -568,6 +586,113 @@ describe('FolderScannerService', () => {
       expect(albumMembers()).toEqual({});
       expect(folderAlbumNames()).toEqual({});
       errors.mockRestore();
+    });
+  });
+
+  describe('locations', () => {
+    it('takes the camera location from EXIF', async () => {
+      await makeGpsImage(path.join(photosRoot, 'a.jpg'));
+      await makeImage(path.join(photosRoot, 'b.jpg'));
+
+      await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
+
+      const a = locationOf('a.jpg');
+      expect(a.latitude).toBeCloseTo(CAMERA.lat, 6);
+      expect(a.longitude).toBeCloseTo(CAMERA.lon, 6);
+      expect([a.source, a.cell]).toEqual(['exif', '4816:2450']);
+      expect(locationOf('b.jpg')).toEqual({ latitude: null, longitude: null, source: null, cell: null });
+    });
+
+    it('lets a sidecar geotag override the camera, and null remove it', async () => {
+      await makeGpsImage(path.join(photosRoot, 'a.jpg'));
+      await makeGpsImage(path.join(photosRoot, 'b.jpg'));
+      await makeGpsImage(path.join(photosRoot, 'c.jpg'));
+      writeSidecar(photosRoot, {
+        'a.jpg': { geotag: { lat: 50.45, lon: 30.5234 } },
+        'b.jpg': { geotag: null },
+        'c.jpg': { geotag: { lat: 95, lon: 10 } },
+      });
+
+      await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
+
+      expect(locationOf('a.jpg')).toEqual({ latitude: 50.45, longitude: 30.5234, source: 'user', cell: '5045:3052' });
+      expect(locationOf('b.jpg')).toEqual({ latitude: null, longitude: null, source: null, cell: null });
+      expect(locationOf('c.jpg').source).toBe('exif');
+    });
+
+    it('shows a Picasa geotag live', async () => {
+      await makeImage(path.join(photosRoot, 'a.jpg'));
+      writeIni(photosRoot, '[a.jpg]', 'geotag=33.770556,-84.293055');
+
+      await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
+
+      expect(locationOf('a.jpg')).toMatchObject({ latitude: 33.770556, longitude: -84.293055, source: 'user' });
+      expect(fs.existsSync(path.join(photosRoot, '.paloma.json'))).toBe(false);
+    });
+
+    it('rebuilds locations from disk after the database is emptied', async () => {
+      await makeImage(path.join(photosRoot, 'a.jpg'));
+      writeSidecar(photosRoot, { 'a.jpg': { geotag: { lat: 50.45, lon: 30.5234 } } });
+      await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
+      await Scanner.stopAll();
+      for (const table of [schema.photos, schema.folders]) db.delete(table).run();
+
+      await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
+
+      expect(locationOf('a.jpg')).toMatchObject({ latitude: 50.45, longitude: 30.5234, source: 'user' });
+    });
+
+    it('follows a geotag added to or removed from .paloma.json while running', async () => {
+      await makeGpsImage(path.join(photosRoot, 'a.jpg'));
+      await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
+
+      writeSidecar(photosRoot, { 'a.jpg': { geotag: { lat: 46.48, lon: 30.72 } } });
+      await vi.waitFor(() => expect(locationOf('a.jpg')).toMatchObject({ latitude: 46.48, longitude: 30.72, source: 'user' }), WAIT);
+
+      fs.rmSync(path.join(photosRoot, '.paloma.json'));
+      await vi.waitFor(() => expect(locationOf('a.jpg').source).toBe('exif'), WAIT);
+      expect(locationOf('a.jpg').latitude).toBeCloseTo(CAMERA.lat, 6);
+    });
+
+    it('keeps a sidecar location when the photo is rewritten without GPS', async () => {
+      const file = path.join(photosRoot, 'a.jpg');
+      await makeGpsImage(file);
+      writeSidecar(photosRoot, { 'a.jpg': { geotag: { lat: 50.45, lon: 30.5234 } } });
+      await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
+      const before = db.select().from(schema.photos).where(eq(schema.photos.filename, 'a.jpg')).get()!;
+
+      fs.writeFileSync(file, await sharp({ create: { width: 30, height: 40, channels: 3, background: '#00f' } }).jpeg().toBuffer());
+
+      await vi.waitFor(() => {
+        const after = db.select().from(schema.photos).where(eq(schema.photos.id, before.id)).get()!;
+        expect(after.fileHash).not.toBe(before.fileHash);
+        expect(after.exifLatitude).toBeNull();
+      }, WAIT);
+      expect(locationOf('a.jpg')).toMatchObject({ latitude: 50.45, longitude: 30.5234, source: 'user' });
+    });
+
+    it('reads EXIF again for photos indexed by an older version, without new thumbnails', async () => {
+      const file = path.join(photosRoot, 'a.jpg');
+      await makeGpsImage(file);
+      await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
+      await Scanner.stopAll();
+
+      // As left by the MVP, whose GPS parsing never matched
+      const { id, fileHash } = db.select().from(schema.photos).where(eq(schema.photos.filename, 'a.jpg')).get()!;
+      db.update(schema.photos).set({
+        latitude: null, longitude: null, exifLatitude: null, exifLongitude: null, locationSource: null, geoCell: null, metadataVersion: 0,
+      }).where(eq(schema.photos.id, id)).run();
+      const thumb = path.join(tmpDir, 'cache', `${fileHash}_thumb.webp`);
+      const thumbTime = fs.statSync(thumb).mtimeMs;
+
+      await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
+
+      const row = db.select().from(schema.photos).where(eq(schema.photos.id, id)).get()!;
+      expect(row.exifLatitude).toBeCloseTo(CAMERA.lat, 6);
+      expect(row.latitude).toBeCloseTo(CAMERA.lat, 6);
+      expect(row.metadataVersion).toBeGreaterThan(0);
+      expect(fs.statSync(thumb).mtimeMs).toBe(thumbTime);
+      expect(indexedPaths()).toEqual([file]);
     });
   });
 });

@@ -32,7 +32,8 @@
     "albums": "Álbuns",
     "noAlbums": "Ainda não há álbuns. Selecione fotos e clique em “Para o álbum”.",
     "folders": "Pastas monitoradas",
-    "noFolders": "Nenhuma pasta. Informe suas pastas de fotos em PALOMA_PHOTOS_DIRS no arquivo .env e reinicie o servidor."
+    "noFolders": "Nenhuma pasta. Informe suas pastas de fotos em PALOMA_PHOTOS_DIRS no arquivo .env e reinicie o servidor.",
+    "geotagged": "📍 Com localização"
   },
   "grid": {
     "emptyTitle": "Nenhuma foto encontrada",
@@ -169,6 +170,45 @@
     "album_empty": "O álbum não tem fotos na biblioteca.",
     "export_params_required": "Escolha as fotos e uma pasta de destino.",
     "person_name_required": "Digite um nome.",
-    "internal": "Erro do servidor: {{message}}"
+    "internal": "Erro do servidor: {{message}}",
+    "invalid_location": "Local inválido: a latitude deve estar entre -90 e 90 e a longitude entre -180 e 180.",
+    "query_required": "Digite um lugar ou endereço para pesquisar.",
+    "geocoder_disabled": "A busca de lugares está desativada nas configurações do servidor.",
+    "geocoder_failed": "O serviço de busca de lugares não está disponível. Verifique a conexão com a internet e tente novamente."
+  },
+  "geo": {
+    "coordinates": "{{lat}}; {{lon}}",
+    "setLocation": "Definir local",
+    "cancelSetLocation": "Cancelar",
+    "selectPhotosFirst": "Selecione fotos primeiro e depois coloque-as no mapa.",
+    "clickToPlace_one": "Clique no mapa onde {{count, number}} foto selecionada foi tirada.",
+    "clickToPlace_many": "Clique no mapa onde os {{count, number}} de fotos selecionadas foram tiradas.",
+    "clickToPlace_other": "Clique no mapa onde as {{count, number}} fotos selecionadas foram tiradas.",
+    "removeLocation": "Remover local",
+    "removeLocationTitle": "Remover o local?",
+    "removeLocationBody_one": "Remover o local de {{count, number}} foto? O arquivo não é alterado.",
+    "removeLocationBody_many": "Remover o local de {{count, number}} de fotos? Os arquivos não são alterados.",
+    "removeLocationBody_other": "Remover o local de {{count, number}} fotos? Os arquivos não são alterados.",
+    "replaceTitle": "Substituir o local?",
+    "replaceBody_one": "{{count, number}} foto selecionada já tem local. Substituir?",
+    "replaceBody_many": "{{count, number}} de fotos selecionadas já têm local. Substituir?",
+    "replaceBody_other": "{{count, number}} fotos selecionadas já têm local. Substituir?",
+    "replaceConfirm": "Substituir",
+    "searchPlaceholder": "Buscar um lugar ou endereço",
+    "search": "Buscar",
+    "results": "Resultados da busca",
+    "noResults": "Nada encontrado.",
+    "places": "Lugares",
+    "noPlaces": "Ainda não há lugares.",
+    "resolving_one": "Identificando o lugar de {{count, number}} foto…",
+    "resolving_many": "Identificando os lugares de {{count, number}} de fotos…",
+    "resolving_other": "Identificando os lugares de {{count, number}} fotos…",
+    "placeHere_one": "Colocar aqui {{count, number}} foto selecionada",
+    "placeHere_many": "Colocar aqui {{count, number}} de fotos selecionadas",
+    "placeHere_other": "Colocar aqui {{count, number}} fotos selecionadas",
+    "addToSelection": "Adicionar à seleção",
+    "clickToSelect": "Clique em uma foto para adicioná-la à seleção.",
+    "noGeotagged": "Não há fotos com localização aqui.",
+    "noGeotaggedHint": "Selecione fotos e coloque-as no mapa com “Definir local”, ou arraste-as para cá a partir da bandeja."
   }
 }

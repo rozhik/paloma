@@ -30,7 +30,8 @@
     "albums": "Album",
     "noAlbums": "Belum ada album. Pilih foto lalu klik “Ke album”.",
     "folders": "Folder yang dipantau",
-    "noFolders": "Tidak ada folder. Tulis folder foto Anda di PALOMA_PHOTOS_DIRS dalam file .env lalu mulai ulang server."
+    "noFolders": "Tidak ada folder. Tulis folder foto Anda di PALOMA_PHOTOS_DIRS dalam file .env lalu mulai ulang server.",
+    "geotagged": "📍 Bertanda lokasi"
   },
   "grid": {
     "emptyTitle": "Foto tidak ditemukan",
@@ -155,6 +156,35 @@
     "album_empty": "Album tidak memiliki foto di pustaka.",
     "export_params_required": "Pilih foto dan folder tujuan.",
     "person_name_required": "Masukkan nama.",
-    "internal": "Kesalahan server: {{message}}"
+    "internal": "Kesalahan server: {{message}}",
+    "invalid_location": "Lokasi tidak valid: lintang harus antara -90 dan 90, bujur antara -180 dan 180.",
+    "query_required": "Masukkan tempat atau alamat yang dicari.",
+    "geocoder_disabled": "Pencarian tempat dinonaktifkan di pengaturan server.",
+    "geocoder_failed": "Layanan pencarian tempat tidak tersedia. Periksa koneksi internet lalu coba lagi."
+  },
+  "geo": {
+    "coordinates": "{{lat}}; {{lon}}",
+    "setLocation": "Tetapkan lokasi",
+    "cancelSetLocation": "Batal",
+    "selectPhotosFirst": "Pilih foto terlebih dahulu, lalu letakkan di peta.",
+    "clickToPlace_other": "Klik peta di tempat {{count, number}} foto yang dipilih diambil.",
+    "removeLocation": "Hapus lokasi",
+    "removeLocationTitle": "Hapus lokasi?",
+    "removeLocationBody_other": "Hapus lokasi {{count, number}} foto? File foto tidak diubah.",
+    "replaceTitle": "Ganti lokasi?",
+    "replaceBody_other": "{{count, number}} foto yang dipilih sudah memiliki lokasi. Ganti?",
+    "replaceConfirm": "Ganti",
+    "searchPlaceholder": "Cari tempat atau alamat",
+    "search": "Cari",
+    "results": "Hasil pencarian",
+    "noResults": "Tidak ditemukan apa pun.",
+    "places": "Tempat",
+    "noPlaces": "Belum ada tempat.",
+    "resolving_other": "Mencari tempat untuk {{count, number}} foto…",
+    "placeHere_other": "Letakkan {{count, number}} foto yang dipilih di sini",
+    "addToSelection": "Tambahkan ke pilihan",
+    "clickToSelect": "Klik foto untuk menambahkannya ke pilihan.",
+    "noGeotagged": "Tidak ada foto bertanda lokasi di sini.",
+    "noGeotaggedHint": "Pilih foto lalu letakkan di peta dengan “Tetapkan lokasi”, atau seret ke sini dari baki."
   }
 }

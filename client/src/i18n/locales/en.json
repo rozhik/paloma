@@ -30,7 +30,8 @@
     "albums": "Albums",
     "noAlbums": "No albums yet. Select photos and click “Add to album”.",
     "folders": "Watched folders",
-    "noFolders": "No folders. List your photo folders in PALOMA_PHOTOS_DIRS in the .env file and restart the server."
+    "noFolders": "No folders. List your photo folders in PALOMA_PHOTOS_DIRS in the .env file and restart the server.",
+    "geotagged": "📍 Geotagged"
   },
   "grid": {
     "emptyTitle": "No photos found",
@@ -161,6 +162,40 @@
     "album_empty": "The album has no photos in the library.",
     "export_params_required": "Choose photos and a destination folder.",
     "person_name_required": "Enter a name.",
-    "internal": "Server error: {{message}}"
+    "internal": "Server error: {{message}}",
+    "invalid_location": "Invalid location: latitude must be from -90 to 90 and longitude from -180 to 180.",
+    "query_required": "Enter a place or address to search for.",
+    "geocoder_disabled": "Place search is turned off in the server settings.",
+    "geocoder_failed": "The place search service is not available. Check the internet connection and try again."
+  },
+  "geo": {
+    "coordinates": "{{lat}}, {{lon}}",
+    "setLocation": "Set location",
+    "cancelSetLocation": "Cancel placing",
+    "selectPhotosFirst": "Select photos first, then place them on the map.",
+    "clickToPlace_one": "Click the map where {{count, number}} selected photo was taken.",
+    "clickToPlace_other": "Click the map where the {{count, number}} selected photos were taken.",
+    "removeLocation": "Remove location",
+    "removeLocationTitle": "Remove location?",
+    "removeLocationBody_one": "Remove the location of {{count, number}} photo? The photo file is not changed.",
+    "removeLocationBody_other": "Remove the location of {{count, number}} photos? The photo files are not changed.",
+    "replaceTitle": "Replace location?",
+    "replaceBody_one": "{{count, number}} selected photo already has a location. Replace it?",
+    "replaceBody_other": "{{count, number}} selected photos already have a location. Replace it?",
+    "replaceConfirm": "Replace",
+    "searchPlaceholder": "Find a place or address",
+    "search": "Search",
+    "results": "Search results",
+    "noResults": "Nothing found.",
+    "places": "Places",
+    "noPlaces": "No places yet.",
+    "resolving_one": "Looking up the place of {{count, number}} photo…",
+    "resolving_other": "Looking up the places of {{count, number}} photos…",
+    "placeHere_one": "Place {{count, number}} selected photo here",
+    "placeHere_other": "Place {{count, number}} selected photos here",
+    "addToSelection": "Add to selection",
+    "clickToSelect": "Click a photo to add it to the selection.",
+    "noGeotagged": "No geotagged photos here.",
+    "noGeotaggedHint": "Select photos and place them on the map with “Set location”, or drag them here from the tray."
   }
 }

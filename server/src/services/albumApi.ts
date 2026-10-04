@@ -1,13 +1,12 @@
 import { eq, inArray } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { albumPhotos, folderAlbums, folders, photos } from '../db/schema.js';
-import { SidecarService } from './SidecarService.js';
-import { FolderScannerService } from './FolderScannerService.js';
 import {
   addToAlbum, createAlbum, deleteAlbum, editAlbum, localIsoWithOffset, newAlbumToken, removeFromAlbum, type AlbumFields,
 } from './albumSidecar.js';
 import { apiError } from './apiError.js';
-import type { Album, ApiError, ApiErrorCode, PalomaAlbumDefinition, PalomaFolderFile } from '../../../shared/types.js';
+import { filesByFolder, loadPhotos, parsePhotoIds, saveFolderByFolder } from './folderChanges.js';
+import type { Album, ApiError, ApiErrorCode, PalomaAlbumDefinition } from '../../../shared/types.js';
 
 export type AlbumResult<T> = { status: 200; body: T } | { status: 400 | 404 | 409 | 500; body: ApiError };
 
@@ -162,12 +161,6 @@ export function getAlbum(token: string): Album | undefined {
 
 // --- Changes ---
 
-interface PhotoRef {
-  id: number;
-  filename: string;
-  folderPath: string;
-}
-
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
@@ -182,27 +175,6 @@ function isName(value: unknown): value is string {
   return typeof value === 'string' && value.trim() !== '';
 }
 
-function parsePhotoIds(value: unknown): number[] | null {
-  if (!Array.isArray(value) || value.length === 0) return null;
-  if (!value.every((id) => Number.isInteger(id) && id > 0)) return null;
-  return [...new Set(value as number[])];
-}
-
-function loadPhotos(ids: readonly number[]): PhotoRef[] | undefined {
-  const rows = db.select({ id: photos.id, filename: photos.filename, folderPath: folders.path })
-    .from(photos)
-    .innerJoin(folders, eq(photos.folderId, folders.id))
-    .where(inArray(photos.id, [...ids]))
-    .all();
-  return rows.length === ids.length ? rows : undefined;
-}
-
-function filesByFolder(refs: readonly PhotoRef[]): Map<string, string[]> {
-  const byFolder = new Map<string, string[]>();
-  for (const ref of refs) byFolder.set(ref.folderPath, [...(byFolder.get(ref.folderPath) ?? []), ref.filename]);
-  return byFolder;
-}
-
 /** Library folders that define the album or have a photo in it. */
 function albumFolders(token: string): string[] {
   const defining = db.select({ path: folders.path })
@@ -213,52 +185,6 @@ function albumFolders(token: string): string[] {
     .map((row) => row.path);
   const withMembers = (loadMembers([token]).get(token) ?? []).map((m) => m.folderPath);
   return [...new Set([...defining, ...withMembers])];
-}
-
-/**
- * Saves an album change folder by folder. Nothing is written if any sidecar is unreadable. Each folder that is
- * written is applied to the library at once; folders that fail are logged and reported.
- */
-function runAlbumChange(
-  dirs: readonly string[],
-  mutate: (dir: string, data: PalomaFolderFile) => PalomaFolderFile,
-): AlbumResult<never> | null {
-  const sorted = [...new Set(dirs)].sort();
-  const unreadable = sorted.filter((dir) => SidecarService.readFolderSidecar(dir).kind === 'unreadable');
-  if (unreadable.length > 0) {
-    const files = unreadable.map((dir) => SidecarService.getSidecarPath(dir));
-    console.error(`Album change rejected; unreadable sidecars: ${files.join(', ')}`);
-    return {
-      status: 409,
-      body: {
-        ...apiError('sidecar_unreadable', `Unreadable ${files.join(', ')}. Fix or remove the file to change albums there.`,
-          { files: files.join(', ') }),
-        failedFolders: unreadable,
-      },
-    };
-  }
-
-  const failed: string[] = [];
-  for (const dir of sorted) {
-    try {
-      SidecarService.updateFolderSidecar(dir, (data) => mutate(dir, data));
-    } catch (err) {
-      console.error(`Failed to save an album change to the sidecar in ${dir}:`, err);
-      failed.push(dir);
-      continue;
-    }
-    FolderScannerService.applyFolderState(dir, SidecarService.getFolderState(dir));
-  }
-  if (failed.length > 0) {
-    return {
-      status: 500,
-      body: {
-        ...apiError('sidecar_write_failed', `Could not write .paloma.json in ${failed.join(', ')}`, { folders: failed.join(', ') }),
-        failedFolders: failed,
-      },
-    };
-  }
-  return null;
 }
 
 function currentAlbum(token: string): AlbumResult<Album> {
@@ -282,7 +208,7 @@ export function createAlbumFromPhotos(body: unknown): AlbumResult<Album> {
   const now = new Date();
   const fields = { name, date: localIsoWithOffset(now), description, location };
   const files = filesByFolder(refs);
-  return runAlbumChange([...files.keys()], (dir, data) =>
+  return saveFolderByFolder('album', [...files.keys()], (dir, data) =>
     createAlbum(data, token, fields, files.get(dir)!, now.toISOString())) ?? currentAlbum(token);
 }
 
@@ -306,7 +232,7 @@ export function addAlbumPhotos(token: string, body: unknown): AlbumResult<Album>
 
   const files = filesByFolder(refs);
   const modified = new Date().toISOString();
-  return runAlbumChange([...files.keys()], (dir, data) => addToAlbum(data, token, shown, files.get(dir)!, modified))
+  return saveFolderByFolder('album', [...files.keys()], (dir, data) => addToAlbum(data, token, shown, files.get(dir)!, modified))
     ?? currentAlbum(token);
 }
 
@@ -322,7 +248,7 @@ export function removeAlbumPhotos(token: string, body: unknown): AlbumResult<Alb
   const memberIds = new Set((loadMembers([token]).get(token) ?? []).map((m) => m.id));
   const files = filesByFolder(refs.filter((ref) => memberIds.has(ref.id)));
   const modified = new Date().toISOString();
-  const error = runAlbumChange([...files.keys()], (dir, data) => removeFromAlbum(data, token, files.get(dir)!, modified));
+  const error = saveFolderByFolder('album', [...files.keys()], (dir, data) => removeFromAlbum(data, token, files.get(dir)!, modified));
   if (error) return error;
   return { status: 200, body: getAlbum(token) ?? { success: true, removed: true } };
 }
@@ -353,7 +279,7 @@ export function editAlbumProperties(token: string, body: unknown): AlbumResult<A
   if (location !== undefined) shown.location = location || null;
 
   const modified = new Date().toISOString();
-  return runAlbumChange(albumFolders(token), (dir, data) => {
+  return saveFolderByFolder('album', albumFolders(token), (dir, data) => {
     const coverHere = cover === undefined ? undefined : cover !== null && cover.folderPath === dir ? cover.filename : null;
     return editAlbum(data, token, shown, coverHere, modified);
   }) ?? currentAlbum(token);
@@ -364,6 +290,6 @@ export function deleteAlbumEverywhere(token: string): AlbumResult<{ success: tru
   const missing = requireListed(token);
   if (missing) return missing;
   const modified = new Date().toISOString();
-  return runAlbumChange(albumFolders(token), (_dir, data) => deleteAlbum(data, token, modified))
+  return saveFolderByFolder('album', albumFolders(token), (_dir, data) => deleteAlbum(data, token, modified))
     ?? { status: 200, body: { success: true } };
 }

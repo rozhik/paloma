@@ -17,6 +17,7 @@ beforeAll(async () => {
   vi.stubEnv('PALOMA_CACHE_DIR', path.join(tmpDir, 'cache'));
   vi.stubEnv('PALOMA_PHOTOS_DIRS', '');
   vi.stubEnv('PALOMA_EXCLUDE_DIRS', '');
+  vi.stubEnv('PALOMA_GEOCODER_URL', '');
 
   const { default: express } = await import('express');
   // Typed as the module under CommonJS interop; at runtime `default` is the router
@@ -58,7 +59,23 @@ describe('API error responses', () => {
     ['POST', '/people', { name: '' }, 400, 'person_name_required'],
     ['PATCH', '/photos/999999', { isStarred: true }, 404, 'photo_not_found'],
     ['POST', '/albums', '{broken', 400, 'invalid_body'],
+    ['PATCH', '/photos/1', { location: { lat: 91, lon: 0 } }, 400, 'invalid_location'],
+    ['POST', '/photos/location', { photoIds: [], location: null }, 400, 'photo_ids_required'],
+    ['POST', '/photos/location', { photoIds: [1], location: 'here' }, 400, 'invalid_location'],
+    ['POST', '/photos/location', { photoIds: [999999], location: null }, 404, 'photo_not_found'],
+    ['GET', '/geo/search?q=Lviv', undefined, 503, 'geocoder_disabled'],
+    ['GET', '/geo/places?lang=en', undefined, 503, 'geocoder_disabled'],
   ])('%s %s with %j responds %i %s', async (method, url, body, status, code) => {
     expect(await send(method, url, body)).toEqual({ status, body: { error: expect.any(String), code } });
+  });
+});
+
+describe('geo routes', () => {
+  it('serve the map settings and an empty list of points', async () => {
+    expect(await send('GET', '/geo/settings')).toEqual({
+      status: 200,
+      body: { geocoding: false, tileUrl: expect.stringContaining('{z}'), tileAttribution: expect.any(String) },
+    });
+    expect(await send('GET', '/geo/points?geotagged=true')).toEqual({ status: 200, body: [] });
   });
 });

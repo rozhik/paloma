@@ -363,3 +363,76 @@ describe('updatePhotoFields', () => {
     expect(fs.readdirSync(dir)).toEqual(['.paloma.json']);
   });
 });
+
+describe('geotag', () => {
+  it('reads a valid geotag and null, and treats any other value as absent', () => {
+    expect(SidecarService.fieldsOf({ geotag: { lat: 50.45, lon: 30.5234 } })).toEqual({ geotag: { lat: 50.45, lon: 30.5234 } });
+    expect(SidecarService.fieldsOf({ geotag: null })).toEqual({ geotag: null });
+    for (const geotag of [{ lat: 95, lon: 10 }, { lat: '50', lon: 30 }, { lat: 50 }, [50, 30], '50,30', { lat: 0, lon: 200 }]) {
+      expect(SidecarService.fieldsOf({ geotag } as unknown as PalomaPhotoEntry), JSON.stringify(geotag)).toEqual({});
+    }
+  });
+
+  it('writes a rounded geotag, null, and deletes the key', () => {
+    SidecarService.updatePhotoFields(dir, 'a.jpg', { geotag: { lat: 48.1608334999, lon: 24.50027777 } });
+    expect(readJson().photos['a.jpg']).toEqual({ geotag: { lat: 48.160833, lon: 24.500278 }, modified: expect.any(String) });
+
+    SidecarService.updatePhotoFields(dir, 'a.jpg', { geotag: null });
+    expect(readJson().photos['a.jpg']).toEqual({ geotag: null, modified: expect.any(String) });
+
+    SidecarService.updatePhotoFields(dir, 'a.jpg', { geotag: false });
+    expect(readJson().photos).toEqual({});
+  });
+
+  it('keeps an invalid geotag in the file until the location is changed', () => {
+    writeJson({ format: 'paloma-folder', version: 2, photos: { 'a.jpg': { geotag: { lat: 95, lon: 10 } } } });
+    SidecarService.updatePhotoFields(dir, 'a.jpg', { star: true });
+    expect(readJson().photos['a.jpg'].geotag).toEqual({ lat: 95, lon: 10 });
+    expect(SidecarService.getFolderState(dir).photos['a.jpg']).toEqual({ star: true });
+  });
+
+  it('saves several photos of a folder in one write with the same modified time', () => {
+    SidecarService.updatePhotosFields(dir, { 'a.jpg': { geotag: { lat: 1, lon: 2 } }, 'b.jpg': { geotag: { lat: 1, lon: 2 }, caption: 'x' } });
+    const { photos } = readJson();
+    expect(photos['a.jpg']).toEqual({ geotag: { lat: 1, lon: 2 }, modified: expect.any(String) });
+    expect(photos['b.jpg']).toEqual({ geotag: { lat: 1, lon: 2 }, caption: 'x', modified: photos['a.jpg'].modified });
+  });
+
+  it('imports a Picasa geotag on the first change and shows it live before', () => {
+    touch('a.jpg', 'b.jpg');
+    writeIni('[a.jpg]', 'geotag=33.770556,-84.293055');
+    expect(SidecarService.getFolderState(dir).photos).toEqual({ 'a.jpg': { geotag: { lat: 33.770556, lon: -84.293055 } } });
+    expect(fs.existsSync(sidecarPath())).toBe(false);
+
+    SidecarService.updatePhotoFields(dir, 'b.jpg', { star: true });
+    expect(readJson().photos['a.jpg']).toEqual({ geotag: { lat: 33.770556, lon: -84.293055 } });
+  });
+
+  it('re-imports a changed Picasa geotag into an unmodified entry', () => {
+    touch('a.jpg', 'b.jpg');
+    writeIni('[a.jpg]', 'geotag=10,20');
+    SidecarService.updatePhotoFields(dir, 'b.jpg', { star: true });
+
+    writeIni('[a.jpg]', 'geotag=11,21');
+    expect(SidecarService.getFolderState(dir).photos['a.jpg']).toEqual({ geotag: { lat: 11, lon: 21 } });
+
+    writeIni('[a.jpg]', 'star=yes');
+    expect(SidecarService.getFolderState(dir).photos['a.jpg']).toEqual({ star: true });
+  });
+
+  it('keeps a location set in Paloma when Picasa changes it, and logs a conflict', () => {
+    touch('a.jpg');
+    writeIni('[a.jpg]', 'geotag=10,20');
+    SidecarService.updatePhotoFields(dir, 'a.jpg', { geotag: { lat: 1, lon: 2 } });
+
+    writeIni('[a.jpg]', 'geotag=11,21');
+    expect(SidecarService.getFolderState(dir).photos['a.jpg']).toEqual({ geotag: { lat: 1, lon: 2 } });
+    expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('Conflict'));
+  });
+
+  it('keeps an entry with only a removed location even without iniHash', () => {
+    SidecarService.updatePhotoFields(dir, 'a.jpg', { geotag: null });
+    expect(readJson().photos['a.jpg']).toEqual({ geotag: null, modified: expect.any(String) });
+    expect(SidecarService.getFolderState(dir).photos).toEqual({ 'a.jpg': { geotag: null } });
+  });
+});

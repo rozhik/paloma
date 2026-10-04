@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import type { Geotag } from '../../../shared/types.js';
+import { isGeotag, roundGeotag } from './location.js';
 
 /** Photo fields Paloma takes from a Picasa .ini file section (and stores in .paloma.json). */
 export interface PhotoFields {
@@ -10,6 +12,8 @@ export interface PhotoFields {
   keywords?: string[];
   /** Album tokens, without duplicates */
   albums?: string[];
+  /** Location in decimal degrees; null (sidecar only) means the location was removed */
+  geotag?: Geotag | null;
 }
 
 /** The keys of a Picasa `[.album:<token>]` section that Paloma maps; values are kept verbatim. */
@@ -62,6 +66,16 @@ function decode(bytes: Buffer): string {
   return text.startsWith('﻿') ? text.slice(1) : text;
 }
 
+const DECIMAL = /^[+-]?(\d+(\.\d*)?|\.\d+)$/;
+
+/** Picasa's `geotag=lat,lon` in decimal degrees; undefined unless it is exactly two numbers in range. */
+export function parseGeotag(value: string | undefined): Geotag | undefined {
+  const parts = value?.split(',').map((part) => part.trim());
+  if (parts?.length !== 2 || !parts.every((part) => DECIMAL.test(part))) return undefined;
+  const geotag = { lat: Number(parts[0]), lon: Number(parts[1]) };
+  return isGeotag(geotag) ? roundGeotag(geotag) : undefined;
+}
+
 function toFields(entries: Map<string, string>): PhotoFields {
   const fields: PhotoFields = {};
   if (entries.get('star') === 'yes') fields.star = true;
@@ -72,6 +86,8 @@ function toFields(entries: Map<string, string>): PhotoFields {
   if (keywords?.length) fields.keywords = keywords;
   const albums = [...new Set(entries.get('albums')?.split(',').filter((token) => token !== ''))];
   if (albums.length) fields.albums = albums;
+  const geotag = parseGeotag(entries.get('geotag'));
+  if (geotag) fields.geotag = geotag;
   return fields;
 }
 

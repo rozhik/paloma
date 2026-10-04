@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import crypto from 'node:crypto';
-import { findPicasaIni, parsePicasaIni, readPicasaIni } from './picasaIni.js';
+import { findPicasaIni, parseGeotag, parsePicasaIni, readPicasaIni } from './picasaIni.js';
 
 const sectionsOf = (bytes: Buffer) => parsePicasaIni(bytes).sections;
 
@@ -107,6 +107,30 @@ describe('parsePicasaIni', () => {
 
   it('treats an empty file as having no data', () => {
     expect(sectionsOf(Buffer.alloc(0))).toEqual({});
+  });
+});
+
+describe('parseGeotag', () => {
+  it('reads decimal degrees, negative values and spaces around the numbers', () => {
+    expect(parseGeotag('33.770556,-84.293055')).toEqual({ lat: 33.770556, lon: -84.293055 });
+    expect(parseGeotag(' -33.856 , 151.215 ')).toEqual({ lat: -33.856, lon: 151.215 });
+    expect(parseGeotag('48,24')).toEqual({ lat: 48, lon: 24 });
+  });
+
+  it('rounds to 6 decimal places', () => {
+    expect(parseGeotag('48.1608334999,24.50027777')).toEqual({ lat: 48.160833, lon: 24.500278 });
+  });
+
+  it('ignores malformed and out-of-range values', () => {
+    for (const value of [undefined, '', 'north,east', '48.1', '48.1,24.5,3', '48.1,', '91,0', '0,181', '1e2,3', '0x10,3', '48.1;24.5']) {
+      expect(parseGeotag(value), String(value)).toBeUndefined();
+    }
+  });
+
+  it('maps the geotag key of a file section', () => {
+    expect(sectionsOf(crlf('[a.jpg]', 'geotag=33.770556,-84.293055', '[b.jpg]', 'geotag=north,east'))).toEqual({
+      'a.jpg': { geotag: { lat: 33.770556, lon: -84.293055 } },
+    });
   });
 });
 

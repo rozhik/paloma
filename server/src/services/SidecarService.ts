@@ -1,8 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import type { PalomaAlbumDefinition, PalomaFolderFile, PalomaPhotoEntry } from '../../../shared/types.js';
+import type { Geotag, PalomaAlbumDefinition, PalomaFolderFile, PalomaPhotoEntry } from '../../../shared/types.js';
 import { ALBUM_KEYS, readPicasaIni, type IniAlbum, type PhotoFields, type PicasaIniRead } from './picasaIni.js';
+import { isGeotag, roundGeotag } from './location.js';
 
 export type { PhotoFields } from './picasaIni.js';
 
@@ -27,6 +28,8 @@ export interface FieldPatch {
   hidden?: boolean;
   caption?: string;
   keywords?: string[];
+  /** An object sets the location, `null` stores that it was removed, `false` deletes the key */
+  geotag?: Geotag | null | false;
 }
 
 export class SidecarUnreadableError extends Error {
@@ -36,7 +39,7 @@ export class SidecarUnreadableError extends Error {
   }
 }
 
-const SUPPORTED_FIELDS = ['star', 'hidden', 'caption', 'keywords', 'albums'] as const;
+const SUPPORTED_FIELDS = ['star', 'hidden', 'caption', 'keywords', 'albums', 'geotag'] as const;
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -66,7 +69,13 @@ function sameFields(a: PhotoFields, b: PhotoFields): boolean {
     && a.hidden === b.hidden
     && a.caption === b.caption
     && JSON.stringify(a.keywords ?? []) === JSON.stringify(b.keywords ?? [])
-    && JSON.stringify(a.albums ?? []) === JSON.stringify(b.albums ?? []);
+    && JSON.stringify(a.albums ?? []) === JSON.stringify(b.albums ?? [])
+    && sameGeotag(a.geotag, b.geotag);
+}
+
+function sameGeotag(a: Geotag | null | undefined, b: Geotag | null | undefined): boolean {
+  if (a === undefined || a === null || b === undefined || b === null) return a === b;
+  return a.lat === b.lat && a.lon === b.lon;
 }
 
 function sortNames(names: string[]): string[] {
@@ -123,6 +132,8 @@ export class SidecarService {
     }
     const albums = stringList(entry.albums);
     if (albums) fields.albums = albums;
+    if (entry.geotag === null) fields.geotag = null;
+    else if (isGeotag(entry.geotag)) fields.geotag = { lat: entry.geotag.lat, lon: entry.geotag.lon };
     return fields;
   }
 
@@ -321,19 +332,39 @@ export class SidecarService {
    * Throws SidecarUnreadableError if the existing sidecar is unreadable, or the write error.
    */
   public static updatePhotoFields(dir: string, filename: string, patch: FieldPatch): void {
-    this.updateFolderSidecar(dir, (data) => this.changeEntry(data, filename, (entry) => {
-      if (patch.star !== undefined) {
-        if (patch.star) entry.star = true; else delete entry.star;
-      }
-      if (patch.hidden !== undefined) {
-        if (patch.hidden) entry.hidden = true; else delete entry.hidden;
-      }
-      if (patch.caption !== undefined) {
-        if (patch.caption !== '') entry.caption = patch.caption; else delete entry.caption;
-      }
-      if (patch.keywords !== undefined) {
-        if (patch.keywords.length > 0) entry.keywords = patch.keywords; else delete entry.keywords;
-      }
-    }));
+    this.updatePhotosFields(dir, { [filename]: patch });
+  }
+
+  /** Saves changes to several photos of one folder in a single atomic write, all with the same `modified`. */
+  public static updatePhotosFields(dir: string, patches: Record<string, FieldPatch>): void {
+    const modified = new Date().toISOString();
+    this.updateFolderSidecar(dir, (data) => this.patchPhotos(data, patches, modified));
+  }
+
+  /** Returns `data` with field changes applied to several photo entries, each marked `modified`. */
+  public static patchPhotos(data: PalomaFolderFile, patches: Record<string, FieldPatch>, modified: string): PalomaFolderFile {
+    return Object.entries(patches).reduce(
+      (next, [filename, patch]) => this.changeEntry(next, filename, (entry) => applyPatch(entry, patch), modified),
+      data,
+    );
+  }
+}
+
+function applyPatch(entry: PalomaPhotoEntry, patch: FieldPatch): void {
+  if (patch.star !== undefined) {
+    if (patch.star) entry.star = true; else delete entry.star;
+  }
+  if (patch.hidden !== undefined) {
+    if (patch.hidden) entry.hidden = true; else delete entry.hidden;
+  }
+  if (patch.caption !== undefined) {
+    if (patch.caption !== '') entry.caption = patch.caption; else delete entry.caption;
+  }
+  if (patch.keywords !== undefined) {
+    if (patch.keywords.length > 0) entry.keywords = patch.keywords; else delete entry.keywords;
+  }
+  if (patch.geotag !== undefined) {
+    if (patch.geotag === false) delete entry.geotag;
+    else entry.geotag = patch.geotag && roundGeotag(patch.geotag);
   }
 }

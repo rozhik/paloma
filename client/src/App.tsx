@@ -13,12 +13,16 @@ import { CollageBuilder } from './components/CollageBuilder.js';
 import { PlacesMap } from './components/PlacesMap.js';
 import { PeopleView } from './components/PeopleView.js';
 import { AlbumHeader } from './components/AlbumHeader.js';
+import { libraryQueryParams } from './api/library.js';
+import { currentLanguage } from './i18n/index.js';
+import { useTranslation } from 'react-i18next';
 
 export const App: React.FC = () => {
   const {
     currentView, activeEditPhoto, selectedFolderId, selectedFilter, selectedAlbumToken, searchQuery, libraryVersion,
   } = usePalomaStore();
 
+  const { i18n } = useTranslation();
   const [photosList, setPhotosList] = useState<Photo[]>([]);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
@@ -26,11 +30,9 @@ export const App: React.FC = () => {
 
   const fetchPhotos = async () => {
     try {
-      const params = new URLSearchParams();
-      if (selectedFolderId !== null) params.append('folderId', String(selectedFolderId));
-      if (selectedAlbumToken !== null) params.append('album', selectedAlbumToken);
-      if (selectedFilter === 'starred') params.append('starred', 'true');
-      if (searchQuery.trim()) params.append('query', searchQuery.trim());
+      const params = libraryQueryParams(
+        { selectedFolderId, selectedAlbumToken, selectedFilter, searchQuery }, currentLanguage(),
+      );
 
       const res = await fetch(`/api/photos?${params.toString()}`);
       if (res.ok) {
@@ -44,7 +46,7 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     fetchPhotos();
-  }, [selectedFolderId, selectedFilter, selectedAlbumToken, searchQuery, libraryVersion]);
+  }, [selectedFolderId, selectedFilter, selectedAlbumToken, searchQuery, libraryVersion, i18n.language]);
 
   const handleStarToggle = async (photoId: number, currentStarred: boolean) => {
     try {
@@ -69,25 +71,30 @@ export const App: React.FC = () => {
     return <CollageBuilder />;
   }
 
-  if (currentView === 'map') {
-    return <PlacesMap />;
-  }
-
   if (currentView === 'people') {
     return <PeopleView />;
   }
 
+  // The tray stays under the map, so selected photos can be dragged onto it
+  const content = currentView === 'map'
+    ? <PlacesMap />
+    : (
+      <>
+        <Navbar />
+
+        <div className="d-flex flex-grow-1 overflow-hidden" style={{ marginBottom: '80px' }}>
+          <LeftSidebar />
+          <main className="flex-grow-1 bg-light d-flex flex-column overflow-hidden">
+            {selectedAlbumToken !== null && <AlbumHeader token={selectedAlbumToken} />}
+            <VirtualPhotoGrid photos={photosList} onStarToggle={handleStarToggle} />
+          </main>
+        </div>
+      </>
+    );
+
   return (
     <div className="d-flex flex-column vh-100 overflow-hidden">
-      <Navbar />
-
-      <div className="d-flex flex-grow-1 overflow-hidden" style={{ marginBottom: '80px' }}>
-        <LeftSidebar />
-        <main className="flex-grow-1 bg-light d-flex flex-column overflow-hidden">
-          {selectedAlbumToken !== null && <AlbumHeader token={selectedAlbumToken} />}
-          <VirtualPhotoGrid photos={photosList} onStarToggle={handleStarToggle} />
-        </main>
-      </div>
+      {content}
 
       <PhotoTray
         onOpenExport={() => setShowExportModal(true)}

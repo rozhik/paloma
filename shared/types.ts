@@ -35,8 +35,13 @@ export interface Photo {
   height: number;
   fileSize: number;
   isStarred: boolean;
+  /** Effective location in decimal degrees; null without a location */
   latitude: number | null;
   longitude: number | null;
+  /** `exif` from the camera, `user` from the sidecar or the Picasa .ini, null without a location */
+  locationSource: LocationSource | null;
+  /** Place name in the requested language; null until resolved, or without a location */
+  place?: string | null;
   dateTaken: string | null;
   createdAt: string;
   edits?: EditDAG | null;
@@ -101,6 +106,14 @@ export interface PalomaAlbumDefinition {
   [key: string]: unknown;
 }
 
+/** A location in decimal degrees, as stored in `.paloma.json` (`geotag`) and sent to the API (`location`). */
+export interface Geotag {
+  lat: number;
+  lon: number;
+}
+
+export type LocationSource = 'exif' | 'user';
+
 /** One photo's entry in `.paloma.json`. Keys Paloma does not interpret are preserved as is. */
 export interface PalomaPhotoEntry {
   star?: boolean;
@@ -109,6 +122,8 @@ export interface PalomaPhotoEntry {
   keywords?: string[];
   /** Tokens of the albums this photo is in */
   albums?: string[];
+  /** Location set in Paloma or imported from Picasa; null means the location was removed */
+  geotag?: Geotag | null;
   /** UTC ISO 8601 time of the last change made in Paloma; absent for entries only imported from .picasa.ini */
   modified?: string;
   [key: string]: unknown;
@@ -142,6 +157,10 @@ export type ApiErrorCode =
   | 'album_empty'
   | 'export_params_required'
   | 'person_name_required'
+  | 'invalid_location'
+  | 'query_required'
+  | 'geocoder_disabled'
+  | 'geocoder_failed'
   | 'internal';
 
 /** Body of every API error response. `error` is English text for clients that do not know the code. */
@@ -152,4 +171,47 @@ export interface ApiError {
   params?: Record<string, string | number>;
   /** Folders an album change could not be saved to */
   failedFolders?: string[];
+}
+
+/** `GET /api/geo/settings`: the map and geocoder settings from `.env`. */
+export interface GeoSettings {
+  geocoding: boolean;
+  tileUrl: string;
+  tileAttribution: string;
+}
+
+/** `GET /api/geo/points`: one geotagged photo on the map. */
+export interface GeoPoint {
+  id: number;
+  lat: number;
+  lon: number;
+  thumbnailUrl: string;
+}
+
+export interface GeoBounds {
+  south: number;
+  west: number;
+  north: number;
+  east: number;
+}
+
+/** One result of `GET /api/geo/search`. */
+export interface GeoSearchResult {
+  name: string;
+  lat: number;
+  lon: number;
+  bounds: GeoBounds;
+}
+
+/** One place of `GET /api/geo/places`. */
+export interface GeoPlace {
+  name: string;
+  count: number;
+  bounds: GeoBounds;
+}
+
+export interface GeoPlaces {
+  places: GeoPlace[];
+  /** Matching geotagged photos whose place is not resolved yet */
+  pending: number;
 }

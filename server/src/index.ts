@@ -4,6 +4,7 @@ import { config } from './config.js';
 import router from './routes/index.js';
 import { apiErrorHandler } from './services/apiError.js';
 import { FolderScannerService } from './services/FolderScannerService.js';
+import { placeResolver } from './services/geocoding.js';
 
 const app = express();
 
@@ -20,7 +21,9 @@ app.get('/health', (req, res) => {
 app.listen(config.port, () => {
   console.log(`🕊️ Paloma Express Server running on http://localhost:${config.port}`);
 
-  FolderScannerService.startConfiguredFolders().catch((err) => {
-    console.error('Failed to scan photos folders:', err);
-  });
+  FolderScannerService.startConfiguredFolders()
+    .catch((err) => {
+      console.error('Failed to scan photos folders:', err);
+    })
+    .finally(() => placeResolver.start());
 });

@@ -32,7 +32,8 @@
     "albums": "Álbumes",
     "noAlbums": "Aún no hay álbumes. Selecciona fotos y pulsa «Al álbum».",
     "folders": "Carpetas vigiladas",
-    "noFolders": "No hay carpetas. Indica tus carpetas de fotos en PALOMA_PHOTOS_DIRS en el archivo .env y reinicia el servidor."
+    "noFolders": "No hay carpetas. Indica tus carpetas de fotos en PALOMA_PHOTOS_DIRS en el archivo .env y reinicia el servidor.",
+    "geotagged": "📍 Con ubicación"
   },
   "grid": {
     "emptyTitle": "No se encontraron fotos",
@@ -169,6 +170,45 @@
     "album_empty": "El álbum no tiene fotos en la biblioteca.",
     "export_params_required": "Elige las fotos y una carpeta de destino.",
     "person_name_required": "Escribe un nombre.",
-    "internal": "Error del servidor: {{message}}"
+    "internal": "Error del servidor: {{message}}",
+    "invalid_location": "Ubicación no válida: la latitud debe estar entre -90 y 90 y la longitud entre -180 y 180.",
+    "query_required": "Escribe un lugar o una dirección para buscar.",
+    "geocoder_disabled": "La búsqueda de lugares está desactivada en la configuración del servidor.",
+    "geocoder_failed": "El servicio de búsqueda de lugares no está disponible. Comprueba la conexión a internet e inténtalo de nuevo."
+  },
+  "geo": {
+    "coordinates": "{{lat}}; {{lon}}",
+    "setLocation": "Fijar ubicación",
+    "cancelSetLocation": "Cancelar",
+    "selectPhotosFirst": "Primero selecciona fotos y luego colócalas en el mapa.",
+    "clickToPlace_one": "Haz clic en el mapa donde se tomó {{count, number}} foto seleccionada.",
+    "clickToPlace_many": "Haz clic en el mapa donde se tomaron los {{count, number}} de fotos seleccionadas.",
+    "clickToPlace_other": "Haz clic en el mapa donde se tomaron las {{count, number}} fotos seleccionadas.",
+    "removeLocation": "Quitar ubicación",
+    "removeLocationTitle": "¿Quitar la ubicación?",
+    "removeLocationBody_one": "¿Quitar la ubicación de {{count, number}} foto? El archivo no se modifica.",
+    "removeLocationBody_many": "¿Quitar la ubicación de {{count, number}} de fotos? Los archivos no se modifican.",
+    "removeLocationBody_other": "¿Quitar la ubicación de {{count, number}} fotos? Los archivos no se modifican.",
+    "replaceTitle": "¿Reemplazar la ubicación?",
+    "replaceBody_one": "{{count, number}} foto seleccionada ya tiene ubicación. ¿Reemplazarla?",
+    "replaceBody_many": "{{count, number}} de fotos seleccionadas ya tienen ubicación. ¿Reemplazarla?",
+    "replaceBody_other": "{{count, number}} fotos seleccionadas ya tienen ubicación. ¿Reemplazarla?",
+    "replaceConfirm": "Reemplazar",
+    "searchPlaceholder": "Buscar un lugar o una dirección",
+    "search": "Buscar",
+    "results": "Resultados de la búsqueda",
+    "noResults": "No se encontró nada.",
+    "places": "Lugares",
+    "noPlaces": "Todavía no hay lugares.",
+    "resolving_one": "Buscando el lugar de {{count, number}} foto…",
+    "resolving_many": "Buscando los lugares de {{count, number}} de fotos…",
+    "resolving_other": "Buscando los lugares de {{count, number}} fotos…",
+    "placeHere_one": "Colocar aquí {{count, number}} foto seleccionada",
+    "placeHere_many": "Colocar aquí {{count, number}} de fotos seleccionadas",
+    "placeHere_other": "Colocar aquí {{count, number}} fotos seleccionadas",
+    "addToSelection": "Añadir a la selección",
+    "clickToSelect": "Haz clic en una foto para añadirla a la selección.",
+    "noGeotagged": "Aquí no hay fotos con ubicación.",
+    "noGeotaggedHint": "Selecciona fotos y colócalas en el mapa con «Fijar ubicación», o arrástralas aquí desde la bandeja."
   }
 }

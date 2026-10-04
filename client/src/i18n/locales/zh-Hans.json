@@ -30,7 +30,8 @@
     "albums": "相册",
     "noAlbums": "还没有相册。选择照片后点击“加入相册”。",
     "folders": "监视的文件夹",
-    "noFolders": "没有文件夹。请在 .env 文件的 PALOMA_PHOTOS_DIRS 中填写照片文件夹，然后重启服务器。"
+    "noFolders": "没有文件夹。请在 .env 文件的 PALOMA_PHOTOS_DIRS 中填写照片文件夹，然后重启服务器。",
+    "geotagged": "📍 有位置信息"
   },
   "grid": {
     "emptyTitle": "未找到照片",
@@ -155,6 +156,35 @@
     "album_empty": "该相册在图库中没有照片。",
     "export_params_required": "请选择照片和目标文件夹。",
     "person_name_required": "请输入姓名。",
-    "internal": "服务器错误：{{message}}"
+    "internal": "服务器错误：{{message}}",
+    "invalid_location": "位置无效：纬度必须在 -90 到 90 之间，经度必须在 -180 到 180 之间。",
+    "query_required": "请输入要搜索的地点或地址。",
+    "geocoder_disabled": "服务器设置中已关闭地点搜索。",
+    "geocoder_failed": "地点搜索服务不可用。请检查网络连接后重试。"
+  },
+  "geo": {
+    "coordinates": "{{lat}}，{{lon}}",
+    "setLocation": "设置位置",
+    "cancelSetLocation": "取消",
+    "selectPhotosFirst": "请先选择照片，然后将其放到地图上。",
+    "clickToPlace_other": "请在地图上点击这 {{count, number}} 张所选照片的拍摄地点。",
+    "removeLocation": "移除位置",
+    "removeLocationTitle": "移除位置？",
+    "removeLocationBody_other": "要移除 {{count, number}} 张照片的位置吗？照片文件不会被修改。",
+    "replaceTitle": "替换位置？",
+    "replaceBody_other": "所选照片中有 {{count, number}} 张已有位置。要替换吗？",
+    "replaceConfirm": "替换",
+    "searchPlaceholder": "搜索地点或地址",
+    "search": "搜索",
+    "results": "搜索结果",
+    "noResults": "未找到任何结果。",
+    "places": "地点",
+    "noPlaces": "暂无地点。",
+    "resolving_other": "正在查找 {{count, number}} 张照片的地点…",
+    "placeHere_other": "将所选的 {{count, number}} 张照片放在这里",
+    "addToSelection": "添加到所选",
+    "clickToSelect": "点击照片即可将其添加到所选。",
+    "noGeotagged": "这里没有带位置信息的照片。",
+    "noGeotaggedHint": "选择照片后用“设置位置”放到地图上，或从托盘拖到这里。"
   }
 }

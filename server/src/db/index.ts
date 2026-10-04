@@ -4,7 +4,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { config } from '../config.js';
 import * as schema from './schema.js';
-import { addMissingPhotoColumns, migrateAlbumTables } from './columns.js';
+import { addMissingPhotoColumns, createGeoTables, migrateAlbumTables } from './columns.js';
 
 if (!fs.existsSync(config.dataDir)) {
   fs.mkdirSync(config.dataDir, { recursive: true });
@@ -41,7 +41,12 @@ sqlite.exec(`
     created_at TEXT NOT NULL,
     caption TEXT,
     keywords TEXT,
-    is_hidden INTEGER NOT NULL DEFAULT 0
+    is_hidden INTEGER NOT NULL DEFAULT 0,
+    exif_latitude REAL,
+    exif_longitude REAL,
+    location_source TEXT,
+    geo_cell TEXT,
+    metadata_version INTEGER NOT NULL DEFAULT 0
   );
 
   CREATE TABLE IF NOT EXISTS edits (
@@ -80,3 +85,4 @@ sqlite.exec(`
 
 addMissingPhotoColumns(sqlite);
 migrateAlbumTables(sqlite);
+createGeoTables(sqlite);

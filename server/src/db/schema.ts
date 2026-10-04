@@ -16,8 +16,16 @@ export const photos = sqliteTable('photos', {
   height: integer('height').notNull().default(0),
   fileSize: integer('file_size').notNull().default(0),
   isStarred: integer('is_starred', { mode: 'boolean' }).notNull().default(false),
+  // Effective location: the folder files' geotag, else the camera's EXIF GPS
   latitude: real('latitude'),
   longitude: real('longitude'),
+  exifLatitude: real('exif_latitude'),
+  exifLongitude: real('exif_longitude'),
+  locationSource: text('location_source', { enum: ['exif', 'user'] }),
+  // "<round(lat*100)>:<round(lon*100)>" of the effective location; joins the place name cache
+  geoCell: text('geo_cell'),
+  // Version of MetadataService that last read the file; older rows are re-read on the next scan
+  metadataVersion: integer('metadata_version').notNull().default(0),
   dateTaken: text('date_taken'),
   createdAt: text('created_at').notNull(),
   caption: text('caption'),
@@ -77,4 +85,30 @@ export const albumPhotos = sqliteTable('album_photos', {
 }, (table) => ({
   pk: primaryKey({ columns: [table.photoId, table.token] }),
   byToken: index('album_photos_token').on(table.token),
+}));
+
+// Reverse-geocoded place names per 0.01° cell ("<lat*100>:<lon*100>") and language; a cache, safe to delete
+export const geoPlaces = sqliteTable('geo_places', {
+  cell: text('cell').notNull(),
+  lang: text('lang').notNull(),
+  name: text('name'),
+  // Lowercased name for case-insensitive search beyond ASCII
+  searchText: text('search_text'),
+  // ok: name found; none: the geocoder knows no place there; failed: retry after retry_at
+  status: text('status', { enum: ['ok', 'none', 'failed'] }).notNull(),
+  attempts: integer('attempts').notNull().default(0),
+  retryAt: text('retry_at'),
+  updatedAt: text('updated_at').notNull(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.cell, table.lang] }),
+}));
+
+// Address search results per language and normalized query; a cache, safe to delete
+export const geoSearch = sqliteTable('geo_search', {
+  lang: text('lang').notNull(),
+  query: text('query').notNull(),
+  resultsJson: text('results_json').notNull(),
+  createdAt: text('created_at').notNull(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.lang, table.query] }),
 }));

@@ -20,6 +20,28 @@ describe('addMissingPhotoColumns', () => {
   });
 });
 
+describe('addMissingPhotoColumns for locations', () => {
+  it('adds the EXIF, effective-location and metadata version columns to an MVP photos table', () => {
+    const sqlite = new Database(':memory:');
+    sqlite.exec(`
+      CREATE TABLE photos (id INTEGER PRIMARY KEY AUTOINCREMENT, filename TEXT NOT NULL, latitude REAL, longitude REAL);
+      INSERT INTO photos (filename, latitude, longitude) VALUES ('a.jpg', 48.1, 24.5);
+    `);
+
+    addMissingPhotoColumns(sqlite);
+    addMissingPhotoColumns(sqlite);
+
+    expect(sqlite.prepare(
+      'SELECT filename, latitude, longitude, exif_latitude, exif_longitude, location_source, geo_cell, metadata_version FROM photos',
+    ).all()).toEqual([{
+      filename: 'a.jpg', latitude: 48.1, longitude: 24.5, exif_latitude: null, exif_longitude: null,
+      location_source: null, geo_cell: null, metadata_version: 0,
+    }]);
+    const indexes = (sqlite.pragma('index_list(photos)') as Array<{ name: string }>).map((i) => i.name);
+    expect(indexes).toContain('photos_geo_cell');
+  });
+});
+
 describe('migrateAlbumTables', () => {
   it('replaces the MVP album tables with token-based ones and keeps photos', () => {
     const sqlite = new Database(':memory:');

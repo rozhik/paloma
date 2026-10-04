@@ -83,6 +83,10 @@ describe('updatePhoto', () => {
     [{}, 'no_photo_fields', undefined],
     [{ other: true }, 'no_photo_fields', undefined],
     [null, 'invalid_body', undefined],
+    [{ location: { lat: '49.8', lon: 24 } }, 'invalid_location', undefined],
+    [{ location: { lat: 91, lon: 0 } }, 'invalid_location', undefined],
+    [{ location: [49.8, 24] }, 'invalid_location', undefined],
+    [{ location: 'Lviv' }, 'invalid_location', undefined],
   ])('rejects %j with 400 and code %s and changes nothing', (body, code, params) => {
     const result = api.updatePhoto(ids['a.jpg'], body);
     expect(result).toEqual({ status: 400, body: { error: expect.any(String), code, ...(params && { params }) } });
@@ -124,6 +128,134 @@ describe('updatePhoto', () => {
   });
 });
 
+describe('updatePhoto location', () => {
+  const setExif = (filename: string): void => {
+    db.update(schema.photos).set({ exifLatitude: 48.1, exifLongitude: 24.5, latitude: 48.1, longitude: 24.5, locationSource: 'exif' })
+      .where(eq(schema.photos.id, ids[filename])).run();
+  };
+
+  it('sets a location in the sidecar and the library', () => {
+    const result = api.updatePhoto(ids['a.jpg'], { location: { lat: 49.8397, lon: 24.0297 } });
+
+    expect(result.status).toBe(200);
+    expect(result.body).toMatchObject({ latitude: 49.8397, longitude: 24.0297, locationSource: 'user' });
+    expect(sidecar().photos['a.jpg']).toEqual({ geotag: { lat: 49.8397, lon: 24.0297 }, modified: expect.any(String) });
+    expect(row('a.jpg').geoCell).toBe('4984:2403');
+  });
+
+  it('clears a camera location by storing null', () => {
+    setExif('a.jpg');
+    const result = api.updatePhoto(ids['a.jpg'], { location: null });
+
+    expect(result.body).toMatchObject({ latitude: null, longitude: null, locationSource: null });
+    expect(sidecar().photos['a.jpg']).toEqual({ geotag: null, modified: expect.any(String) });
+  });
+
+  it('clears a location set in Paloma by removing the key', () => {
+    api.updatePhoto(ids['a.jpg'], { location: { lat: 1, lon: 2 }, isStarred: true });
+    const result = api.updatePhoto(ids['a.jpg'], { location: null });
+
+    expect(result.body).toMatchObject({ latitude: null, locationSource: null, isStarred: true });
+    expect(sidecar().photos['a.jpg']).not.toHaveProperty('geotag');
+  });
+
+  it('clears a Paloma location over a camera location by storing null, so the camera one stays hidden', () => {
+    setExif('a.jpg');
+    api.updatePhoto(ids['a.jpg'], { location: { lat: 1, lon: 2 } });
+    const result = api.updatePhoto(ids['a.jpg'], { location: null });
+
+    expect(result.body).toMatchObject({ latitude: null, locationSource: null });
+    expect(sidecar().photos['a.jpg'].geotag).toBeNull();
+  });
+
+  it('saves caption and location in one write', () => {
+    const result = api.updatePhoto(ids['a.jpg'], { caption: 'Market', location: { lat: 49.8397, lon: 24.0297 } });
+
+    expect(result.body).toMatchObject({ caption: 'Market', latitude: 49.8397 });
+    expect(sidecar().photos['a.jpg']).toMatchObject({ caption: 'Market', geotag: { lat: 49.8397, lon: 24.0297 } });
+  });
+});
+
+describe('setPhotosLocation', () => {
+  let dirB: string;
+  let idB: number;
+
+  beforeEach(() => {
+    dirB = fs.mkdtempSync(path.join(tmpDir, 'photos_'));
+    const folderB = db.insert(schema.folders).values({ path: dirB, name: path.basename(dirB), indexedAt: '' })
+      .returning({ id: schema.folders.id }).get().id;
+    fs.writeFileSync(path.join(dirB, '2.jpg'), '');
+    idB = db.insert(schema.photos).values({ folderId: folderB, filename: '2.jpg', fileHash: '2', createdAt: '' })
+      .returning({ id: schema.photos.id }).get().id;
+  });
+
+  afterEach(() => {
+    fs.chmodSync(dirB, 0o755);
+  });
+
+  const sidecarB = () => JSON.parse(fs.readFileSync(path.join(dirB, '.paloma.json'), 'utf-8'));
+
+  it('sets the location of photos in two folders and returns them', () => {
+    const result = api.setPhotosLocation({ photoIds: [ids['a.jpg'], ids['b.jpg'], idB], location: { lat: 46.48, lon: 30.72 } });
+
+    expect(result.status).toBe(200);
+    expect((result.body as Array<{ id: number; latitude: number }>).map((p) => [p.id, p.latitude]))
+      .toEqual([[ids['a.jpg'], 46.48], [ids['b.jpg'], 46.48], [idB, 46.48]]);
+    expect(sidecar().photos['a.jpg'].geotag).toEqual({ lat: 46.48, lon: 30.72 });
+    expect(sidecar().photos['b.jpg'].modified).toBe(sidecar().photos['a.jpg'].modified);
+    expect(sidecarB().photos['2.jpg'].geotag).toEqual({ lat: 46.48, lon: 30.72 });
+    expect(row('a.jpg')).toMatchObject({ latitude: 46.48, locationSource: 'user' });
+  });
+
+  it('clears locations, storing null only over a camera location', () => {
+    db.update(schema.photos).set({ exifLatitude: 1, exifLongitude: 2 }).where(eq(schema.photos.id, ids['a.jpg'])).run();
+    api.setPhotosLocation({ photoIds: [ids['a.jpg'], ids['b.jpg']], location: { lat: 5, lon: 6 } });
+
+    const result = api.setPhotosLocation({ photoIds: [ids['a.jpg'], ids['b.jpg']], location: null });
+
+    expect(result.status).toBe(200);
+    expect(sidecar().photos['a.jpg'].geotag).toBeNull();
+    expect(sidecar().photos).not.toHaveProperty('b.jpg');
+    expect(row('b.jpg').latitude).toBeNull();
+  });
+
+  it.each([
+    [{ location: { lat: 1, lon: 2 } }, 'photo_ids_required'],
+    [{ photoIds: [], location: { lat: 1, lon: 2 } }, 'photo_ids_required'],
+    [{ photoIds: [1] }, 'invalid_location'],
+    [{ photoIds: [1], location: { lat: 100, lon: 2 } }, 'invalid_location'],
+  ])('rejects %j with 400 and %s', (body, code) => {
+    expect(api.setPhotosLocation(body)).toMatchObject({ status: 400, body: { code } });
+  });
+
+  it('responds 404 when a photo is not in the library and changes nothing', () => {
+    expect(api.setPhotosLocation({ photoIds: [ids['a.jpg'], 999999], location: { lat: 1, lon: 2 } }))
+      .toMatchObject({ status: 404, body: { code: 'photo_not_found' } });
+    expect(fs.existsSync(path.join(dir, '.paloma.json'))).toBe(false);
+  });
+
+  it('responds 409 for a corrupt sidecar and writes nothing', () => {
+    fs.writeFileSync(path.join(dirB, '.paloma.json'), '{ not json');
+
+    const result = api.setPhotosLocation({ photoIds: [ids['a.jpg'], idB], location: { lat: 1, lon: 2 } });
+
+    expect(result).toMatchObject({ status: 409, body: { code: 'sidecar_unreadable', failedFolders: [dirB] } });
+    expect(fs.existsSync(path.join(dir, '.paloma.json'))).toBe(false);
+    expect(fs.readFileSync(path.join(dirB, '.paloma.json'), 'utf-8')).toBe('{ not json');
+    expect(row('a.jpg').latitude).toBeNull();
+  });
+
+  it('keeps folders already written when another folder is read-only, and names it', () => {
+    fs.chmodSync(dirB, 0o555);
+
+    const result = api.setPhotosLocation({ photoIds: [ids['a.jpg'], idB], location: { lat: 1, lon: 2 } });
+
+    expect(result).toMatchObject({ status: 500, body: { code: 'sidecar_write_failed', failedFolders: [dirB] } });
+    expect(row('a.jpg').latitude).toBe(1);
+    expect(db.select().from(schema.photos).where(eq(schema.photos.id, idB)).get()!.latitude).toBeNull();
+  });
+});
+
 describe('listPhotos and listFolders', () => {
   it('leaves hidden photos out unless includeHidden=true, and does not count them', () => {
     api.updatePhoto(ids['b.jpg'], { isHidden: true });
@@ -131,6 +263,18 @@ describe('listPhotos and listFolders', () => {
     expect(api.listPhotos({ folderId: String(folderId) }).map((p) => p.filename).sort()).toEqual(['a.jpg', 'c.jpg']);
     expect(api.listPhotos({ folderId: String(folderId), includeHidden: 'true' })).toHaveLength(3);
     expect(api.listFolders().find((f) => f.id === folderId)?.photoCount).toBe(2);
+  });
+
+  it('filters by having a location and returns the location fields', () => {
+    api.updatePhoto(ids['a.jpg'], { location: { lat: 49.8397, lon: 24.0297 } });
+
+    expect(api.listPhotos({ geotagged: 'true' }).map((p) => p.filename)).toEqual(['a.jpg']);
+    expect(api.listPhotos({ geotagged: 'false' }).map((p) => p.filename).sort()).toEqual(['b.jpg', 'c.jpg']);
+    const [a] = api.listPhotos({ geotagged: 'true' });
+    expect(a).toMatchObject({ latitude: 49.8397, longitude: 24.0297, locationSource: 'user' });
+    expect(a).not.toHaveProperty('exifLatitude');
+    expect(a).not.toHaveProperty('geoCell');
+    expect(api.listPhotos({ geotagged: 'false' })[0]).toMatchObject({ latitude: null, longitude: null, locationSource: null });
   });
 
   it('returns caption, keywords and isHidden', () => {
