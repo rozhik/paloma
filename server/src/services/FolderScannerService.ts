@@ -2,28 +2,76 @@ import chokidar, { FSWatcher } from 'chokidar';
 import path from 'node:path';
 import fs from 'node:fs';
 import { db } from '../db/index.js';
-import { folders, photos, edits } from '../db/schema.js';
-import { eq, and } from 'drizzle-orm';
+import { folders, photos, edits, faceAnnotations, photoTags, albumPhotos } from '../db/schema.js';
+import { eq, and, inArray } from 'drizzle-orm';
 import { MetadataService } from './MetadataService.js';
 import { ThumbnailService } from './ThumbnailService.js';
 import { SidecarService } from './SidecarService.js';
 import { config } from '../config.js';
+import { isIgnoredName, isExcluded, isPathCovered, collapseRoots } from './scanPaths.js';
 import type { SidecarFile } from '../../../shared/types.js';
 
 const SUPPORTED_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.tiff', '.bmp', '.heic']);
-// Skip dotfiles/dot-directories (incl. .paloma.json) and dependency trees
-const IGNORED_NAMES = /(^|[\/\\])(\..*|node_modules)$/;
+
+type IndexEvent = 'add' | 'change';
+
+export interface ScanOptions {
+  photosDirs: readonly string[];
+  excludeDirs: readonly string[];
+}
+
+// Set by startConfiguredFolders(); read by the watchers' ignore filter
+let excludeDirs: readonly string[] = config.excludeDirs;
 
 function isIgnored(filePath: string): boolean {
-  if (IGNORED_NAMES.test(filePath)) return true;
-  const absPath = path.resolve(filePath);
-  return config.excludeDirs.some((dir) => absPath === dir || absPath.startsWith(dir + path.sep));
+  return isIgnoredName(path.basename(filePath)) || isExcluded(path.resolve(filePath), excludeDirs);
+}
+
+const STABLE_POLL_MS = 200;
+const STABLE_FOR_MS = 1000;
+
+/** Resolves true once size and mtime stop changing, or false if the file disappears. */
+async function waitUntilStable(filePath: string): Promise<boolean> {
+  let last = '';
+  let stableSince = Date.now();
+  for (;;) {
+    let current: string;
+    try {
+      const stat = await fs.promises.stat(filePath);
+      current = `${stat.size}:${stat.mtimeMs}`;
+    } catch {
+      return false;
+    }
+    if (current !== last) {
+      last = current;
+      stableSince = Date.now();
+    } else if (Date.now() - stableSince >= STABLE_FOR_MS) {
+      return true;
+    }
+    await new Promise((resolve) => setTimeout(resolve, STABLE_POLL_MS));
+  }
 }
 
 export class FolderScannerService {
   private static watchers: Map<string, FSWatcher> = new Map();
 
-  public static async scanAndWatchFolder(folderPath: string): Promise<number> {
+  /**
+   * Removes folders the configuration no longer covers, then scans and watches the configured
+   * folders. Resolves once the initial scan is indexed.
+   */
+  public static async startConfiguredFolders(options: ScanOptions = config): Promise<void> {
+    excludeDirs = options.excludeDirs;
+    this.pruneFolders(options);
+
+    // Only outer roots get a watcher, so nested roots don't index the same files twice
+    await Promise.all(collapseRoots(options.photosDirs).map((dir) =>
+      this.scanAndWatchFolder(dir).catch((err) => {
+        console.error(`Failed to scan photos folder ${dir}:`, err);
+      }),
+    ));
+  }
+
+  private static async scanAndWatchFolder(folderPath: string): Promise<number> {
     const absPath = path.resolve(folderPath);
 
     if (!fs.existsSync(absPath)) {
@@ -35,6 +83,7 @@ export class FolderScannerService {
     // Each subdirectory with photos becomes its own folder, with its own sidecar
     const folderIds = new Map<string, number>([[absPath, rootFolderId]]);
     const sidecars = new Map<string, SidecarFile | null>();
+    let ready = false;
     const getFolderId = (dir: string): number => {
       let id = folderIds.get(dir);
       if (id === undefined) {
@@ -43,7 +92,9 @@ export class FolderScannerService {
       }
       return id;
     };
+    // Cache sidecars only during the initial scan; later events may follow a sidecar update
     const getSidecar = (dir: string): SidecarFile | null => {
+      if (ready) return SidecarService.readSidecar(dir);
       if (!sidecars.has(dir)) sidecars.set(dir, SidecarService.readSidecar(dir));
       return sidecars.get(dir) ?? null;
     };
@@ -62,25 +113,72 @@ export class FolderScannerService {
     // Index files one at a time so a large tree doesn't spawn thousands of concurrent sharp jobs
     let queue: Promise<void> = Promise.resolve();
 
-    watcher.on('add', (filePath) => {
+    // Live events can arrive while a file is still being copied; index it once writing stops.
+    // Initial-scan events go straight to the queue so large libraries aren't slowed down.
+    const settling = new Set<string>();
+    const enqueue = (event: IndexEvent) => async (filePath: string) => {
       const ext = path.extname(filePath).toLowerCase();
       if (!SUPPORTED_EXTENSIONS.has(ext)) return;
 
-      queue = queue.then(() => this.indexPhoto(filePath, getFolderId, getSidecar));
-    });
+      if (ready) {
+        if (settling.has(filePath)) return;
+        settling.add(filePath);
+        const stable = await waitUntilStable(filePath);
+        settling.delete(filePath);
+        if (!stable) return;
+      }
+
+      // A closed or replaced watcher drops work that was still pending
+      queue = queue.then(async () => {
+        if (this.watchers.get(absPath) !== watcher) return;
+        await this.indexPhoto(filePath, event, getFolderId, getSidecar);
+      });
+    };
+    watcher.on('add', enqueue('add'));
+    watcher.on('change', enqueue('change'));
 
     watcher.on('unlink', (filePath) => {
-      const folderId = folderIds.get(path.dirname(filePath));
-      if (folderId === undefined) return;
+      const folder = db.select().from(folders).where(eq(folders.path, path.dirname(filePath))).get();
+      if (!folder) return;
 
-      const filename = path.basename(filePath);
-      db.delete(photos)
-        .where(and(eq(photos.folderId, folderId), eq(photos.filename, filename)))
-        .run();
+      const removed = db.select({ id: photos.id })
+        .from(photos)
+        .where(and(eq(photos.folderId, folder.id), eq(photos.filename, path.basename(filePath))))
+        .all();
+      this.removePhotos(removed.map((p) => p.id));
     });
 
     this.watchers.set(absPath, watcher);
+
+    await new Promise<void>((resolve) => watcher.once('ready', resolve));
+    await queue;
+    ready = true;
     return rootFolderId;
+  }
+
+  // Only touches the catalog; files on disk are never modified
+  private static pruneFolders({ photosDirs, excludeDirs }: ScanOptions): void {
+    for (const folder of db.select().from(folders).all()) {
+      if (isPathCovered(folder.path, photosDirs, excludeDirs)) continue;
+
+      const folderPhotos = db.select({ id: photos.id }).from(photos).where(eq(photos.folderId, folder.id)).all();
+      this.removePhotos(folderPhotos.map((p) => p.id));
+      db.delete(folders).where(eq(folders.id, folder.id)).run();
+      console.log(`Removed folder from library (not in PALOMA_PHOTOS_DIRS or excluded): ${folder.path}`);
+    }
+  }
+
+  // Dependent rows are deleted explicitly so removal does not rely on the foreign_keys pragma
+  private static removePhotos(photoIds: number[]): void {
+    if (photoIds.length === 0) return;
+
+    db.transaction((tx) => {
+      tx.delete(edits).where(inArray(edits.photoId, photoIds)).run();
+      tx.delete(faceAnnotations).where(inArray(faceAnnotations.photoId, photoIds)).run();
+      tx.delete(photoTags).where(inArray(photoTags.photoId, photoIds)).run();
+      tx.delete(albumPhotos).where(inArray(albumPhotos.photoId, photoIds)).run();
+      tx.delete(photos).where(inArray(photos.id, photoIds)).run();
+    });
   }
 
   private static upsertFolder(dirPath: string): number {
@@ -103,8 +201,10 @@ export class FolderScannerService {
       .get().id;
   }
 
+  // 'add' indexes new files only; 'change' also refreshes an indexed photo whose content changed
   private static async indexPhoto(
     filePath: string,
+    event: IndexEvent,
     getFolderId: (dir: string) => number,
     getSidecar: (dir: string) => SidecarFile | null,
   ): Promise<void> {
@@ -115,26 +215,37 @@ export class FolderScannerService {
       const existingPhoto = db.select()
         .from(photos)
         .where(and(eq(photos.folderId, folderId), eq(photos.filename, filename)))
-        .all();
-      if (existingPhoto.length > 0) return;
+        .get();
+      if (existingPhoto && event === 'add') return;
 
       const meta = await MetadataService.extractMetadata(filePath);
+      if (existingPhoto?.fileHash === meta.fileHash) return;
       await ThumbnailService.generateThumbnails(filePath, meta.fileHash);
 
       const sidecarPhoto = getSidecar(dir)?.photos?.[filename];
+      const fromContent = {
+        fileHash: meta.fileHash,
+        width: meta.width,
+        height: meta.height,
+        fileSize: meta.fileSize,
+        latitude: sidecarPhoto?.geo?.latitude ?? meta.latitude,
+        longitude: sidecarPhoto?.geo?.longitude ?? meta.longitude,
+        dateTaken: meta.dateTaken,
+      };
+
+      // Star and edits belong to the user and survive a content change
+      if (existingPhoto) {
+        db.update(photos).set(fromContent).where(eq(photos.id, existingPhoto.id)).run();
+        return;
+      }
+
       const isStarred = sidecarPhoto?.is_starred ?? false;
 
       const inserted = db.insert(photos).values({
         folderId,
         filename,
-        fileHash: meta.fileHash,
-        width: meta.width,
-        height: meta.height,
-        fileSize: meta.fileSize,
+        ...fromContent,
         isStarred,
-        latitude: sidecarPhoto?.geo?.latitude ?? meta.latitude,
-        longitude: sidecarPhoto?.geo?.longitude ?? meta.longitude,
-        dateTaken: meta.dateTaken,
         createdAt: new Date().toISOString(),
       }).returning({ id: photos.id }).get();
 
@@ -156,5 +267,10 @@ export class FolderScannerService {
       watcher.close();
       this.watchers.delete(folderPath);
     }
+  }
+
+  public static async stopAll(): Promise<void> {
+    await Promise.all([...this.watchers.values()].map((watcher) => watcher.close()));
+    this.watchers.clear();
   }
 }

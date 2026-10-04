@@ -4,7 +4,6 @@ import fs from 'node:fs';
 import { db } from '../db/index.js';
 import { folders, photos, edits, people, faceAnnotations, tags, photoTags, albums, albumPhotos } from '../db/schema.js';
 import { eq, like, and, inArray, desc } from 'drizzle-orm';
-import { FolderScannerService } from '../services/FolderScannerService.js';
 import { ThumbnailService } from '../services/ThumbnailService.js';
 import { SidecarService } from '../services/SidecarService.js';
 import { MetadataService } from '../services/MetadataService.js';
@@ -29,20 +28,6 @@ router.get('/folders', (req, res) => {
     };
   });
   res.json(result);
-});
-
-router.post('/folders/scan', async (req, res) => {
-  const { folderPath } = req.body;
-  if (!folderPath) {
-    return res.status(400).json({ error: 'folderPath is required' });
-  }
-
-  try {
-    const folderId = await FolderScannerService.scanAndWatchFolder(folderPath);
-    res.json({ success: true, folderId });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
 });
 
 // --- Photos API ---

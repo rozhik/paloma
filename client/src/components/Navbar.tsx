@@ -1,12 +1,8 @@
 import React from 'react';
 import { usePalomaStore, AppView } from '../store/usePalomaStore.js';
-import { Search, Image, Users, MapPin, LayoutGrid, PlusCircle } from 'lucide-react';
+import { Search, Image, Users, MapPin, LayoutGrid } from 'lucide-react';
 
-interface NavbarProps {
-  onOpenImport: () => void;
-}
-
-export const Navbar: React.FC<NavbarProps> = ({ onOpenImport }) => {
+export const Navbar: React.FC = () => {
   const { currentView, setCurrentView, searchQuery, setSearchQuery } = usePalomaStore();
 
   return (
@@ -64,11 +60,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenImport }) => {
         >
           <LayoutGrid size={22} />
           <span>Колаж</span>
-        </button>
-
-        <button className="btn btn-lg-custom btn-success ms-2" onClick={onOpenImport}>
-          <PlusCircle size={22} />
-          <span>Додати папку</span>
         </button>
       </div>
     </nav>

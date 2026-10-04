@@ -18,9 +18,7 @@ app.get('/health', (req, res) => {
 app.listen(config.port, () => {
   console.log(`🕊️ Paloma Express Server running on http://localhost:${config.port}`);
 
-  for (const dir of config.photosDirs) {
-    FolderScannerService.scanAndWatchFolder(dir).catch((err) => {
-      console.error(`Failed to scan photos folder ${dir}:`, err);
-    });
-  }
+  FolderScannerService.startConfiguredFolders().catch((err) => {
+    console.error('Failed to scan photos folders:', err);
+  });
 });

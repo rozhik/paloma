@@ -69,7 +69,7 @@ export const LeftSidebar: React.FC = () => {
         </div>
 
         {foldersList.length === 0 ? (
-          <p className="text-muted fs-6 fst-italic">Немає доданих папок. Натисніть «Додати папку» вгорі.</p>
+          <p className="text-muted fs-6 fst-italic">Немає папок. Вкажіть папки з фотографіями в PALOMA_PHOTOS_DIRS у файлі .env і перезапустіть сервер.</p>
         ) : (
           <div className="list-group list-group-flush gap-1">
             {foldersList.map((f) => (

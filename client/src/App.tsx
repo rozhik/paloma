@@ -6,7 +6,6 @@ import { LeftSidebar } from './components/LeftSidebar.js';
 import { VirtualPhotoGrid } from './components/VirtualPhotoGrid.js';
 import { PhotoTray } from './components/PhotoTray.js';
 import { EditorCanvas } from './components/EditorCanvas.js';
-import { ImportModal } from './components/ImportModal.js';
 import { ExportWizardModal } from './components/ExportWizardModal.js';
 import { PrintModal } from './components/PrintModal.js';
 import { MovieMakerModal } from './components/MovieMakerModal.js';
@@ -18,7 +17,6 @@ export const App: React.FC = () => {
   const { currentView, activeEditPhoto, selectedFolderId, selectedFilter, searchQuery } = usePalomaStore();
 
   const [photosList, setPhotosList] = useState<Photo[]>([]);
-  const [showImportModal, setShowImportModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [showMovieModal, setShowMovieModal] = useState(false);
@@ -77,7 +75,7 @@ export const App: React.FC = () => {
 
   return (
     <div className="d-flex flex-column vh-100 overflow-hidden">
-      <Navbar onOpenImport={() => setShowImportModal(true)} />
+      <Navbar />
 
       <div className="d-flex flex-grow-1 overflow-hidden" style={{ marginBottom: '80px' }}>
         <LeftSidebar />
@@ -90,12 +88,6 @@ export const App: React.FC = () => {
         onOpenExport={() => setShowExportModal(true)}
         onOpenPrint={() => setShowPrintModal(true)}
         onOpenMovie={() => setShowMovieModal(true)}
-      />
-
-      <ImportModal
-        show={showImportModal}
-        onHide={() => setShowImportModal(false)}
-        onSuccess={fetchPhotos}
       />
 
       <ExportWizardModal

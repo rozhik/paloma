@@ -15,7 +15,7 @@ export const VirtualPhotoGrid: React.FC<VirtualPhotoGridProps> = ({ photos, onSt
       <div className="d-flex flex-column align-items-center justify-content-center h-100 text-center p-5">
         <div className="fs-1 mb-3">🖼️</div>
         <h4 className="fw-bold">Світлин не знайдено</h4>
-        <p className="text-muted fs-5">Додайте нову папку з фотографіями або змініть параметри пошуку.</p>
+        <p className="text-muted fs-5">Перевірте папки в PALOMA_PHOTOS_DIRS у файлі .env або змініть параметри пошуку.</p>
       </div>
     );
   }
