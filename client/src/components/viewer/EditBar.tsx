@@ -21,6 +21,8 @@ export interface PanelAnchor {
 }
 
 interface EditBarProps {
+  /** Extra class from the skin */
+  className?: string;
   placement: BarPlacement;
   style: React.CSSProperties;
   /** Filters of active plugins; null while loading */
@@ -66,7 +68,7 @@ export const EditBar: React.FC<EditBarProps> = (props) => {
       role="toolbar"
       aria-label={t('viewer.editBar')}
       aria-orientation={column ? 'vertical' : 'horizontal'}
-      className={`viewer-bar viewer-edit ${column ? 'flex-column' : 'flex-row'}`}
+      className={`viewer-bar viewer-edit ${column ? 'flex-column' : 'flex-row'} ${props.className ?? ''}`}
       style={props.style}
     >
       <ViewerButton label={t('editor.undo')} tip={tip} onClick={props.onUndo} disabled={!props.canUndo || locked}>

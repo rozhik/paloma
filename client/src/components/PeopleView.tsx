@@ -47,8 +47,8 @@ export const PeopleView: React.FC = () => {
   };
 
   return (
-    <div className="d-flex flex-column h-100 w-100 bg-dark text-white p-4">
-      <div className="d-flex align-items-center justify-content-between mb-4 bg-secondary p-3 rounded">
+    <div className="d-flex flex-column h-100 w-100 pal-chrome p-4">
+      <div className="d-flex align-items-center justify-content-between mb-4 pal-chrome-panel p-3 rounded">
         <div className="d-flex align-items-center gap-3">
           <button className="btn btn-outline-light btn-lg-custom" onClick={() => setCurrentView('library')}>
             <ArrowLeft size={20} className="flip-rtl" />
@@ -60,7 +60,7 @@ export const PeopleView: React.FC = () => {
 
       <div className="row g-4">
         <div className="col-md-4">
-          <div className="bg-secondary p-4 rounded">
+          <div className="pal-chrome-panel p-4 rounded">
             <h5 className="fw-bold mb-3 d-flex align-items-center gap-2">
               <UserPlus size={24} />
               <span>{t('people.add')}</span>
@@ -84,7 +84,7 @@ export const PeopleView: React.FC = () => {
         </div>
 
         <div className="col-md-8">
-          <div className="bg-secondary p-4 rounded" style={{ minHeight: '400px' }}>
+          <div className="pal-chrome-panel p-4 rounded" style={{ minHeight: '400px' }}>
             <h5 className="fw-bold mb-3 d-flex align-items-center gap-2">
               <Users size={24} />
               <span>{t('people.catalog', { count: people.length })}</span>
@@ -96,7 +96,7 @@ export const PeopleView: React.FC = () => {
               <div className="row row-cols-2 row-cols-md-3 g-3">
                 {people.map((person) => (
                   <div key={person.id} className="col">
-                    <div className="card h-100 bg-dark text-white border-secondary text-center p-3">
+                    <div className="card h-100 pal-chrome-card text-center p-3">
                       <div className="fs-1 mb-2">👤</div>
                       <h5 dir="auto" className="fw-bold text-truncate">{person.name}</h5>
                     </div>

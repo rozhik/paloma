@@ -1,0 +1,35 @@
+import type { Theme } from './types.js';
+
+/** High Contrast: white and bright colors on pure black, solid surfaces, strong borders and focus. */
+export const highContrast: Theme = {
+  id: 'high-contrast',
+  colors: {
+    'bg': '#000000',
+    'surface': '#000000',
+    'surface-raised': '#000000',
+    'text': '#ffffff',
+    'text-muted': '#e6e6e6',
+    'border': '#ffffff',
+    'accent': '#ffff00',
+    'accent-text': '#000000',
+    'selection': '#00ffff',
+    'star': '#ffff00',
+    'danger': '#ff8a8a',
+    'danger-text': '#000000',
+    'success': '#5cff7a',
+    'success-text': '#000000',
+    'warning': '#ffd400',
+    'warning-text': '#000000',
+    'info': '#66e0ff',
+    'info-text': '#000000',
+    'focus': '#00ffff',
+    'chrome-bg': '#000000',
+    'chrome-text': '#ffffff',
+    'chrome-muted': '#e6e6e6',
+    'chrome-accent': '#ffff00',
+    'viewer-bg': '#000000',
+    'viewer-text': '#ffffff',
+    'overlay': '#000000cc',
+    'placeholder': '#1a1a1a',
+  },
+};

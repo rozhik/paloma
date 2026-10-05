@@ -49,7 +49,7 @@ export const ExportWizardModal: React.FC<ExportWizardModalProps> = ({ show, onHi
 
   return (
     <Modal show={show} onHide={onHide} centered size="lg">
-      <Modal.Header closeButton className="bg-primary text-white">
+      <Modal.Header closeButton className="bg-primary">
         <Modal.Title className="fs-3 fw-bold d-flex align-items-center gap-2">
           <Download size={28} />
           <span>{t('export.title')}</span>

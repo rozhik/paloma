@@ -20,7 +20,7 @@ export const PrintModal: React.FC<PrintModalProps> = ({ show, onHide }) => {
 
   return (
     <Modal show={show} onHide={onHide} centered size="xl">
-      <Modal.Header closeButton className="bg-info text-white">
+      <Modal.Header closeButton className="bg-info">
         <Modal.Title className="fs-3 fw-bold d-flex align-items-center gap-2">
           <Printer size={28} />
           <span>{t('print.title')}</span>
@@ -59,7 +59,7 @@ export const PrintModal: React.FC<PrintModalProps> = ({ show, onHide }) => {
           </div>
 
           <div className="col-md-8">
-            <div className="bg-light p-3 border rounded shadow-sm text-center" style={{ minHeight: '400px' }}>
+            <div className="pal-page p-3 border rounded shadow-sm text-center" style={{ minHeight: '400px' }}>
               <h6 className="text-muted mb-3">{t('print.preview', { count: selectedPhotos.length })}</h6>
               <div className="d-flex flex-wrap justify-content-center gap-2">
                 {selectedPhotos.map((p) => (
@@ -72,7 +72,7 @@ export const PrintModal: React.FC<PrintModalProps> = ({ show, onHide }) => {
                       height: 'auto',
                       maxHeight: '350px',
                       objectFit: 'contain',
-                      border: '1px solid #ccc',
+                      border: '1px solid var(--pal-border)',
                       borderRadius: '4px',
                     }}
                   />

@@ -51,13 +51,13 @@ export const AlbumHeader: React.FC<AlbumHeaderProps> = ({ token }) => {
   if (!album) return null;
 
   return (
-    <div className="bg-white border-bottom px-4 py-3">
+    <div className="album-header pal-surface border-bottom px-4 py-3">
       <div className="d-flex align-items-start justify-content-between gap-3">
         <div className="text-truncate">
           <h4 className="fw-bold mb-1 d-flex align-items-center gap-2">
             <BookImage size={24} className="text-primary flex-shrink-0" />
             <span dir="auto" className={`text-truncate ${album.name === null ? 'fst-italic' : ''}`}>{album.name ?? t('common.untitled')}</span>
-            <span className="badge bg-secondary fs-6">{formatNumber(album.photoCount)}</span>
+            <span className="badge pal-badge fs-6">{formatNumber(album.photoCount)}</span>
           </h4>
           {album.description && <p dir="auto" className="mb-1 fs-5 text-body-secondary" style={{ whiteSpace: 'pre-line' }}>{album.description}</p>}
           {album.location && (

@@ -76,7 +76,7 @@ export const AlbumPickerModal: React.FC<AlbumPickerModalProps> = ({ show, photoI
                 <BookImage size={20} />
                 <span dir="auto" className={`text-truncate ${album.name === null ? 'fst-italic' : ''}`}>{album.name ?? t('common.untitled')}</span>
               </span>
-              <span className="badge bg-secondary rounded-pill">{formatNumber(album.photoCount)}</span>
+              <span className="badge pal-badge rounded-pill">{formatNumber(album.photoCount)}</span>
             </ListGroup.Item>
           ))}
         </ListGroup>

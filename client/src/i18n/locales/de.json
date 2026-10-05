@@ -23,7 +23,8 @@
     "map": "Karte",
     "collage": "Collage",
     "plugins": "Plugins",
-    "settings": "Einstellungen"
+    "settings": "Einstellungen",
+    "views": "Ansichten"
   },
   "sidebar": {
     "collections": "Sammlungen",
@@ -34,7 +35,12 @@
     "noAlbums": "Noch keine Alben. Wählen Sie Fotos aus und klicken Sie auf „Zum Album“.",
     "folders": "Überwachte Ordner",
     "noFolders": "Keine Ordner. Tragen Sie Ihre Fotoordner in PALOMA_PHOTOS_DIRS in der Datei .env ein und starten Sie den Server neu.",
-    "geotagged": "📍 Mit Ortsangabe"
+    "geotagged": "📍 Mit Ortsangabe",
+    "expandList": "Diese Liste anzeigen",
+    "collapseList": "Diese Liste ausblenden",
+    "expandSidebar": "Seitenleiste anzeigen",
+    "collapseSidebar": "Seitenleiste ausblenden",
+    "open": "Ordner und Alben"
   },
   "grid": {
     "emptyTitle": "Keine Fotos gefunden",
@@ -255,6 +261,43 @@
       "bottom": "Unten",
       "left": "Links",
       "right": "Rechts"
+    },
+    "appearance": "Darstellung",
+    "skin": "Skin",
+    "skinHint": "Wie der Bildschirm aufgebaut ist: wo die Menüs sind und wie groß Text und Schaltflächen sind.",
+    "theme": "Design",
+    "themeHint": "Nur Farben. Das Layout bleibt gleich.",
+    "skins": {
+      "classic": {
+        "name": "Klassisch",
+        "description": "Das ursprüngliche Layout mit großen, beschrifteten Schaltflächen."
+      },
+      "compact": {
+        "name": "Kompakt",
+        "description": "Mehr Fotos auf dem Bildschirm: kleinere Schrift und Vorschaubilder, Symbolschaltflächen, einklappbare Seitenleiste."
+      },
+      "glass": {
+        "name": "Fließendes Glas",
+        "description": "Für Tablets und Touch: Fotos füllen den Bildschirm unter schwebenden, durchscheinenden Leisten, mit großen Schaltflächen."
+      }
+    },
+    "themes": {
+      "system": {
+        "name": "System",
+        "description": "Folgt Ihrem Computer: dunkel oder kontrastreich, wenn das System so eingestellt ist."
+      },
+      "light": {
+        "name": "Hell",
+        "description": "Dunkler Text auf hellem Hintergrund."
+      },
+      "dark": {
+        "name": "Dunkel",
+        "description": "Heller Text auf dunklem Hintergrund, angenehm in einem dunklen Raum."
+      },
+      "high-contrast": {
+        "name": "Hoher Kontrast",
+        "description": "Weiß und kräftige Farben auf Schwarz, für den deutlichsten Text."
+      }
     }
   },
   "viewer": {

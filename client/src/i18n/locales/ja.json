@@ -22,7 +22,8 @@
     "map": "地図",
     "collage": "コラージュ",
     "plugins": "プラグイン",
-    "settings": "設定"
+    "settings": "設定",
+    "views": "表示"
   },
   "sidebar": {
     "collections": "コレクション",
@@ -33,7 +34,12 @@
     "noAlbums": "アルバムはまだありません。写真を選んで「アルバムへ」をクリックしてください。",
     "folders": "監視中のフォルダ",
     "noFolders": "フォルダがありません。.env ファイルの PALOMA_PHOTOS_DIRS に写真フォルダを指定し、サーバーを再起動してください。",
-    "geotagged": "📍 位置情報あり"
+    "geotagged": "📍 位置情報あり",
+    "expandList": "このリストを表示",
+    "collapseList": "このリストを隠す",
+    "expandSidebar": "サイドバーを表示",
+    "collapseSidebar": "サイドバーを隠す",
+    "open": "フォルダーとアルバム"
   },
   "grid": {
     "emptyTitle": "写真が見つかりません",
@@ -243,6 +249,43 @@
       "bottom": "下",
       "left": "左",
       "right": "右"
+    },
+    "appearance": "外観",
+    "skin": "スキン",
+    "skinHint": "画面の構成：メニューの位置、文字やボタンの大きさ。",
+    "theme": "テーマ",
+    "themeHint": "色のみ。レイアウトは変わりません。",
+    "skins": {
+      "classic": {
+        "name": "クラシック",
+        "description": "大きなラベル付きボタンの元のレイアウト。"
+      },
+      "compact": {
+        "name": "コンパクト",
+        "description": "画面により多くの写真を表示：小さめの文字とサムネイル、アイコンボタン、折りたためるサイドバー。"
+      },
+      "glass": {
+        "name": "フルイドグラス",
+        "description": "タブレットとタッチ向け：浮かぶ半透明のバーの下で写真が画面いっぱいに表示され、ボタンも大きめです。"
+      }
+    },
+    "themes": {
+      "system": {
+        "name": "システム",
+        "description": "コンピューターの設定に従います：ダークまたはハイコントラストに設定されていればそれを使います。"
+      },
+      "light": {
+        "name": "ライト",
+        "description": "明るい背景に暗い文字。"
+      },
+      "dark": {
+        "name": "ダーク",
+        "description": "暗い背景に明るい文字。暗い部屋でも目にやさしい。"
+      },
+      "high-contrast": {
+        "name": "ハイコントラスト",
+        "description": "黒地に白と鮮やかな色で、最も読みやすい文字。"
+      }
     }
   },
   "viewer": {

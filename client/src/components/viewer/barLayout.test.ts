@@ -56,4 +56,9 @@ describe('barLayout', () => {
     expect(barInsets(barLayout(DEFAULT_UI_SETTINGS), 64)).toEqual({ top: 64, right: 0, bottom: 0, left: 64 });
     expect(barInsets(barLayout({ navBar: 'bottom', editBar: 'bottom' }), 64)).toEqual({ top: 0, right: 0, bottom: 128, left: 0 });
   });
+
+  it('measures insets with the skin\'s bar thickness', () => {
+    expect(barInsets(barLayout(DEFAULT_UI_SETTINGS), 44)).toEqual({ top: 44, right: 0, bottom: 0, left: 44 });
+    expect(barInsets(barLayout({ navBar: 'right', editBar: 'right' }), 44)).toEqual({ top: 0, right: 88, bottom: 0, left: 0 });
+  });
 });

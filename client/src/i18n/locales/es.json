@@ -24,7 +24,8 @@
     "map": "Mapa",
     "collage": "Collage",
     "plugins": "Complementos",
-    "settings": "Ajustes"
+    "settings": "Ajustes",
+    "views": "Vistas"
   },
   "sidebar": {
     "collections": "Colecciones",
@@ -35,7 +36,12 @@
     "noAlbums": "Aún no hay álbumes. Selecciona fotos y pulsa «Al álbum».",
     "folders": "Carpetas vigiladas",
     "noFolders": "No hay carpetas. Indica tus carpetas de fotos en PALOMA_PHOTOS_DIRS en el archivo .env y reinicia el servidor.",
-    "geotagged": "📍 Con ubicación"
+    "geotagged": "📍 Con ubicación",
+    "expandList": "Mostrar esta lista",
+    "collapseList": "Ocultar esta lista",
+    "expandSidebar": "Mostrar la barra lateral",
+    "collapseSidebar": "Ocultar la barra lateral",
+    "open": "Carpetas y álbumes"
   },
   "grid": {
     "emptyTitle": "No se encontraron fotos",
@@ -267,6 +273,43 @@
       "bottom": "Abajo",
       "left": "Izquierda",
       "right": "Derecha"
+    },
+    "appearance": "Apariencia",
+    "skin": "Aspecto",
+    "skinHint": "Cómo se organiza la pantalla: dónde están los menús y el tamaño del texto y los botones.",
+    "theme": "Tema",
+    "themeHint": "Solo colores. La disposición no cambia.",
+    "skins": {
+      "classic": {
+        "name": "Clásico",
+        "description": "La disposición original, con botones grandes y con texto."
+      },
+      "compact": {
+        "name": "Compacto",
+        "description": "Más fotos en pantalla: texto y miniaturas más pequeños, botones de icono y una barra lateral plegable."
+      },
+      "glass": {
+        "name": "Cristal fluido",
+        "description": "Para tabletas y pantallas táctiles: las fotos llenan la pantalla bajo barras flotantes translúcidas, con botones grandes."
+      }
+    },
+    "themes": {
+      "system": {
+        "name": "Sistema",
+        "description": "Sigue a tu equipo: oscuro o de alto contraste si así está configurado."
+      },
+      "light": {
+        "name": "Claro",
+        "description": "Texto oscuro sobre fondo claro."
+      },
+      "dark": {
+        "name": "Oscuro",
+        "description": "Texto claro sobre fondo oscuro, cómodo en una habitación con poca luz."
+      },
+      "high-contrast": {
+        "name": "Alto contraste",
+        "description": "Blanco y colores vivos sobre negro, para el texto más nítido."
+      }
     }
   },
   "viewer": {

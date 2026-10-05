@@ -22,7 +22,8 @@
     "map": "Map",
     "collage": "Collage",
     "plugins": "Plugins",
-    "settings": "Settings"
+    "settings": "Settings",
+    "views": "Views"
   },
   "sidebar": {
     "collections": "Collections",
@@ -33,7 +34,12 @@
     "noAlbums": "No albums yet. Select photos and click “Add to album”.",
     "folders": "Watched folders",
     "noFolders": "No folders. List your photo folders in PALOMA_PHOTOS_DIRS in the .env file and restart the server.",
-    "geotagged": "📍 Geotagged"
+    "geotagged": "📍 Geotagged",
+    "expandList": "Show this list",
+    "collapseList": "Hide this list",
+    "expandSidebar": "Show the sidebar",
+    "collapseSidebar": "Hide the sidebar",
+    "open": "Folders and albums"
   },
   "grid": {
     "emptyTitle": "No photos found",
@@ -254,6 +260,43 @@
       "bottom": "Bottom",
       "left": "Left",
       "right": "Right"
+    },
+    "appearance": "Appearance",
+    "skin": "Skin",
+    "skinHint": "How the screen is built: where the menus are, and how large text and buttons are.",
+    "theme": "Theme",
+    "themeHint": "Colors only. The layout stays the same.",
+    "skins": {
+      "classic": {
+        "name": "Classic",
+        "description": "The original layout with large, labelled buttons."
+      },
+      "compact": {
+        "name": "Compact",
+        "description": "More photos on the screen: smaller text and thumbnails, icon buttons, a sidebar you can fold away."
+      },
+      "glass": {
+        "name": "Fluid Glass",
+        "description": "For tablets and touch: photos fill the screen under floating, see-through bars, with large buttons."
+      }
+    },
+    "themes": {
+      "system": {
+        "name": "System",
+        "description": "Follows your computer: dark or high contrast when it is set that way."
+      },
+      "light": {
+        "name": "Light",
+        "description": "Dark text on a light background."
+      },
+      "dark": {
+        "name": "Dark",
+        "description": "Light text on a dark background, easy on the eyes in a dim room."
+      },
+      "high-contrast": {
+        "name": "High Contrast",
+        "description": "White and bright colors on black, for the clearest text."
+      }
     }
   },
   "viewer": {

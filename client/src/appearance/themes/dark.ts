@@ -1,0 +1,35 @@
+import type { Theme } from './types.js';
+
+/** Dark: light text on near-black greys, soft accents; easy on the eyes in a dim room and around photos. */
+export const dark: Theme = {
+  id: 'dark',
+  colors: {
+    'bg': '#0f1115',
+    'surface': '#171a20',
+    'surface-raised': '#21252d',
+    'text': '#e8eaed',
+    'text-muted': '#a6adb8',
+    'border': '#6f7887',
+    'accent': '#79aefe',
+    'accent-text': '#0b1220',
+    'selection': '#38bdf8',
+    'star': '#fbbf24',
+    'danger': '#f48b82',
+    'danger-text': '#1d0907',
+    'success': '#6fd296',
+    'success-text': '#04210f',
+    'warning': '#f5c451',
+    'warning-text': '#241800',
+    'info': '#67d4e8',
+    'info-text': '#03232a',
+    'focus': '#8ab4f8',
+    'chrome-bg': '#090b0f',
+    'chrome-text': '#f1f3f4',
+    'chrome-muted': '#aab1bb',
+    'chrome-accent': '#7dd3fc',
+    'viewer-bg': '#000000',
+    'viewer-text': '#f8fafc',
+    'overlay': '#000000b3',
+    'placeholder': '#2a2f38',
+  },
+};

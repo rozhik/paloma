@@ -1,9 +1,9 @@
 import React from 'react';
-import type { Photo } from '../../../shared/types.js';
-import { usePalomaStore } from '../store/usePalomaStore.js';
+import type { Photo } from '../../../../../shared/types.js';
+import { usePalomaStore } from '../../../store/usePalomaStore.js';
 import { useTranslation } from 'react-i18next';
 import { Star, CheckCircle, Circle, MapPin, Sliders } from 'lucide-react';
-import { usePlaceLabel } from './placeLabel.js';
+import { usePlaceLabel } from '../../../components/placeLabel.js';
 
 interface PhotoCardProps {
   photo: Photo;
@@ -16,7 +16,7 @@ interface PhotoCardProps {
  * A photo in the grid. A click (or Enter) opens the viewer; the top-start checkbox, Ctrl/Cmd+click or Space
  * selects it; the top-end star stars it.
  */
-export const PhotoCard: React.FC<PhotoCardProps> = ({ photo, onStarToggle, onOpen }) => {
+export const ClassicPhotoCard: React.FC<PhotoCardProps> = ({ photo, onStarToggle, onOpen }) => {
   const { toggleSelectPhoto, isPhotoSelected } = usePalomaStore();
   const { t } = useTranslation();
   const placeLabel = usePlaceLabel();
@@ -52,7 +52,7 @@ export const PhotoCard: React.FC<PhotoCardProps> = ({ photo, onStarToggle, onOpe
           toggleSelectPhoto(photo);
         }}
       >
-        {selected ? <CheckCircle size={28} fill="#0284c7" color="#ffffff" /> : <Circle size={28} color="#ffffff" />}
+        {selected ? <CheckCircle size={28} className="select-mark" /> : <Circle size={28} />}
       </button>
 
       <button
@@ -63,20 +63,17 @@ export const PhotoCard: React.FC<PhotoCardProps> = ({ photo, onStarToggle, onOpe
           onStarToggle(photo.id, photo.isStarred);
         }}
         title={photo.isStarred ? t('photo.unstar') : t('photo.star')}
+        aria-label={photo.isStarred ? t('photo.unstar') : t('photo.star')}
+        aria-pressed={photo.isStarred}
       >
-        <Star size={20} fill={photo.isStarred ? '#f59e0b' : 'none'} />
+        <Star size={20} fill={photo.isStarred ? 'currentColor' : 'none'} />
       </button>
 
-      <div style={{ aspectRatio: '1 / 1', backgroundColor: '#e2e8f0', overflow: 'hidden' }}>
-        <img
-          src={photo.thumbnailUrl}
-          alt={photo.filename}
-          loading="lazy"
-          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-        />
+      <div className="photo-card-thumb">
+        <img src={photo.thumbnailUrl} alt={photo.filename} loading="lazy" />
       </div>
 
-      <div className="p-2 d-flex align-items-center justify-content-between bg-white">
+      <div className="p-2 d-flex align-items-center justify-content-between">
         <span dir="auto" className="text-truncate fs-6 fw-semibold" style={{ maxWidth: '70%' }} title={photo.filename}>
           {photo.filename}
         </span>

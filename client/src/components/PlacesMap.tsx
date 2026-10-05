@@ -15,7 +15,7 @@ import { fetchGeoPoints, fetchGeoSettings, fetchPlaces, searchAddress, setPhotos
 import { currentLanguage } from '../i18n/index.js';
 import { useFormat } from '../i18n/format.js';
 import { ConfirmModal } from './ConfirmModal.js';
-import { PHOTO_DRAG_TYPE } from './PhotoTray.js';
+import { PHOTO_DRAG_TYPE } from '../shell/useTray.js';
 
 const PLACES_POLL_MS = 5000;
 const WORLD: L.LatLngBoundsExpression = [[-60, -170], [75, 170]];
@@ -268,10 +268,9 @@ export const PlacesMap: React.FC = () => {
 
   return (
     <div
-      className="d-flex flex-column flex-grow-1 overflow-hidden bg-dark text-white"
-      style={{ marginBottom: selectedPhotos.length > 0 ? '80px' : 0 }}
+      className="d-flex flex-column flex-grow-1 overflow-hidden pal-chrome"
     >
-      <div className="d-flex align-items-center flex-wrap gap-3 p-3 bg-secondary">
+      <div className="d-flex align-items-center flex-wrap gap-3 p-3 pal-chrome-panel">
         <button className="btn btn-outline-light btn-lg-custom" onClick={() => setCurrentView('library')}>
           <ArrowLeft size={20} className="flip-rtl" />
           <span>{t('common.back')}</span>
@@ -281,7 +280,7 @@ export const PlacesMap: React.FC = () => {
 
         <div className="d-flex align-items-center gap-2 ms-auto">
           <button
-            className={`btn btn-lg-custom ${placing ? 'btn-warning text-dark' : 'btn-light'}`}
+            className={`btn btn-lg-custom ${placing ? 'btn-warning' : 'btn-light'}`}
             disabled={selectedPhotos.length === 0}
             onClick={() => setPlacing(!placing)}
             title={selectedPhotos.length === 0 ? t('geo.selectPhotosFirst') : undefined}
@@ -307,7 +306,7 @@ export const PlacesMap: React.FC = () => {
 
       <div className="d-flex flex-grow-1 overflow-hidden">
         {geocoding && (
-          <aside className="bg-white text-dark border-end p-3 d-flex flex-column gap-3" style={{ width: '300px', flexShrink: 0, overflowY: 'auto' }}>
+          <aside className="pal-surface border-end p-3 d-flex flex-column gap-3" style={{ width: 'var(--pal-sidebar-width)', flexShrink: 0, overflowY: 'auto' }}>
             <form className="d-flex gap-2" onSubmit={search} role="search">
               <input
                 type="search"
@@ -358,7 +357,7 @@ export const PlacesMap: React.FC = () => {
                     onClick={() => mapRef.current?.fitBounds(toLatLngBounds(p.bounds), { padding: [48, 48], maxZoom: 15 })}
                   >
                     <span dir="auto">{p.name}</span>
-                    <span className="badge bg-secondary">{formatNumber(p.count)}</span>
+                    <span className="badge pal-badge">{formatNumber(p.count)}</span>
                   </button>
                 ))}
               </div>
@@ -419,7 +418,7 @@ export const PlacesMap: React.FC = () => {
           )}
 
           {points && points.length === 0 && (
-            <div className="map-empty-note text-dark">
+            <div className="map-empty-note">
               <div className="fw-bold fs-5">{t('geo.noGeotagged')}</div>
               <div>{t('geo.noGeotaggedHint')}</div>
             </div>

@@ -24,7 +24,8 @@
     "map": "Carte",
     "collage": "Collage",
     "plugins": "Modules",
-    "settings": "Réglages"
+    "settings": "Réglages",
+    "views": "Vues"
   },
   "sidebar": {
     "collections": "Collections",
@@ -35,7 +36,12 @@
     "noAlbums": "Aucun album pour l’instant. Sélectionnez des photos et cliquez sur « Vers l’album ».",
     "folders": "Dossiers surveillés",
     "noFolders": "Aucun dossier. Indiquez vos dossiers de photos dans PALOMA_PHOTOS_DIRS du fichier .env et redémarrez le serveur.",
-    "geotagged": "📍 Géolocalisées"
+    "geotagged": "📍 Géolocalisées",
+    "expandList": "Afficher cette liste",
+    "collapseList": "Masquer cette liste",
+    "expandSidebar": "Afficher le panneau latéral",
+    "collapseSidebar": "Masquer le panneau latéral",
+    "open": "Dossiers et albums"
   },
   "grid": {
     "emptyTitle": "Aucune photo trouvée",
@@ -267,6 +273,43 @@
       "bottom": "En bas",
       "left": "À gauche",
       "right": "À droite"
+    },
+    "appearance": "Apparence",
+    "skin": "Habillage",
+    "skinHint": "La construction de l’écran : où sont les menus et la taille du texte et des boutons.",
+    "theme": "Thème",
+    "themeHint": "Seulement les couleurs. La disposition ne change pas.",
+    "skins": {
+      "classic": {
+        "name": "Classique",
+        "description": "La disposition d’origine, avec de grands boutons légendés."
+      },
+      "compact": {
+        "name": "Compact",
+        "description": "Plus de photos à l’écran : texte et miniatures plus petits, boutons-icônes, panneau latéral repliable."
+      },
+      "glass": {
+        "name": "Verre fluide",
+        "description": "Pour tablettes et écrans tactiles : les photos remplissent l’écran sous des barres flottantes translucides, avec de grands boutons."
+      }
+    },
+    "themes": {
+      "system": {
+        "name": "Système",
+        "description": "Suit votre ordinateur : sombre ou contrasté s’il est réglé ainsi."
+      },
+      "light": {
+        "name": "Clair",
+        "description": "Texte foncé sur fond clair."
+      },
+      "dark": {
+        "name": "Sombre",
+        "description": "Texte clair sur fond sombre, reposant dans une pièce peu éclairée."
+      },
+      "high-contrast": {
+        "name": "Contraste élevé",
+        "description": "Blanc et couleurs vives sur noir, pour le texte le plus net."
+      }
     }
   },
   "viewer": {

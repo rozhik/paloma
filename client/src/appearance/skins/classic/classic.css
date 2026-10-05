@@ -1,0 +1,97 @@
+/* Classic skin: top navigation bar, sidebar on the left, photo tray along the bottom. Tokens only. */
+
+html[data-skin='classic'] .classic-main {
+  background-color: var(--pal-bg);
+}
+
+/* ---------- Navigation bar ---------- */
+
+html[data-skin='classic'] .paloma-navbar {
+  background-color: var(--pal-chrome-bg);
+  color: var(--pal-chrome-text);
+  padding: 0.75rem 1.5rem;
+  box-shadow: 0 2px 10px var(--pal-overlay);
+}
+
+/* Keep top-bar buttons on one line (CJK text may otherwise break between any characters); the search box shrinks instead */
+html[data-skin='classic'] .paloma-navbar .btn-lg-custom {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+html[data-skin='classic'] .paloma-logo {
+  font-size: var(--pal-font-size-large);
+  font-weight: 700;
+  color: var(--pal-chrome-accent);
+  display: flex;
+  align-items: center;
+  gap: var(--pal-gap);
+}
+
+/* ---------- Sidebar ---------- */
+
+html[data-skin='classic'] .classic-sidebar {
+  width: var(--pal-sidebar-width);
+  flex-shrink: 0;
+  overflow-y: auto;
+  background-color: var(--pal-surface);
+  border-inline-end: 1px solid var(--pal-border);
+}
+
+/* ---------- Photo grid ---------- */
+
+html[data-skin='classic'] .photo-card {
+  border: 2px solid color-mix(in srgb, var(--pal-border) 45%, transparent);
+  border-radius: var(--pal-radius-large);
+  overflow: hidden;
+  background: var(--pal-surface);
+  color: var(--pal-text);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  position: relative;
+  cursor: pointer;
+}
+
+html[data-skin='classic'] .photo-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px color-mix(in srgb, var(--pal-overlay) 30%, transparent);
+  border-color: var(--pal-selection);
+}
+
+html[data-skin='classic'] .photo-card.selected {
+  border: 3px solid var(--pal-selection);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pal-selection) 30%, transparent);
+}
+
+html[data-skin='classic'] .photo-card:focus-visible {
+  outline: 3px solid var(--pal-focus);
+  outline-offset: 2px;
+}
+
+/* ---------- Photo tray ---------- */
+
+html[data-skin='classic'] .photo-tray {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--pal-tray-height);
+  background-color: var(--pal-chrome-bg);
+  color: var(--pal-chrome-text);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+  z-index: 1000;
+  border-top: 3px solid color-mix(in srgb, var(--pal-chrome-text) 20%, var(--pal-chrome-bg));
+  box-shadow: 0 -4px 20px var(--pal-overlay);
+}
+
+html[data-skin='classic'] .classic-sidebar-cover {
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+}
+
+html[data-skin='classic'] .classic-search {
+  max-width: 480px;
+}

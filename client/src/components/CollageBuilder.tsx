@@ -13,6 +13,7 @@ export const CollageBuilder: React.FC = () => {
   useEffect(() => {
     if (!canvasRef.current) return;
 
+    // The collage's own picture colors, part of what is exported, so they do not follow the theme
     const canvas = new fabric.Canvas(canvasRef.current, {
       width: 1000,
       height: 700,
@@ -86,8 +87,8 @@ export const CollageBuilder: React.FC = () => {
   };
 
   return (
-    <div className="d-flex flex-column h-100 w-100 bg-dark text-white p-3">
-      <div className="d-flex align-items-center justify-content-between mb-3 bg-secondary p-3 rounded">
+    <div className="d-flex flex-column h-100 w-100 pal-chrome p-3">
+      <div className="d-flex align-items-center justify-content-between mb-3 pal-chrome-panel p-3 rounded">
         <div className="d-flex align-items-center gap-3">
           <button className="btn btn-outline-light btn-lg-custom" onClick={() => setCurrentView('library')}>
             <ArrowLeft size={20} className="flip-rtl" />
@@ -97,11 +98,11 @@ export const CollageBuilder: React.FC = () => {
         </div>
 
         <div className="d-flex align-items-center gap-2">
-          <button className="btn btn-outline-info btn-lg-custom" onClick={() => populateCollage('pile')}>
+          <button className="btn btn-outline-light btn-lg-custom" onClick={() => populateCollage('pile')}>
             <RefreshCw size={20} />
             <span>{t('collage.pile')}</span>
           </button>
-          <button className="btn btn-outline-info btn-lg-custom" onClick={() => populateCollage('grid')}>
+          <button className="btn btn-outline-light btn-lg-custom" onClick={() => populateCollage('grid')}>
             <LayoutGrid size={20} />
             <span>{t('collage.grid')}</span>
           </button>

@@ -1,0 +1,807 @@
+/*
+ * Styles shared by every skin. Only design tokens (--pal-*) are used here, never literal colors or sizes:
+ * the active skin and theme set the tokens (see docs/skins-and-themes.md).
+ */
+@import 'bootstrap-icons/font/bootstrap-icons.css';
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--pal-font-family);
+  font-size: var(--pal-font-size);
+  line-height: var(--pal-line-height);
+  background-color: var(--pal-bg);
+  color: var(--pal-text);
+  user-select: none;
+  overflow: hidden;
+}
+
+/* ---------- Bootstrap, recolored from the tokens ---------- */
+
+.btn {
+  --bs-btn-font-weight: var(--pal-font-weight-strong);
+  --bs-btn-border-radius: var(--pal-radius);
+}
+
+/* A filled button: --pal-fill and --pal-on-fill pick the token pair */
+.btn-primary, .btn-danger, .btn-success, .btn-warning, .btn-info {
+  --bs-btn-bg: var(--pal-fill);
+  --bs-btn-border-color: var(--pal-fill);
+  --bs-btn-color: var(--pal-on-fill);
+  --bs-btn-hover-bg: color-mix(in srgb, var(--pal-fill) 85%, var(--pal-text));
+  --bs-btn-hover-border-color: var(--bs-btn-hover-bg);
+  --bs-btn-hover-color: var(--pal-on-fill);
+  --bs-btn-active-bg: color-mix(in srgb, var(--pal-fill) 75%, var(--pal-text));
+  --bs-btn-active-border-color: var(--bs-btn-active-bg);
+  --bs-btn-active-color: var(--pal-on-fill);
+  --bs-btn-disabled-bg: var(--pal-fill);
+  --bs-btn-disabled-border-color: var(--pal-fill);
+  --bs-btn-disabled-color: var(--pal-on-fill);
+}
+.btn-primary { --pal-fill: var(--pal-accent); --pal-on-fill: var(--pal-accent-text); }
+.btn-danger { --pal-fill: var(--pal-danger); --pal-on-fill: var(--pal-danger-text); }
+.btn-success { --pal-fill: var(--pal-success); --pal-on-fill: var(--pal-success-text); }
+.btn-warning { --pal-fill: var(--pal-warning); --pal-on-fill: var(--pal-warning-text); }
+.btn-info { --pal-fill: var(--pal-info); --pal-on-fill: var(--pal-info-text); }
+
+/* An outlined button: --pal-line is its color, --pal-on-line the text when filled on hover */
+.btn-outline-primary, .btn-outline-danger, .btn-outline-success, .btn-outline-warning, .btn-outline-info,
+.btn-outline-secondary, .btn-outline-light {
+  --bs-btn-color: var(--pal-line);
+  --bs-btn-border-color: var(--pal-line);
+  --bs-btn-hover-bg: var(--pal-line);
+  --bs-btn-hover-border-color: var(--pal-line);
+  --bs-btn-hover-color: var(--pal-on-line);
+  --bs-btn-active-bg: var(--pal-line);
+  --bs-btn-active-border-color: var(--pal-line);
+  --bs-btn-active-color: var(--pal-on-line);
+  --bs-btn-disabled-color: var(--pal-line);
+  --bs-btn-disabled-border-color: var(--pal-line);
+}
+.btn-outline-primary { --pal-line: var(--pal-accent); --pal-on-line: var(--pal-accent-text); }
+.btn-outline-danger { --pal-line: var(--pal-danger); --pal-on-line: var(--pal-danger-text); }
+.btn-outline-success { --pal-line: var(--pal-success); --pal-on-line: var(--pal-success-text); }
+.btn-outline-warning { --pal-line: var(--pal-warning); --pal-on-line: var(--pal-warning-text); }
+.btn-outline-info { --pal-line: var(--pal-info); --pal-on-line: var(--pal-info-text); }
+.btn-outline-secondary { --pal-line: var(--pal-text-muted); --pal-on-line: var(--pal-surface); }
+/* For dark bars: the navigation bar, the tray and the viewer */
+.btn-outline-light { --pal-line: var(--pal-chrome-text); --pal-on-line: var(--pal-chrome-bg); }
+
+/* A light button on a dark bar */
+.btn-light {
+  --bs-btn-bg: var(--pal-surface);
+  --bs-btn-border-color: var(--pal-surface);
+  --bs-btn-color: var(--pal-text);
+  --bs-btn-hover-bg: color-mix(in srgb, var(--pal-surface) 85%, var(--pal-text));
+  --bs-btn-hover-border-color: var(--bs-btn-hover-bg);
+  --bs-btn-hover-color: var(--pal-text);
+  --bs-btn-active-bg: var(--bs-btn-hover-bg);
+  --bs-btn-active-color: var(--pal-text);
+}
+
+.list-group {
+  --bs-list-group-bg: transparent;
+  --bs-list-group-color: var(--pal-text);
+  /* Separators between entries are decoration, lighter than control borders */
+  --bs-list-group-border-color: color-mix(in srgb, var(--pal-border) 35%, transparent);
+  --bs-list-group-action-color: var(--pal-text);
+  --bs-list-group-action-hover-color: var(--pal-text);
+  --bs-list-group-action-hover-bg: color-mix(in srgb, var(--pal-text) 8%, transparent);
+  --bs-list-group-action-active-color: var(--pal-text);
+  --bs-list-group-action-active-bg: color-mix(in srgb, var(--pal-text) 14%, transparent);
+  --bs-list-group-active-bg: var(--pal-accent);
+  --bs-list-group-active-border-color: var(--pal-accent);
+  --bs-list-group-active-color: var(--pal-accent-text);
+}
+
+.modal { --bs-modal-bg: var(--pal-surface-raised); --bs-modal-color: var(--pal-text); --bs-modal-border-color: var(--pal-border); }
+.dropdown-menu {
+  --bs-dropdown-bg: var(--pal-surface-raised);
+  --bs-dropdown-color: var(--pal-text);
+  --bs-dropdown-border-color: var(--pal-border);
+  --bs-dropdown-link-color: var(--pal-text);
+  --bs-dropdown-link-hover-color: var(--pal-text);
+  --bs-dropdown-link-hover-bg: color-mix(in srgb, var(--pal-text) 10%, transparent);
+  --bs-dropdown-link-active-bg: var(--pal-accent);
+  --bs-dropdown-link-active-color: var(--pal-accent-text);
+}
+.popover { --bs-popover-bg: var(--pal-surface-raised); --bs-popover-body-color: var(--pal-text); --bs-popover-border-color: var(--pal-border); }
+.card { --bs-card-bg: var(--pal-surface); --bs-card-color: var(--pal-text); --bs-card-border-color: var(--pal-border); }
+.form-control, .form-select { background-color: var(--pal-surface); color: var(--pal-text); border-color: var(--pal-border); }
+.form-control::placeholder { color: var(--pal-text-muted); }
+.input-group-text { background-color: var(--pal-surface); color: var(--pal-text); border-color: var(--pal-border); }
+.form-check-input { background-color: var(--pal-surface); border-color: var(--pal-border); }
+.form-check-input:checked { background-color: var(--pal-accent); border-color: var(--pal-accent); }
+.form-range { --bs-form-range-thumb-bg: var(--pal-accent); }
+.form-range::-webkit-slider-thumb { background-color: var(--pal-accent); }
+.form-range::-moz-range-thumb { background-color: var(--pal-accent); }
+.progress { --bs-progress-bar-bg: var(--pal-accent); --bs-progress-bg: color-mix(in srgb, var(--pal-text) 15%, transparent); }
+.nav-tabs, .nav-pills { --bs-nav-link-color: var(--pal-accent); --bs-nav-pills-link-active-bg: var(--pal-accent); --bs-nav-pills-link-active-color: var(--pal-accent-text); }
+
+/* Text and background utilities follow the theme (Bootstrap's are !important too) */
+.text-muted, .text-secondary, .text-body-secondary { color: var(--pal-text-muted) !important; }
+.text-body { color: var(--pal-text) !important; }
+.text-primary { color: var(--pal-accent) !important; }
+.text-danger { color: var(--pal-danger) !important; }
+.text-success { color: var(--pal-success) !important; }
+.text-warning { color: var(--pal-warning) !important; }
+.text-info { color: var(--pal-info) !important; }
+.bg-body { background-color: var(--pal-bg) !important; }
+.bg-primary { background-color: var(--pal-accent) !important; color: var(--pal-accent-text) !important; }
+.bg-danger { background-color: var(--pal-danger) !important; color: var(--pal-danger-text) !important; }
+.bg-success { background-color: var(--pal-success) !important; color: var(--pal-success-text) !important; }
+.bg-warning { background-color: var(--pal-warning) !important; color: var(--pal-warning-text) !important; }
+.bg-info { background-color: var(--pal-info) !important; color: var(--pal-info-text) !important; }
+.bg-secondary { background-color: var(--pal-text-muted) !important; color: var(--pal-surface) !important; }
+.border, .border-top, .border-end, .border-bottom, .border-start { border-color: var(--pal-border) !important; }
+
+/* ---------- Paloma surfaces ---------- */
+
+/* The page behind views */
+.pal-page { background-color: var(--pal-bg); color: var(--pal-text); }
+/* A panel: sidebar, cards, headers */
+.pal-surface { background-color: var(--pal-surface); color: var(--pal-text); }
+/* A dark bar or full-screen tool view (collage, people, map header) */
+.pal-chrome { background-color: var(--pal-chrome-bg); color: var(--pal-chrome-text); }
+.pal-chrome .text-muted, .pal-chrome .text-secondary { color: var(--pal-chrome-muted) !important; }
+/* A light panel inside a dark view (the map's place list) goes back to the panel colors */
+.pal-chrome .pal-surface .text-muted, .pal-chrome .pal-surface .text-secondary { color: var(--pal-text-muted) !important; }
+/* A badge that reads on any background */
+.pal-badge { background-color: var(--pal-text-muted); color: var(--pal-surface); }
+.pal-badge-on-accent { background-color: var(--pal-accent-text); color: var(--pal-accent); }
+/* Room for the photo tray under a view */
+.pal-tray-space { padding-bottom: var(--pal-tray-height); }
+
+/* Keyboard focus is always visible, in the theme's focus color */
+.btn:focus-visible, .list-group-item:focus-visible, button:focus-visible, a:focus-visible,
+[role='button']:focus-visible, .form-check-input:focus-visible, .form-control:focus-visible, .form-select:focus-visible {
+  outline: 3px solid var(--pal-focus);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+/* Icons that point along the reading direction (back arrows) */
+[dir='rtl'] .flip-rtl {
+  transform: scaleX(-1);
+}
+
+/* Large buttons with an icon and a label */
+.btn-lg-custom {
+  font-size: calc(var(--pal-font-size) * 1.05);
+  padding: var(--pal-control-padding-y) var(--pal-control-padding-x);
+  min-height: var(--pal-hit-min);
+  font-weight: var(--pal-font-weight-strong);
+  border-radius: var(--pal-radius);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pal-gap);
+}
+
+/* Scrollbars */
+* {
+  scrollbar-color: var(--pal-border) transparent;
+}
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--pal-border);
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--pal-text-muted);
+}
+
+/* ---------- Sidebar lists (every skin) ---------- */
+
+.sidebar-section-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--pal-gap);
+  width: 100%;
+  min-height: var(--pal-hit-min);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--pal-text-muted);
+  font-size: var(--pal-font-size-small);
+  font-weight: 700;
+  text-transform: uppercase;
+  text-align: start;
+}
+.sidebar-section-heading:hover {
+  color: var(--pal-text);
+}
+.sidebar-section-chevron {
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+.sidebar-section-heading[aria-expanded='false'] .sidebar-section-chevron {
+  transform: rotate(-90deg);
+}
+[dir='rtl'] .sidebar-section-heading[aria-expanded='false'] .sidebar-section-chevron {
+  transform: rotate(90deg);
+}
+.sidebar-section-title {
+  flex: 1 1 auto;
+}
+
+/* ---------- Map ---------- */
+
+.map-thumb-marker img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border: 3px solid var(--pal-surface);
+  border-radius: var(--pal-radius);
+  box-shadow: 0 2px 8px var(--pal-overlay);
+  background-color: var(--pal-placeholder);
+}
+
+.map-cluster-marker {
+  position: relative;
+}
+
+.map-cluster-count {
+  position: absolute;
+  top: -8px;
+  inset-inline-end: -8px;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 6px;
+  border-radius: 13px;
+  background-color: var(--pal-danger);
+  color: var(--pal-danger-text);
+  font-weight: 700;
+  font-size: 0.9rem;
+  line-height: 26px;
+  text-align: center;
+  box-shadow: 0 1px 4px var(--pal-overlay);
+}
+
+.map-found-marker {
+  border: 4px solid var(--pal-surface);
+  border-radius: 50%;
+  background-color: var(--pal-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pal-accent) 40%, transparent);
+}
+
+.map-placing .leaflet-container {
+  cursor: crosshair;
+}
+
+.map-popup-thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.map-popup-thumbs button {
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  background: none;
+}
+
+.map-popup-thumbs button:hover,
+.map-popup-thumbs button:focus-visible {
+  border-color: var(--pal-accent);
+}
+
+.map-popup-thumbs img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 4px;
+  display: block;
+}
+
+.map-empty-note {
+  position: absolute;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 500;
+  max-width: 90%;
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--pal-radius);
+  background-color: var(--pal-surface-raised);
+  color: var(--pal-text);
+  box-shadow: 0 2px 10px var(--pal-overlay);
+  text-align: center;
+}
+
+/* Leaflet's own popups and controls follow the theme; the map tiles themselves are never recolored */
+.leaflet-popup-content-wrapper, .leaflet-popup-tip {
+  background: var(--pal-surface-raised);
+  color: var(--pal-text);
+}
+.leaflet-bar a, .leaflet-control-attribution {
+  background-color: var(--pal-surface-raised) !important;
+  color: var(--pal-text) !important;
+}
+
+/* ---------- Plugins and settings ---------- */
+
+/* A switch large enough to use comfortably */
+.plugin-switch .form-check-input {
+  width: 3.5rem;
+  height: 2rem;
+  cursor: pointer;
+}
+
+/* Choices with a small picture of the screen */
+.settings-edge {
+  min-width: 120px;
+  padding: 12px 16px;
+}
+
+.settings-screen {
+  position: relative;
+  display: block;
+  width: 72px;
+  height: 48px;
+  border: 2px solid currentColor;
+  border-radius: 4px;
+  opacity: 0.9;
+  overflow: hidden;
+}
+
+.settings-screen-bar {
+  position: absolute;
+  background: currentColor;
+}
+
+/* ---------- Editor: sliders, crop frame and straighten grid ---------- */
+
+.editor-slider {
+  height: 2rem;
+}
+.editor-slider::-webkit-slider-runnable-track {
+  height: 12px;
+}
+.editor-slider::-webkit-slider-thumb {
+  width: 32px;
+  height: 32px;
+  margin-top: -10px;
+}
+.editor-slider::-moz-range-thumb {
+  width: 32px;
+  height: 32px;
+}
+
+/* Drawn over the photo, so they use the viewer's colors */
+.crop-overlay {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  touch-action: none;
+}
+.crop-frame {
+  position: absolute;
+  border: 2px solid var(--pal-viewer-text);
+  box-shadow: 0 0 0 9999px var(--pal-overlay);
+  cursor: move;
+}
+.crop-thirds {
+  --line: color-mix(in srgb, var(--pal-viewer-text) 60%, transparent);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, transparent calc(33.33% - 0.5px), var(--line) calc(33.33% - 0.5px), var(--line) calc(33.33% + 0.5px), transparent calc(33.33% + 0.5px), transparent calc(66.66% - 0.5px), var(--line) calc(66.66% - 0.5px), var(--line) calc(66.66% + 0.5px), transparent calc(66.66% + 0.5px)),
+    linear-gradient(to bottom, transparent calc(33.33% - 0.5px), var(--line) calc(33.33% - 0.5px), var(--line) calc(33.33% + 0.5px), transparent calc(33.33% + 0.5px), transparent calc(66.66% - 0.5px), var(--line) calc(66.66% - 0.5px), var(--line) calc(66.66% + 0.5px), transparent calc(66.66% + 0.5px));
+}
+.crop-handle {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  background: var(--pal-viewer-text);
+  border: 3px solid var(--pal-selection);
+  border-radius: 50%;
+}
+/* Mostly inside the frame, so they stay visible and grabbable at the image edges */
+.crop-handle-nw { left: -8px; top: -8px; cursor: nwse-resize; }
+.crop-handle-ne { right: -8px; top: -8px; cursor: nesw-resize; }
+.crop-handle-sw { left: -8px; bottom: -8px; cursor: nesw-resize; }
+.crop-handle-se { right: -8px; bottom: -8px; cursor: nwse-resize; }
+
+.straighten-grid {
+  --line: color-mix(in srgb, var(--pal-viewer-text) 45%, transparent);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, var(--line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--line) 1px, transparent 1px);
+  background-size: 10% 10%;
+}
+
+/* ---------- Photo viewer: the photo fills the window, every control floats over it ---------- */
+
+.photo-viewer {
+  /* --viewer-bar-size is set inline from the skin's bar size */
+  position: fixed;
+  inset: 0;
+  /* Above the navbar and tray, below Bootstrap's tooltips (1080) */
+  z-index: 1040;
+  background: var(--pal-viewer-bg);
+  color: var(--pal-viewer-text);
+  outline: none;
+  overflow: hidden;
+}
+
+.viewer-stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+}
+
+.viewer-placeholder {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.viewer-bar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  background: color-mix(in srgb, var(--pal-viewer-bg) 75%, transparent);
+  backdrop-filter: blur(6px);
+  z-index: 2;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.viewer-bar.flex-row {
+  flex-direction: row;
+}
+
+.viewer-bar.flex-column {
+  flex-direction: column;
+}
+
+.viewer-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--viewer-bar-size) - 10px);
+  height: calc(var(--viewer-bar-size) - 10px);
+  border: 0;
+  border-radius: var(--pal-radius);
+  background: transparent;
+  color: var(--pal-viewer-text);
+}
+
+.viewer-btn svg {
+  width: calc((var(--viewer-bar-size) - 10px) * 0.48);
+  height: calc((var(--viewer-bar-size) - 10px) * 0.48);
+}
+
+.viewer-btn:hover:not(:disabled),
+.viewer-btn:focus-visible {
+  background: color-mix(in srgb, var(--pal-viewer-text) 16%, transparent);
+}
+
+.viewer-btn:focus-visible {
+  outline: 3px solid var(--pal-focus);
+  outline-offset: -3px;
+}
+
+.viewer-btn.active {
+  background: var(--pal-accent);
+  color: var(--pal-accent-text);
+}
+
+.viewer-btn:disabled {
+  opacity: 0.35;
+}
+
+.viewer-bar-separator {
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--pal-viewer-text) 25%, transparent);
+}
+
+.viewer-bar-separator.vertical {
+  width: 1px;
+  height: calc(var(--viewer-bar-size) * 0.56);
+  margin: 0 6px;
+}
+
+.viewer-bar-separator.horizontal {
+  height: 1px;
+  width: calc(var(--viewer-bar-size) * 0.56);
+  margin: 6px 0;
+}
+
+.viewer-nav-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 12px;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
+.viewer-nav-title.vertical {
+  writing-mode: vertical-rl;
+  padding: 12px 0;
+}
+
+.viewer-nav-filename {
+  font-size: calc(var(--pal-font-size) * 1.05);
+  font-weight: var(--pal-font-weight-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.viewer-nav-position,
+.viewer-nav-zoom {
+  font-size: var(--pal-font-size-small);
+  color: color-mix(in srgb, var(--pal-viewer-text) 80%, var(--pal-viewer-bg));
+  flex-shrink: 0;
+}
+
+.viewer-nav-zoom {
+  min-width: 3.5em;
+  text-align: center;
+}
+
+.viewer-panel {
+  position: fixed;
+  z-index: 3;
+  width: min(360px, calc(100vw - 16px));
+  max-height: calc(100vh - 16px);
+  overflow: auto;
+  padding: 14px 16px;
+  border-radius: var(--pal-radius-large);
+  background: color-mix(in srgb, var(--pal-viewer-bg) 92%, var(--pal-viewer-text));
+  color: var(--pal-viewer-text);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 10px 30px var(--pal-overlay);
+}
+
+.viewer-step {
+  background: color-mix(in srgb, var(--pal-viewer-text) 8%, transparent);
+}
+
+.viewer-toast {
+  position: absolute;
+  top: calc(var(--viewer-bar-size) + 16px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  width: min(560px, calc(100vw - 32px));
+}
+
+.viewer-attention {
+  animation: viewer-shake 0.4s;
+}
+
+@keyframes viewer-shake {
+  20%, 60% { transform: translateX(-8px); }
+  40%, 80% { transform: translateX(8px); }
+}
+
+/* Photos, thumbnails and previews are shown as they are: no theme ever filters or blends them */
+img {
+  filter: none;
+  mix-blend-mode: normal;
+}
+
+/* ---------- Photo card parts (used by every skin's card) ---------- */
+
+.photo-card .star-btn {
+  position: absolute;
+  top: 8px;
+  inset-inline-end: 8px;
+  background: var(--pal-overlay);
+  color: var(--pal-viewer-text);
+  border: none;
+  border-radius: 50%;
+  width: max(34px, var(--pal-hit-min) * 0.8);
+  height: max(34px, var(--pal-hit-min) * 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+}
+
+.photo-card .star-btn.starred {
+  color: var(--pal-star);
+}
+
+/* Select checkbox: always shown when selected, otherwise on hover or keyboard focus */
+.photo-card .select-btn {
+  position: absolute;
+  top: 6px;
+  inset-inline-start: 6px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: max(32px, var(--pal-hit-min) * 0.9);
+  height: max(32px, var(--pal-hit-min) * 0.9);
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--pal-overlay);
+  color: var(--pal-viewer-text);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.photo-card:hover .select-btn,
+.photo-card:focus-within .select-btn,
+.photo-card.selected .select-btn {
+  opacity: 1;
+}
+
+.photo-card.selected .select-btn {
+  background: transparent;
+}
+
+.photo-card .select-btn .select-mark {
+  fill: var(--pal-selection);
+  color: var(--pal-viewer-text);
+}
+
+/* Media devices without hover (touch) always show the checkbox */
+@media (hover: none) {
+  .photo-card .select-btn {
+    opacity: 1;
+  }
+}
+
+.photo-card-thumb {
+  aspect-ratio: 1 / 1;
+  background-color: var(--pal-placeholder);
+  overflow: hidden;
+}
+
+.photo-card-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ---------- Photo tray parts (used by every skin's tray) ---------- */
+
+/* The tray is a dark bar in every skin that uses this */
+.photo-tray-count {
+  color: var(--pal-chrome-accent);
+}
+
+.photo-tray-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--pal-gap);
+  min-width: 0;
+  overflow-x: auto;
+  padding: 4px 0;
+}
+
+.photo-tray-actions .btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.photo-tray-thumbnails {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  overflow-x: auto;
+  max-width: 50%;
+  padding: 4px 0;
+}
+
+.photo-tray-remove {
+  width: 18px;
+  height: 18px;
+  transform: translate(30%, -30%);
+  background-color: var(--pal-danger);
+  color: var(--pal-danger-text);
+}
+
+[dir='rtl'] .photo-tray-remove {
+  transform: translate(-30%, -30%);
+}
+
+.photo-tray-thumb {
+  width: calc(var(--pal-tray-height) * 0.7);
+  height: calc(var(--pal-tray-height) * 0.7);
+  object-fit: cover;
+  border-radius: 6px;
+  border: 2px solid var(--pal-chrome-accent);
+}
+
+/* A panel on a dark tool view (people, collage, map header) */
+.pal-chrome-panel { background-color: color-mix(in srgb, var(--pal-chrome-text) 12%, var(--pal-chrome-bg)); color: var(--pal-chrome-text); }
+.pal-chrome-card { --bs-card-bg: var(--pal-chrome-bg); --bs-card-color: var(--pal-chrome-text); --bs-card-border-color: color-mix(in srgb, var(--pal-chrome-text) 30%, var(--pal-chrome-bg)); }
+
+/* Inside the viewer, outlined buttons and muted text use the viewer's colors */
+.photo-viewer .btn-outline-light { --pal-line: var(--pal-viewer-text); --pal-on-line: var(--pal-viewer-bg); }
+.viewer-muted { color: color-mix(in srgb, var(--pal-viewer-text) 78%, var(--pal-viewer-bg)); }
+
+/* Appearance choices: a picture, a name and a description */
+.settings-appearance-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--pal-gap);
+}
+.settings-appearance {
+  width: 100%;
+  padding: 12px 16px;
+}
+.settings-appearance-description {
+  font-size: var(--pal-font-size-small);
+  font-weight: normal;
+  opacity: 0.9;
+}
+.settings-appearance .settings-screen {
+  flex-shrink: 0;
+}
+/* Skin sketches: the bars and sidebar of each arrangement */
+.settings-skin > span { position: absolute; background: currentColor; }
+.settings-skin-classic .settings-skin-top { top: 0; left: 0; right: 0; height: 22%; }
+.settings-skin-classic .settings-skin-side { top: 22%; bottom: 22%; left: 0; width: 26%; opacity: 0.45; }
+.settings-skin-classic .settings-skin-bottom { bottom: 0; left: 0; right: 0; height: 22%; }
+.settings-skin-compact .settings-skin-top { top: 0; left: 0; right: 0; height: 12%; }
+.settings-skin-compact .settings-skin-side { top: 12%; bottom: 12%; left: 0; width: 10%; opacity: 0.45; }
+.settings-skin-compact .settings-skin-bottom { bottom: 0; left: 0; right: 0; height: 12%; }
+.settings-skin-glass .settings-skin-top { top: 8%; left: 18%; right: 18%; height: 18%; border-radius: 999px; }
+.settings-skin-glass .settings-skin-side { top: 32%; bottom: 32%; left: 6%; width: 28%; border-radius: 4px; opacity: 0.45; }
+.settings-skin-glass .settings-skin-bottom { bottom: 8%; left: 10%; right: 10%; height: 18%; border-radius: 999px; }
+/* Theme sketches, in each theme's own colors */
+.settings-theme-half {
+  position: relative;
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+.settings-theme-bar { position: absolute; top: 0; left: 0; right: 0; height: 22%; }
+.settings-theme-accent { position: absolute; bottom: 12%; inset-inline-end: 12%; width: 22%; height: 16%; border-radius: 2px; }
+
+/* ---------- Square photo card (Compact, Fluid Glass) ---------- */
+
+.square-card {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  cursor: pointer;
+}
+.square-card .photo-card-thumb {
+  height: 100%;
+}
+.square-card-badges {
+  position: absolute;
+  bottom: 6px;
+  inset-inline-end: 6px;
+  display: flex;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: var(--pal-radius);
+  background: var(--pal-overlay);
+  color: var(--pal-viewer-text);
+}

@@ -22,7 +22,8 @@
     "map": "Peta",
     "collage": "Kolase",
     "plugins": "Plugin",
-    "settings": "Pengaturan"
+    "settings": "Pengaturan",
+    "views": "Tampilan"
   },
   "sidebar": {
     "collections": "Koleksi",
@@ -33,7 +34,12 @@
     "noAlbums": "Belum ada album. Pilih foto lalu klik “Ke album”.",
     "folders": "Folder yang dipantau",
     "noFolders": "Tidak ada folder. Tulis folder foto Anda di PALOMA_PHOTOS_DIRS dalam file .env lalu mulai ulang server.",
-    "geotagged": "📍 Bertanda lokasi"
+    "geotagged": "📍 Bertanda lokasi",
+    "expandList": "Tampilkan daftar ini",
+    "collapseList": "Sembunyikan daftar ini",
+    "expandSidebar": "Tampilkan bilah samping",
+    "collapseSidebar": "Sembunyikan bilah samping",
+    "open": "Folder dan album"
   },
   "grid": {
     "emptyTitle": "Foto tidak ditemukan",
@@ -243,6 +249,43 @@
       "bottom": "Bawah",
       "left": "Kiri",
       "right": "Kanan"
+    },
+    "appearance": "Penampilan",
+    "skin": "Skin",
+    "skinHint": "Cara layar disusun: letak menu, serta ukuran teks dan tombol.",
+    "theme": "Tema",
+    "themeHint": "Hanya warna. Tata letak tetap sama.",
+    "skins": {
+      "classic": {
+        "name": "Klasik",
+        "description": "Tata letak asli dengan tombol besar berlabel."
+      },
+      "compact": {
+        "name": "Ringkas",
+        "description": "Lebih banyak foto di layar: teks dan gambar mini lebih kecil, tombol ikon, bilah samping yang dapat dilipat."
+      },
+      "glass": {
+        "name": "Kaca Cair",
+        "description": "Untuk tablet dan layar sentuh: foto memenuhi layar di bawah bilah mengambang yang tembus pandang, dengan tombol besar."
+      }
+    },
+    "themes": {
+      "system": {
+        "name": "Sistem",
+        "description": "Mengikuti komputer Anda: gelap atau kontras tinggi jika diatur demikian."
+      },
+      "light": {
+        "name": "Terang",
+        "description": "Teks gelap di latar terang."
+      },
+      "dark": {
+        "name": "Gelap",
+        "description": "Teks terang di latar gelap, nyaman di ruangan redup."
+      },
+      "high-contrast": {
+        "name": "Kontras Tinggi",
+        "description": "Putih dan warna cerah di atas hitam, untuk teks paling jelas."
+      }
     }
   },
   "viewer": {

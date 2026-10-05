@@ -11,6 +11,8 @@ import type { PanelAnchor } from './EditBar.js';
 const GAP = 8;
 
 interface FloatingPanelProps {
+  /** Extra class from the skin */
+  className?: string;
   /** Side of the edit bar facing the photo: the panel opens there */
   side: Edge;
   /** The button that opened the panel and its bar, which the panel never covers */
@@ -21,7 +23,7 @@ interface FloatingPanelProps {
 }
 
 /** A panel over the photo, next to the edit bar button that opened it, kept inside the window. */
-export const FloatingPanel: React.FC<FloatingPanelProps> = ({ side, anchor, title, onClose, children }) => {
+export const FloatingPanel: React.FC<FloatingPanelProps> = ({ className, side, anchor, title, onClose, children }) => {
   const { t } = useTranslation();
   const panel = useRef<HTMLDivElement | null>(null);
   const [position, setPosition] = useState<{ left: number; top: number } | null>(null);
@@ -53,7 +55,7 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({ side, anchor, titl
       ref={panel}
       role="dialog"
       aria-label={title}
-      className="viewer-panel"
+      className={`viewer-panel ${className ?? ''}`}
       style={{ left: position?.left ?? 0, top: position?.top ?? 0, visibility: position ? 'visible' : 'hidden' }}
     >
       <div className="d-flex align-items-center justify-content-between gap-2 mb-2">
@@ -184,7 +186,7 @@ export const FrameControls: React.FC<FrameControlsProps> = ({ hint, pixelSize, r
   const { t } = useTranslation();
   return (
     <div>
-      <p className="fs-6 text-white-50">{hint}</p>
+      <p className="fs-6 viewer-muted">{hint}</p>
       <div className="fs-4 fw-semibold mb-3" aria-live="polite">
         {pixelSize ? <span dir="ltr">{t('editor.frame.size', { width: pixelSize.width, height: pixelSize.height })}</span> : '…'}
       </div>
@@ -245,7 +247,7 @@ export const ChangesList: React.FC<ChangesListProps> = ({ steps, filters }) => {
     return [filter.label, ...values].join(' ');
   };
 
-  if (steps.length === 0) return <p className="text-white-50 mb-0">{t('editor.noSteps')}</p>;
+  if (steps.length === 0) return <p className="viewer-muted mb-0">{t('editor.noSteps')}</p>;
 
   return (
     <ol className="list-unstyled mb-0">

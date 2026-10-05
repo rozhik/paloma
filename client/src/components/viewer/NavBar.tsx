@@ -6,6 +6,8 @@ import { inwardSide, type BarPlacement } from './barLayout.js';
 import { ViewerButton } from './ViewerButton.js';
 
 interface NavBarProps {
+  /** Extra class from the skin */
+  className?: string;
   placement: BarPlacement;
   style: React.CSSProperties;
   filename: string;
@@ -35,7 +37,7 @@ export const NavBar: React.FC<NavBarProps> = (props) => {
   const percent = new Intl.NumberFormat(i18n.language, { style: 'percent', maximumFractionDigits: 0 }).format(props.scale);
 
   return (
-    <nav className={`viewer-bar viewer-nav ${column ? 'flex-column' : 'flex-row'}`} style={props.style} aria-label={t('viewer.navigation')}>
+    <nav className={`viewer-bar viewer-nav ${column ? 'flex-column' : 'flex-row'} ${props.className ?? ''}`} style={props.style} aria-label={t('viewer.navigation')}>
       <ViewerButton label={t('viewer.close')} tip={tip} onClick={props.onClose}><X size={26} /></ViewerButton>
       <ViewerButton label={t('viewer.previous')} tip={tip} onClick={props.onPrev} disabled={!props.canPrev}>
         <ChevronLeft size={28} className="flip-rtl" />

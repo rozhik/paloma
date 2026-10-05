@@ -43,7 +43,7 @@ export const MovieMakerModal: React.FC<MovieMakerModalProps> = ({ show, onHide }
 
   return (
     <Modal show={show} onHide={onHide} centered size="lg">
-      <Modal.Header closeButton className="bg-warning text-dark">
+      <Modal.Header closeButton className="bg-warning">
         <Modal.Title className="fs-3 fw-bold d-flex align-items-center gap-2">
           <Film size={28} />
           <span>{t('movie.title')}</span>
@@ -81,7 +81,7 @@ export const MovieMakerModal: React.FC<MovieMakerModalProps> = ({ show, onHide }
               <Button variant="outline-secondary" size="lg" onClick={onHide} disabled={loading}>
                 {t('common.cancel')}
               </Button>
-              <Button variant="warning" size="lg" className="text-dark fw-bold" onClick={handleGenerateMovie} disabled={loading}>
+              <Button variant="warning" size="lg" className="fw-bold" onClick={handleGenerateMovie} disabled={loading}>
                 {loading ? t('movie.generating') : t('movie.create')}
               </Button>
             </div>

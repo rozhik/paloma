@@ -1,9 +1,6 @@
 import type { CSSProperties } from 'react';
 import type { Edge, UiSettings } from '../../settings/uiSettings.js';
 
-/** Thickness of a viewer bar in CSS pixels; also set as `--viewer-bar-size` on the viewer. */
-export const VIEWER_BAR_SIZE = 64;
-
 /** Where one overlay bar sits. Distances are in bar thicknesses (`--viewer-bar-size`). */
 export interface BarPlacement {
   edge: Edge;
@@ -29,7 +26,7 @@ const isRow = (edge: Edge) => edge === 'top' || edge === 'bottom';
  * edge and the edit bar next to it. On adjacent edges the row bar spans the whole edge and the column bar
  * starts after it. Edges are physical screen sides, the same in right-to-left languages.
  */
-export function barLayout({ navBar, editBar }: UiSettings): ViewerBarLayout {
+export function barLayout({ navBar, editBar }: Pick<UiSettings, 'navBar' | 'editBar'>): ViewerBarLayout {
   const place = (edge: Edge, other: Edge, offset: number): BarPlacement => {
     const placement: BarPlacement = { edge, orientation: isRow(edge) ? 'row' : 'column', offset, start: 0, end: 0 };
     if (!isRow(edge) && isRow(other)) {
@@ -44,7 +41,10 @@ export function barLayout({ navBar, editBar }: UiSettings): ViewerBarLayout {
   };
 }
 
-/** Absolute-position style of a bar inside the viewer, using the `--viewer-bar-size` CSS variable. */
+/**
+ * Absolute-position style of a bar inside the viewer, using the `--viewer-bar-size` CSS variable: the active
+ * skin's bar thickness.
+ */
 export function barStyle(placement: BarPlacement): CSSProperties {
   const size = (n: number) => (n === 0 ? '0px' : `calc(var(--viewer-bar-size) * ${n})`);
   const { edge, offset, start, end } = placement;
@@ -55,10 +55,10 @@ export function barStyle(placement: BarPlacement): CSSProperties {
 }
 
 /**
- * How far the bars reach in from each screen edge, in CSS pixels. Used to keep the crop frame's handles
- * out from under the bars.
+ * How far the bars reach in from each screen edge, in CSS pixels, for bars `size` pixels thick (the skin's).
+ * Used to keep the crop frame's handles out from under the bars.
  */
-export function barInsets(layout: ViewerBarLayout, size = VIEWER_BAR_SIZE): Record<Edge, number> {
+export function barInsets(layout: ViewerBarLayout, size: number): Record<Edge, number> {
   const insets: Record<Edge, number> = { top: 0, right: 0, bottom: 0, left: 0 };
   for (const bar of [layout.navBar, layout.editBar]) {
     insets[bar.edge] = Math.max(insets[bar.edge], (bar.offset + 1) * size);

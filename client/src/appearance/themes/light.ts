@@ -1,0 +1,35 @@
+import type { Theme } from './types.js';
+
+/** Light: dark text on white, a dark navigation bar, blue accents. The MVP's colors, tuned for contrast. */
+export const light: Theme = {
+  id: 'light',
+  colors: {
+    'bg': '#f4f6f8',
+    'surface': '#ffffff',
+    'surface-raised': '#ffffff',
+    'text': '#1f2328',
+    'text-muted': '#59636e',
+    'border': '#858e98',
+    'accent': '#0b5ed7',
+    'accent-text': '#ffffff',
+    'selection': '#0277b5',
+    'star': '#f59e0b',
+    'danger': '#b42318',
+    'danger-text': '#ffffff',
+    'success': '#137333',
+    'success-text': '#ffffff',
+    'warning': '#9a5b00',
+    'warning-text': '#ffffff',
+    'info': '#0b6f86',
+    'info-text': '#ffffff',
+    'focus': '#0b5ed7',
+    'chrome-bg': '#0f172a',
+    'chrome-text': '#ffffff',
+    'chrome-muted': '#cbd5e1',
+    'chrome-accent': '#38bdf8',
+    'viewer-bg': '#0b0d10',
+    'viewer-text': '#f8fafc',
+    'overlay': '#0000009c',
+    'placeholder': '#e2e8f0',
+  },
+};

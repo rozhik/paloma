@@ -41,7 +41,7 @@ export const PluginsView: React.FC = () => {
   };
 
   return (
-    <main className="flex-grow-1 bg-light overflow-auto p-4" style={{ marginBottom: '80px' }}>
+    <main className="flex-grow-1 pal-page overflow-auto p-4">
       <div className="mx-auto" style={{ maxWidth: '900px' }}>
         <h2 className="fw-bold d-flex align-items-center gap-2 mb-2">
           <Puzzle size={30} />
