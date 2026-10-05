@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import sharp from 'sharp';
@@ -24,6 +25,8 @@ interface PluginEntry {
   loadError: string | null;
   /** Filters returned by the last successful activate(); used while the plugin is on */
   contributed: FilterDefinition[];
+  /** Absolute paths of the contributed filters' usable icons, by filter name */
+  icons: Map<string, string>;
   contributionWarnings: string[];
   /** Filter-name conflicts, recomputed whenever the set of active plugins changes */
   conflictWarnings: string[];
@@ -75,6 +78,23 @@ function paramInfo(param: ParamDefinition, lang: string): FilterParamInfo {
 }
 
 /**
+ * The real path of a filter's icon when it is an existing `.svg` file inside the plugin folder (also after
+ * following symlinks), or why it cannot be used.
+ */
+export function resolveFilterIcon(pluginFolder: string, icon: string): { file: string } | { problem: string } {
+  const problem = `icon ${JSON.stringify(icon)} is not an .svg file inside the plugin folder`;
+  if (path.isAbsolute(icon) || path.extname(icon).toLowerCase() !== '.svg') return { problem };
+  try {
+    const root = fs.realpathSync(pluginFolder);
+    const file = fs.realpathSync(path.resolve(root, icon));
+    if (!file.startsWith(root + path.sep) || !fs.statSync(file).isFile()) return { problem };
+    return { file };
+  } catch {
+    return { problem };
+  }
+}
+
+/**
  * The plugins found at startup and the filters of those that are on. A plugin's module is imported only
  * when it is switched on; switching it off unregisters its filters at once (Node cannot unload the module).
  */
@@ -99,6 +119,7 @@ export class PluginRegistry {
         host: makeHost(discovered.id),
         loadError: null,
         contributed: [],
+        icons: new Map(),
         contributionWarnings: [],
         conflictWarnings: [],
       }));
@@ -132,11 +153,19 @@ export class PluginRegistry {
       }
       const checked = checkContributions(await entry.module.activate(entry.host));
       entry.contributed = checked.filters;
+      entry.icons = new Map();
+      for (const filter of checked.filters) {
+        if (filter.icon === undefined) continue;
+        const resolved = resolveFilterIcon(entry.discovered.folder, filter.icon);
+        if ('file' in resolved) entry.icons.set(filter.name, resolved.file);
+        else checked.warnings.push(`filter "${filter.name}": ${resolved.problem}; the filter has no icon`);
+      }
       entry.contributionWarnings = checked.warnings;
       for (const warning of checked.warnings) console.warn(`[plugin ${id}] ${warning}`);
     } catch (err) {
       entry.loadError = err instanceof Error ? err.message : String(err);
       entry.contributed = [];
+      entry.icons = new Map();
       entry.contributionWarnings = [];
       console.error(`Plugin ${id} failed to load: ${entry.loadError}`);
     }
@@ -171,6 +200,17 @@ export class PluginRegistry {
     }
   }
 
+  /**
+   * The icon file of a filter, when the plugin is active, provides that filter and its icon is usable.
+   * Tells an unknown or inactive plugin apart from a filter without an icon.
+   */
+  getFilterIcon(pluginId: string, filterName: string): { file: string } | { missing: 'plugin' | 'filter' } {
+    const entry = this.find(pluginId);
+    if (!entry || !this.isActive(entry)) return { missing: 'plugin' };
+    const file = this.filters.get(filterName)?.pluginId === pluginId ? entry.icons.get(filterName) : undefined;
+    return file ? { file } : { missing: 'filter' };
+  }
+
   /** The filter with this name from a plugin that is on, if any. */
   getFilter(name: string): RegisteredFilter | undefined {
     return this.filters.get(name);
@@ -187,12 +227,19 @@ export class PluginRegistry {
     const status = !discovered.manifest || (on && entry.loadError) ? 'error' : this.isActive(entry) ? 'active' : 'off';
     const filters: FilterInfo[] = status !== 'active' ? [] : entry.contributed
       .filter((definition) => this.filters.get(definition.name)?.pluginId === discovered.id)
-      .map((definition) => ({
-        name: definition.name,
-        label: localize(definition.label, lang),
-        group: definition.group,
-        params: (definition.params ?? []).map((param) => paramInfo(param, lang)),
-      }));
+      .map((definition) => {
+        const info: FilterInfo = {
+          name: definition.name,
+          label: localize(definition.label, lang),
+          group: definition.group,
+          params: (definition.params ?? []).map((param) => paramInfo(param, lang)),
+        };
+        if (entry.icons.has(definition.name)) {
+          const version = encodeURIComponent(partial.version ?? '');
+          info.iconUrl = `/api/plugins/${encodeURIComponent(discovered.id)}/filters/${encodeURIComponent(definition.name)}/icon?v=${version}`;
+        }
+        return info;
+      });
     return {
       id: discovered.id,
       name: partial.name ? localize(partial.name, lang) : path.basename(discovered.folder),

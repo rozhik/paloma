@@ -11,6 +11,19 @@ export async function listPlugins(lang: unknown): Promise<PluginInfo[]> {
   return pluginRegistry.list(normalizeLang(lang));
 }
 
+/**
+ * `GET /api/plugins/:id/filters/:name/icon`: the file of a filter's icon. Only an active plugin's usable icon
+ * (an .svg inside its folder) is ever returned.
+ */
+export async function filterIcon(id: string, filter: string): Promise<{ status: 200; file: string } | { status: 404; body: ApiError }> {
+  await pluginRegistry.init();
+  const icon = pluginRegistry.getFilterIcon(id, filter);
+  if ('file' in icon) return { status: 200, file: icon.file };
+  return icon.missing === 'plugin'
+    ? { status: 404, body: apiError('plugin_not_found', `Plugin ${id} not found or not active`, { id }) }
+    : { status: 404, body: apiError('filter_not_found', `Plugin ${id} has no icon for filter ${filter}`, { id, filter }) };
+}
+
 /** `PATCH /api/plugins/:id` with `{"enabled": boolean}`: switches a plugin on or off. */
 export async function switchPlugin(id: string, body: unknown, lang: unknown): Promise<PluginResult<PluginInfo>> {
   const enabled = (body as { enabled?: unknown } | null)?.enabled;

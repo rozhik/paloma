@@ -29,6 +29,7 @@ paloma-film-grain/
   paloma-plugin.json   the manifest
   package.json         { "type": "module" }, so index.js is an ES module
   index.js             the server module named in the manifest
+  icons/grain.svg      optional: the filter's icon in the edit bar
 ```
 
 ## The manifest
@@ -72,6 +73,7 @@ export function activate(host) {
         name: 'grain',
         label: { en: 'Film grain', uk: 'Плівкове зерно' },
         group: 'effects',
+        icon: 'icons/grain.svg',
         params: [
           { name: 'amount', label: { en: 'Amount', uk: 'Сила' }, type: 'number', min: 0, max: 100, step: 1, default: 20 },
         ],
@@ -104,8 +106,9 @@ If `activate` throws, or the module does not export it, the plugin shows the err
 | Field | Meaning |
 | :--- | :--- |
 | `name` | The `filter` value of edit steps, for example `{ "filter": "grain", "amount": 30 }` in `.paloma.json`. It must be unique across all plugins. A name already taken by a bundled plugin, or by an external plugin whose id sorts first, is not available, and your plugin shows a warning. Pick a distinctive name. |
-| `label` | Shown in the editor; a string or an object by language, as in the manifest. |
-| `group` | Editor section: `basic`, `tuning` or `effects`. |
+| `label` | Shown in the editor as the icon's tooltip; a string or an object by language, as in the manifest. |
+| `group` | Edit bar group: `basic`, `tuning` or `effects`. |
+| `icon` | Optional. Path of an SVG icon, relative to the plugin folder (see below). |
 | `params` | The step's parameters (below). The editor makes a control for each one. |
 | `render(input)` | Returns a sharp image with the result; it may be async. |
 
@@ -119,6 +122,23 @@ Parameter types:
 | `rect` | `default: { left, top, right, bottom }` | frame over the image | fractions 0..1 of the image at that step, `left < right`, `top < bottom` |
 
 Parameter names are letters, digits and `_`, starting with a letter. `filter` and `enabled` are reserved.
+
+### Icons
+
+Each filter is a button with an icon in the photo viewer's edit bar. Give it one with `icon`, the path of an `.svg` file inside your plugin folder:
+
+<!-- file: icons/grain.svg -->
+```svg
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="7" cy="7" r="1.5" /><circle cx="16" cy="6" r="1" /><circle cx="11" cy="12" r="2" />
+  <circle cx="18" cy="15" r="1.5" /><circle cx="6" cy="17" r="1" /><circle cx="13" cy="19" r="1" />
+</svg>
+```
+
+- Draw it on a 24×24 grid with thin strokes, like the [Lucide](https://lucide.dev) icons the bundled plugins use. Colours do not matter: Paloma uses only the icon's shape and paints it in the edit bar's colour.
+- The icon is never put into the page as markup, so scripts or styles in the file have no effect.
+- Paloma uses the icon only when it is an existing `.svg` file inside the plugin folder (a symlink must lead inside it too). Otherwise the filter still works, it gets a generic filter icon, and **Plugins** shows a warning naming the filter.
+- A filter without `icon` also gets the generic icon.
 
 ### What `render` gets
 

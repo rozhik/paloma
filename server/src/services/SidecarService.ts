@@ -1,10 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import type { EditStep, Geotag, PalomaAlbumDefinition, PalomaFolderFile, PalomaPhotoEntry } from '../../../shared/types.js';
+import type { EditHistory, EditStep, Geotag, PalomaAlbumDefinition, PalomaFolderFile, PalomaPhotoEntry } from '../../../shared/types.js';
 import { ALBUM_KEYS, readPicasaIni, type IniAlbum, type PhotoFields, type PicasaIniRead } from './picasaIni.js';
 import { isGeotag, roundGeotag } from './location.js';
-import { isEditChain } from './editChain.js';
+import { isEditChain, isEditHistory } from './editChain.js';
 
 export type { PhotoFields } from './picasaIni.js';
 
@@ -33,6 +33,8 @@ export interface FieldPatch {
   geotag?: Geotag | null | false;
   /** The whole edit chain; `[]` removes the edits */
   edits?: EditStep[];
+  /** Undo and redo history of the edits; both lists empty removes it */
+  editHistory?: EditHistory;
 }
 
 export class SidecarUnreadableError extends Error {
@@ -121,6 +123,11 @@ export class SidecarService {
       return { kind: 'unreadable', reason: 'albums is not an object of objects' };
     }
     return { kind: 'ok', data: parsed as PalomaFolderFile };
+  }
+
+  /** An entry's edit history; empty lists when it has none or it is of the wrong type. Not a library field. */
+  public static editHistoryOf(entry: PalomaPhotoEntry | undefined): EditHistory {
+    return isEditHistory(entry?.editHistory) ? structuredClone(entry.editHistory) : { undo: [], redo: [] };
   }
 
   /** The fields of an entry as the library sees them; values of the wrong type count as absent. */
@@ -374,5 +381,9 @@ function applyPatch(entry: PalomaPhotoEntry, patch: FieldPatch): void {
   }
   if (patch.edits !== undefined) {
     if (patch.edits.length > 0) entry.edits = structuredClone(patch.edits); else delete entry.edits;
+  }
+  if (patch.editHistory !== undefined) {
+    const { undo, redo } = patch.editHistory;
+    if (undo.length > 0 || redo.length > 0) entry.editHistory = structuredClone({ undo, redo }); else delete entry.editHistory;
   }
 }

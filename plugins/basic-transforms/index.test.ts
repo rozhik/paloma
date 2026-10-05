@@ -5,6 +5,8 @@ import os from 'node:os';
 import { RenderService } from '../../server/src/services/RenderService.js';
 import { lookupOfPlugin, sharp } from '../../server/src/plugins/testing.js';
 import { readManifest } from '../../server/src/plugins/manifest.js';
+import { resolveFilterIcon } from '../../server/src/plugins/registry.js';
+import { PLUGIN_API_VERSION, type PluginHost } from '../../server/src/plugins/api.js';
 import type { FilterLookup } from '../../server/src/services/editChain.js';
 import * as plugin from './index.js';
 
@@ -157,5 +159,26 @@ describe('straightenScale', () => {
     expect(plugin.straightenScale(4000, 3000, 3)).toBeLessThan(1);
     expect(plugin.straightenScale(4000, 3000, 10)).toBeLessThan(plugin.straightenScale(4000, 3000, 3));
     expect(plugin.straightenScale(4000, 3000, -3)).toBe(plugin.straightenScale(4000, 3000, 3));
+  });
+});
+
+describe('basic-transforms icons', () => {
+  const host: PluginHost = { apiVersion: PLUGIN_API_VERSION, sharp, log: { info() {}, warn() {}, error() {} } };
+  const iconsOf = async (folder: string, module: { activate: (host: PluginHost) => unknown }) => {
+    const { filters } = await module.activate(host) as { filters: { name: string; icon?: string }[] };
+    return filters.map((filter) => {
+      const resolved = resolveFilterIcon(folder, filter.icon ?? '');
+      if (!('file' in resolved)) throw new Error(`${filter.name}: ${resolved.problem}`);
+      return [filter.name, fs.readFileSync(resolved.file, 'utf-8')] as const;
+    });
+  };
+
+  it('gives every filter its own usable SVG icon, distinct across both bundled plugins', async () => {
+    const own = await iconsOf(path.dirname(new URL(import.meta.url).pathname), plugin);
+    const other = await iconsOf(path.resolve(path.dirname(new URL(import.meta.url).pathname), '../basic-effects'), await import('../basic-effects/index.js'));
+    expect(own).toHaveLength(4);
+    const all = [...own, ...other];
+    expect(new Set(all.map(([, svg]) => svg)).size).toBe(all.length);
+    for (const [, svg] of all) expect(svg).toMatch(/^<svg [^>]*viewBox="0 0 24 24"/);
   });
 });

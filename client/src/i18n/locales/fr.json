@@ -23,7 +23,8 @@
     "people": "Personnes",
     "map": "Carte",
     "collage": "Collage",
-    "plugins": "Modules"
+    "plugins": "Modules",
+    "settings": "Réglages"
   },
   "sidebar": {
     "collections": "Collections",
@@ -44,7 +45,8 @@
     "star": "Ajouter aux favoris",
     "unstar": "Retirer des favoris",
     "edited": "Retouchée",
-    "geotagged": "Géolocalisée"
+    "geotagged": "Géolocalisée",
+    "select": "Sélectionner"
   },
   "tray": {
     "selected": "🖼️ Sélection :",
@@ -83,12 +85,8 @@
   },
   "editor": {
     "holdForOriginal": "Maintenir pour voir l’original",
-    "title": "✏️ Éditeur de photos",
-    "saving": "Enregistrement...",
-    "save": "Enregistrer les modifications",
     "undo": "Annuler",
     "redo": "Rétablir",
-    "reset": "Revenir à l’original",
     "rotateLeft": "Pivoter à gauche",
     "rotateRight": "Pivoter à droite",
     "groups": {
@@ -103,7 +101,8 @@
       "original": "Originale",
       "landscape": "Paysage",
       "portrait": "Portrait",
-      "apply": "Appliquer"
+      "apply": "Appliquer",
+      "size": "{{width, number}} × {{height, number}} px"
     },
     "steps": "Modifications",
     "noSteps": "Aucune modification pour l’instant. La photo originale n’est jamais modifiée.",
@@ -111,7 +110,12 @@
     "unavailableHint": "Cette modification nécessite un module désactivé ou non installé. Elle est conservée, mais pas affichée.",
     "notApplied": "non appliquée",
     "removeStep": "Supprimer la modification {{n}}",
-    "loading": "Chargement de l’aperçu…"
+    "loading": "Chargement de l’aperçu…",
+    "revert": "Revenir à l’original",
+    "saveFailed": "La modification n’a pas pu être enregistrée : {{message}}",
+    "retry": "Réessayer",
+    "discard": "Abandonner la modification",
+    "historyFailed": "L’historique des retouches de cette photo n’a pas pu être chargé ; elle ne peut pas être retouchée pour l’instant : {{message}}"
   },
   "collage": {
     "title": "🎨 Créateur de collages Paloma",
@@ -199,7 +203,8 @@
     "plugin_unavailable": "Le module « {{id}} » ne peut pas être activé. Consultez son erreur dans Modules.",
     "plugin_invalid_body": "Le réglage du module n’est pas valide.",
     "edits_invalid": "La retouche de l’étape {{step}} n’est pas valide.",
-    "render_failed": "Impossible de générer la photo : {{message}}"
+    "render_failed": "Impossible de générer la photo : {{message}}",
+    "filter_not_found": "Le plugin « {{id}} » n’a pas d’icône pour le filtre « {{filter}} »."
   },
   "geo": {
     "coordinates": "{{lat}} ; {{lon}}",
@@ -252,5 +257,32 @@
     "empty": "Aucun module trouvé.",
     "loading": "Chargement des modules…",
     "installHint": "Pour installer un module, copiez ou clonez son dossier dans le dossier des modules et redémarrez Paloma."
+  },
+  "settings": {
+    "title": "Réglages",
+    "intro": "Ces réglages sont mémorisés uniquement dans ce navigateur.",
+    "viewer": "Visionneuse de photos",
+    "navBar": "Barre de navigation",
+    "navBarHint": "Fermer, photo précédente et suivante, et zoom.",
+    "editBar": "Barre de retouche",
+    "editBarHint": "Annuler, rétablir et les retouches, comme le recadrage et la rotation.",
+    "edges": {
+      "top": "En haut",
+      "bottom": "En bas",
+      "left": "À gauche",
+      "right": "À droite"
+    }
+  },
+  "viewer": {
+    "navigation": "Navigation des photos",
+    "editBar": "Retouches de la photo",
+    "close": "Fermer",
+    "previous": "Photo précédente",
+    "next": "Photo suivante",
+    "position": "{{index, number}} / {{total, number}}",
+    "saving": "Enregistrement de la modification…",
+    "zoomIn": "Zoom avant",
+    "zoomOut": "Zoom arrière",
+    "fit": "Ajuster à l’écran"
   }
 }

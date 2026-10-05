@@ -5,6 +5,8 @@ import os from 'node:os';
 import { RenderService } from '../../server/src/services/RenderService.js';
 import { lookupOfPlugin, sharp } from '../../server/src/plugins/testing.js';
 import { readManifest } from '../../server/src/plugins/manifest.js';
+import { resolveFilterIcon } from '../../server/src/plugins/registry.js';
+import { PLUGIN_API_VERSION, type PluginHost } from '../../server/src/plugins/api.js';
 import type { FilterLookup } from '../../server/src/services/editChain.js';
 import * as plugin from './index.js';
 
@@ -120,5 +122,26 @@ describe('sepia', () => {
     const [r, g, b] = result.values[0];
     expect(r).toBeGreaterThan(b);
     expect(g).toBeGreaterThan(b);
+  });
+});
+
+describe('basic-effects icons', () => {
+  const host: PluginHost = { apiVersion: PLUGIN_API_VERSION, sharp, log: { info() {}, warn() {}, error() {} } };
+  const iconsOf = async (folder: string, module: { activate: (host: PluginHost) => unknown }) => {
+    const { filters } = await module.activate(host) as { filters: { name: string; icon?: string }[] };
+    return filters.map((filter) => {
+      const resolved = resolveFilterIcon(folder, filter.icon ?? '');
+      if (!('file' in resolved)) throw new Error(`${filter.name}: ${resolved.problem}`);
+      return [filter.name, fs.readFileSync(resolved.file, 'utf-8')] as const;
+    });
+  };
+
+  it('gives every filter its own usable SVG icon, distinct across both bundled plugins', async () => {
+    const own = await iconsOf(path.dirname(new URL(import.meta.url).pathname), plugin);
+    const other = await iconsOf(path.resolve(path.dirname(new URL(import.meta.url).pathname), '../basic-transforms'), await import('../basic-transforms/index.js'));
+    expect(own).toHaveLength(4);
+    const all = [...own, ...other];
+    expect(new Set(all.map(([, svg]) => svg)).size).toBe(all.length);
+    for (const [, svg] of all) expect(svg).toMatch(/^<svg [^>]*viewBox="0 0 24 24"/);
   });
 });

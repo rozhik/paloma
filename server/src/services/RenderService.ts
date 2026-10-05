@@ -17,6 +17,16 @@ interface Pixels {
   info: { width: number; height: number; channels: 1 | 2 | 3 | 4 };
 }
 
+/** A rendered photo and the size the same chain gives at full resolution. */
+export interface RenderResult {
+  image: sharp.Sharp;
+  width: number;
+  height: number;
+  /** Size of the result when rendered from the full-size photo; filters are resolution-independent */
+  fullWidth: number;
+  fullHeight: number;
+}
+
 export const PREVIEW_STEP_TIMEOUT_MS = 10_000;
 export const FULL_STEP_TIMEOUT_MS = 60_000;
 
@@ -48,6 +58,11 @@ export class RenderService {
    * Returns the result as a sharp image, ready for resizing and encoding.
    */
   public static async render(filePath: string, steps: readonly EditStep[], options: RenderOptions): Promise<sharp.Sharp> {
+    return (await RenderService.renderWithSize(filePath, steps, options)).image;
+  }
+
+  /** As `render`, and also tells the size the chain gives at full resolution when it ran on a smaller copy. */
+  public static async renderWithSize(filePath: string, steps: readonly EditStep[], options: RenderOptions): Promise<RenderResult> {
     const label = options.label ?? filePath;
     const timeoutMs = options.stepTimeoutMs ?? FULL_STEP_TIMEOUT_MS;
 
@@ -56,6 +71,15 @@ export class RenderService {
       image = image.resize({ width: options.workingSize, height: options.workingSize, fit: 'inside', withoutEnlargement: true });
     }
     let pixels = await materialize(image);
+    // How much larger the full-size photo is than the copy the chain runs on (1 without downscaling)
+    let scale = 1;
+    if (options.workingSize) {
+      // The long side does not depend on EXIF orientation, so the stored size is enough
+      const meta = await sharp(filePath, { failOnError: false }).metadata();
+      const sourceLong = Math.max(meta.width ?? 0, meta.height ?? 0);
+      const workingLong = Math.max(pixels.info.width, pixels.info.height);
+      if (sourceLong > 0 && workingLong > 0) scale = sourceLong / workingLong;
+    }
 
     for (const step of steps) {
       if (step.enabled === false) continue;
@@ -80,7 +104,14 @@ export class RenderService {
         console.error(`Filter ${step.filter} (plugin ${filter.pluginId}) failed on ${label}, skipping it: ${(err as Error).message}`);
       }
     }
-    return fromPixels(pixels);
+    const { width, height } = pixels.info;
+    return {
+      image: fromPixels(pixels),
+      width,
+      height,
+      fullWidth: Math.max(1, Math.round(width * scale)),
+      fullHeight: Math.max(1, Math.round(height * scale)),
+    };
   }
 
   /** Box to render a chain in for an image that will be shown within `size`×`size`. */

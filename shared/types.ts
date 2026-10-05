@@ -41,6 +41,8 @@ export interface FilterInfo {
   label: string;
   group: FilterGroup;
   params: FilterParamInfo[];
+  /** URL of the filter's SVG icon; absent when it has none and the editor shows a generic icon */
+  iconUrl?: string;
 }
 
 export type PluginSource = 'bundled' | 'external';
@@ -154,6 +156,18 @@ export interface Geotag {
 export type LocationSource = 'exif' | 'user';
 
 /** One photo's entry in `.paloma.json`. Keys Paloma does not interpret are preserved as is. */
+/** A photo's undo and redo history: whole chains, `undo` oldest first, `redo` next first. */
+export interface EditHistory {
+  undo: EditStep[][];
+  redo: EditStep[][];
+}
+
+/** `GET /api/photos/:id/edits`: a photo's edit chain with its history. */
+export interface PhotoEdits {
+  edits: EditStep[];
+  history: EditHistory;
+}
+
 export interface PalomaPhotoEntry {
   star?: boolean;
   hidden?: boolean;
@@ -165,6 +179,8 @@ export interface PalomaPhotoEntry {
   geotag?: Geotag | null;
   /** Non-destructive edit chain, applied from first to last */
   edits?: EditStep[];
+  /** Undo and redo history of `edits`; absent when both lists are empty */
+  editHistory?: EditHistory;
   /** UTC ISO 8601 time of the last change made in Paloma; absent for entries only imported from .picasa.ini */
   modified?: string;
   [key: string]: unknown;
@@ -205,6 +221,7 @@ export type ApiErrorCode =
   | 'plugin_not_found'
   | 'plugin_unavailable'
   | 'plugin_invalid_body'
+  | 'filter_not_found'
   | 'edits_invalid'
   | 'render_failed'
   | 'internal';

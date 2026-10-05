@@ -79,6 +79,8 @@ export interface FilterDefinition {
   label: LocalizedText;
   group: FilterGroup;
   params?: ParamDefinition[];
+  /** Path of an SVG icon inside the plugin folder, relative to it; without one the editor shows a generic icon */
+  icon?: string;
   render(input: RenderInput): sharp.Sharp | Promise<sharp.Sharp>;
 }
 

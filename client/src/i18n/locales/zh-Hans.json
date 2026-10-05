@@ -21,7 +21,8 @@
     "people": "人物",
     "map": "地图",
     "collage": "拼贴",
-    "plugins": "插件"
+    "plugins": "插件",
+    "settings": "设置"
   },
   "sidebar": {
     "collections": "收藏",
@@ -42,7 +43,8 @@
     "star": "加星标",
     "unstar": "取消星标",
     "edited": "已编辑",
-    "geotagged": "有地理位置"
+    "geotagged": "有地理位置",
+    "select": "选择"
   },
   "tray": {
     "selected": "🖼️ 已选择：",
@@ -79,12 +81,8 @@
   },
   "editor": {
     "holdForOriginal": "按住查看原图",
-    "title": "✏️ 照片编辑器",
-    "saving": "正在保存...",
-    "save": "保存更改",
     "undo": "撤销",
     "redo": "重做",
-    "reset": "恢复原图",
     "rotateLeft": "向左旋转",
     "rotateRight": "向右旋转",
     "groups": {
@@ -99,7 +97,8 @@
       "original": "原始比例",
       "landscape": "横向",
       "portrait": "纵向",
-      "apply": "应用"
+      "apply": "应用",
+      "size": "{{width, number}} × {{height, number}} 像素"
     },
     "steps": "更改",
     "noSteps": "还没有更改。原始照片永远不会被修改。",
@@ -107,7 +106,12 @@
     "unavailableHint": "此更改需要一个已停用或未安装的插件。更改会保留，但不会显示。",
     "notApplied": "未应用",
     "removeStep": "删除更改 {{n}}",
-    "loading": "正在加载预览…"
+    "loading": "正在加载预览…",
+    "revert": "恢复原图",
+    "saveFailed": "无法保存更改：{{message}}",
+    "retry": "重试",
+    "discard": "放弃更改",
+    "historyFailed": "无法加载此照片的编辑历史，因此现在无法编辑：{{message}}"
   },
   "collage": {
     "title": "🎨 Paloma 拼贴制作",
@@ -185,7 +189,8 @@
     "plugin_unavailable": "无法启用插件“{{id}}”。请在“插件”中查看其错误。",
     "plugin_invalid_body": "插件设置无效。",
     "edits_invalid": "第 {{step}} 步的编辑无效。",
-    "render_failed": "无法处理照片：{{message}}"
+    "render_failed": "无法处理照片：{{message}}",
+    "filter_not_found": "插件“{{id}}”没有滤镜“{{filter}}”的图标。"
   },
   "geo": {
     "coordinates": "{{lat}}，{{lon}}",
@@ -228,5 +233,32 @@
     "empty": "未找到插件。",
     "loading": "正在加载插件…",
     "installHint": "要安装插件，请将其文件夹复制或克隆到插件文件夹中，然后重新启动 Paloma。"
+  },
+  "settings": {
+    "title": "设置",
+    "intro": "这些设置只保存在此浏览器中。",
+    "viewer": "照片查看器",
+    "navBar": "导航栏",
+    "navBarHint": "关闭、上一张和下一张照片以及缩放。",
+    "editBar": "编辑栏",
+    "editBarHint": "撤销、重做以及裁剪、旋转等照片修正。",
+    "edges": {
+      "top": "顶部",
+      "bottom": "底部",
+      "left": "左侧",
+      "right": "右侧"
+    }
+  },
+  "viewer": {
+    "navigation": "照片导航",
+    "editBar": "照片修正",
+    "close": "关闭",
+    "previous": "上一张照片",
+    "next": "下一张照片",
+    "position": "{{index, number}} / {{total, number}}",
+    "saving": "正在保存更改…",
+    "zoomIn": "放大",
+    "zoomOut": "缩小",
+    "fit": "适应屏幕"
   }
 }

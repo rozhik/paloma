@@ -107,7 +107,12 @@ export function checkContributions(value: unknown): CheckedContributions {
         warnings.push(`filter "${filter.name}" is declared twice; the second one is ignored`);
       } else {
         names.add(filter.name);
-        filters.push({ ...filter, params: (filter.params ?? []) as ParamDefinition[] });
+        const checked = { ...filter, params: (filter.params ?? []) as ParamDefinition[] };
+        if (checked.icon !== undefined && (typeof checked.icon !== 'string' || checked.icon === '')) {
+          warnings.push(`filter "${filter.name}": icon is not a file path; the filter has no icon`);
+          delete checked.icon;
+        }
+        filters.push(checked);
       }
     }
   }

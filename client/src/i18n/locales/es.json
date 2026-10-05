@@ -23,7 +23,8 @@
     "people": "Personas",
     "map": "Mapa",
     "collage": "Collage",
-    "plugins": "Complementos"
+    "plugins": "Complementos",
+    "settings": "Ajustes"
   },
   "sidebar": {
     "collections": "Colecciones",
@@ -44,7 +45,8 @@
     "star": "Destacar",
     "unstar": "Quitar de destacadas",
     "edited": "Editada",
-    "geotagged": "Con geoetiqueta"
+    "geotagged": "Con geoetiqueta",
+    "select": "Seleccionar"
   },
   "tray": {
     "selected": "🖼️ Seleccionadas:",
@@ -83,12 +85,8 @@
   },
   "editor": {
     "holdForOriginal": "Mantén pulsado para ver el original",
-    "title": "✏️ Editor de fotos",
-    "saving": "Guardando...",
-    "save": "Guardar cambios",
     "undo": "Deshacer",
     "redo": "Rehacer",
-    "reset": "Volver al original",
     "rotateLeft": "Girar a la izquierda",
     "rotateRight": "Girar a la derecha",
     "groups": {
@@ -103,7 +101,8 @@
       "original": "Original",
       "landscape": "Horizontal",
       "portrait": "Vertical",
-      "apply": "Aplicar"
+      "apply": "Aplicar",
+      "size": "{{width, number}} × {{height, number}} px"
     },
     "steps": "Cambios",
     "noSteps": "Todavía no hay cambios. La foto original nunca se modifica.",
@@ -111,7 +110,12 @@
     "unavailableHint": "Este cambio necesita un complemento desactivado o no instalado. Se conserva, pero no se muestra.",
     "notApplied": "no aplicado",
     "removeStep": "Quitar el cambio {{n}}",
-    "loading": "Cargando vista previa…"
+    "loading": "Cargando vista previa…",
+    "revert": "Volver al original",
+    "saveFailed": "No se pudo guardar el cambio: {{message}}",
+    "retry": "Intentar de nuevo",
+    "discard": "Descartar el cambio",
+    "historyFailed": "No se pudo cargar el historial de edición de esta foto, así que ahora no se puede editar: {{message}}"
   },
   "collage": {
     "title": "🎨 Creador de collages de Paloma",
@@ -199,7 +203,8 @@
     "plugin_unavailable": "No se puede activar el complemento «{{id}}». Consulte su error en Complementos.",
     "plugin_invalid_body": "La configuración del complemento no es válida.",
     "edits_invalid": "La edición del paso {{step}} no es válida.",
-    "render_failed": "No se pudo procesar la foto: {{message}}"
+    "render_failed": "No se pudo procesar la foto: {{message}}",
+    "filter_not_found": "El complemento «{{id}}» no tiene icono para el filtro «{{filter}}»."
   },
   "geo": {
     "coordinates": "{{lat}}; {{lon}}",
@@ -252,5 +257,32 @@
     "empty": "No se encontraron complementos.",
     "loading": "Cargando complementos…",
     "installHint": "Para instalar un complemento, copie o clone su carpeta en la carpeta de complementos y reinicie Paloma."
+  },
+  "settings": {
+    "title": "Ajustes",
+    "intro": "Estos ajustes se guardan solo en este navegador.",
+    "viewer": "Visor de fotos",
+    "navBar": "Barra de navegación",
+    "navBarHint": "Cerrar, foto anterior y siguiente, y zoom.",
+    "editBar": "Barra de edición",
+    "editBarHint": "Deshacer, rehacer y los arreglos de la foto, como recortar y girar.",
+    "edges": {
+      "top": "Arriba",
+      "bottom": "Abajo",
+      "left": "Izquierda",
+      "right": "Derecha"
+    }
+  },
+  "viewer": {
+    "navigation": "Navegación de fotos",
+    "editBar": "Arreglos de la foto",
+    "close": "Cerrar",
+    "previous": "Foto anterior",
+    "next": "Foto siguiente",
+    "position": "{{index, number}} / {{total, number}}",
+    "saving": "Guardando el cambio…",
+    "zoomIn": "Acercar",
+    "zoomOut": "Alejar",
+    "fit": "Ajustar a la pantalla"
   }
 }

@@ -11,7 +11,7 @@ export const DEFAULT_PREVIEW_SIZE = 1200;
 export const MAX_PREVIEW_SIZE = 4096;
 
 export type ImageResult =
-  | { status: 200; kind: 'buffer'; image: Buffer; type: string }
+  | { status: 200; kind: 'buffer'; image: Buffer; type: string; fullSize?: { width: number; height: number } }
   | { status: 200; kind: 'file'; file: string }
   | { status: 400 | 404 | 500; body: ApiError };
 
@@ -24,7 +24,8 @@ function photoFile(photoId: number) {
 
 /**
  * `POST /api/photos/:id/preview`: the photo rendered through the given, unsaved steps and fitted within
- * `maxSize`×`maxSize`, as WebP. The steps are validated as when saving; nothing is saved.
+ * `maxSize`×`maxSize`, as WebP, with the size the steps give at full resolution. The steps are validated
+ * as when saving; nothing is saved.
  */
 export async function renderPreview(photoId: number, body: unknown): Promise<ImageResult> {
   const value = (typeof body === 'object' && body !== null && !Array.isArray(body) ? body : {}) as Record<string, unknown>;
@@ -38,17 +39,20 @@ export async function renderPreview(photoId: number, body: unknown): Promise<Ima
   const found = photoFile(photoId);
   if (found.error) return found.error;
   try {
-    const rendered = await RenderService.render(found.photo.filePath, check.steps, {
+    const rendered = await RenderService.renderWithSize(found.photo.filePath, check.steps, {
       lookup: libraryLookup,
       workingSize: RenderService.workingSizeFor(maxSize),
       stepTimeoutMs: PREVIEW_STEP_TIMEOUT_MS,
       label: found.photo.filePath,
     });
-    const image = await rendered
+    const image = await rendered.image
       .resize({ width: maxSize, height: maxSize, fit: 'inside', withoutEnlargement: true })
       .webp({ quality: 85 })
       .toBuffer();
-    return { status: 200, kind: 'buffer', image, type: 'image/webp' };
+    return {
+      status: 200, kind: 'buffer', image, type: 'image/webp',
+      fullSize: { width: rendered.fullWidth, height: rendered.fullHeight },
+    };
   } catch (err) {
     console.error(`Failed to render a preview of ${found.photo.filePath}:`, err);
     return { status: 500, body: apiError('render_failed', 'Could not render the photo', { message: (err as Error).message }) };

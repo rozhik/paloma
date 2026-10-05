@@ -6,6 +6,8 @@ import type { AddressInfo } from 'node:net';
 import type { Server } from 'node:http';
 import { writeTestPlugin } from '../plugins/testing.js';
 
+const GRAIN_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg>';
+
 // config.ts reads the environment at import time, so the routes are imported after it points at temp folders
 let tmpDir: string;
 let server: Server;
@@ -14,12 +16,13 @@ let base: string;
 beforeAll(async () => {
   tmpDir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'paloma_plugin_routes_test_')));
   const external = path.join(tmpDir, 'plugins');
-  writeTestPlugin(external, 'film-grain', {
+  const filmGrain = writeTestPlugin(external, 'film-grain', {
     manifest: { name: { en: 'Film grain', uk: 'Плівкове зерно' } },
     module: `export function activate() {
-  return { filters: [{ name: 'grain', label: { en: 'Grain', uk: 'Зерно' }, group: 'effects', render: ({ image }) => image }] };
+  return { filters: [{ name: 'grain', label: { en: 'Grain', uk: 'Зерно' }, group: 'effects', icon: 'grain.svg', render: ({ image }) => image }] };
 }`,
   });
+  fs.writeFileSync(path.join(filmGrain, 'grain.svg'), GRAIN_SVG);
   writeTestPlugin(external, 'future', { manifest: { apiVersion: 2 } });
   vi.stubEnv('PALOMA_DATA_DIR', path.join(tmpDir, 'data'));
   vi.stubEnv('PALOMA_CACHE_DIR', path.join(tmpDir, 'cache'));
@@ -110,5 +113,28 @@ describe('PATCH /api/plugins/:id', () => {
 
   it('responds 409 for a plugin that cannot be used', async () => {
     expect(await send('PATCH', '/plugins/future', { enabled: true })).toMatchObject({ status: 409, body: { code: 'plugin_unavailable' } });
+  });
+});
+
+describe('GET /api/plugins/:id/filters/:name/icon', () => {
+  it('serves the icon of an active plugin as SVG, and 404 once it is switched off', async () => {
+    const { body } = await send('PATCH', '/plugins/film-grain', { enabled: true });
+    const url: string = body.filters[0].iconUrl;
+    expect(url).toBe('/api/plugins/film-grain/filters/grain/icon?v=1.0.0');
+
+    const res = await fetch(`${base}${url.replace(/^\/api/, '')}`);
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toMatch(/^image\/svg\+xml/);
+    expect(res.headers.get('x-content-type-options')).toBe('nosniff');
+    expect(await res.text()).toBe(GRAIN_SVG);
+
+    await send('PATCH', '/plugins/film-grain', { enabled: false });
+    expect(await send('GET', '/plugins/film-grain/filters/grain/icon')).toMatchObject({ status: 404, body: { code: 'plugin_not_found' } });
+  });
+
+  it('responds 404 for an unknown plugin or a filter without an icon', async () => {
+    expect(await send('GET', '/plugins/nope/filters/grain/icon')).toMatchObject({ status: 404, body: { code: 'plugin_not_found' } });
+    expect(await send('GET', '/plugins/basic-effects/filters/nope/icon'))
+      .toMatchObject({ status: 404, body: { code: 'filter_not_found', params: { id: 'basic-effects', filter: 'nope' } } });
   });
 });

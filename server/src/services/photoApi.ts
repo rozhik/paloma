@@ -11,9 +11,9 @@ import { normalizeLang } from './placeCache.js';
 import { loadPhotos, parsePhotoIds, saveFolderByFolder } from './folderChanges.js';
 import { isGeotag } from './location.js';
 import { libraryImageUrls, libraryLookup } from './libraryImages.js';
-import { describeProblem, validateChain, type ChainProblem } from './editChain.js';
+import { describeProblem, isEditHistory, validateChain, type ChainProblem } from './editChain.js';
 import { parseEditsJson } from './photoImages.js';
-import type { ApiError, Geotag, Photo } from '../../../shared/types.js';
+import type { ApiError, Geotag, Photo, PhotoEdits } from '../../../shared/types.js';
 
 type PhotoRow = typeof photos.$inferSelect;
 type FolderRow = typeof folders.$inferSelect;
@@ -175,18 +175,34 @@ function savePhotoPatch(photo: Photo, patch: FieldPatch): ApiResult<never> | nul
 }
 
 /**
- * `PUT /api/photos/:id/edits`: replaces the photo's edit chain (`[]` removes it). Steps of available filters
- * are validated and get their defaults; steps of other filters are saved as sent.
+ * `PUT /api/photos/:id/edits`: replaces the photo's edit chain (`[]` removes it) and, when `history` is given,
+ * its undo history. Steps of available filters are validated and get their defaults; steps of other filters
+ * are saved as sent. History chains are only checked for shape: an undone chain is validated when it is saved
+ * as `edits` again.
  */
 export function saveEdits(photoId: number, body: unknown): ApiResult<Photo> {
   const value = (typeof body === 'object' && body !== null && !Array.isArray(body) ? body : {}) as Record<string, unknown>;
   const check = validateChain(value.edits, libraryLookup);
   if (!check.ok) return { status: 400, body: editsInvalid(check.problem) };
+  if (value.history !== undefined && !isEditHistory(value.history)) {
+    return { status: 400, body: apiError('invalid_field', 'history must be {"undo": [chains], "redo": [chains]}', { field: 'history' }) };
+  }
 
   const photo = getApiPhoto(photoId);
   if (!photo?.folderPath) return { status: 404, body: apiError('photo_not_found', 'Photo not found') };
-  const failed = savePhotoPatch(photo, { edits: check.steps });
+  const patch: FieldPatch = { edits: check.steps };
+  if (value.history !== undefined) patch.editHistory = value.history as PhotoEdits['history'];
+  const failed = savePhotoPatch(photo, patch);
   return failed ?? { status: 200, body: getApiPhoto(photoId)! };
+}
+
+/** `GET /api/photos/:id/edits`: the photo's edit chain and its undo history, read from its folder's sidecar. */
+export function getEdits(photoId: number): ApiResult<PhotoEdits> {
+  const photo = getApiPhoto(photoId);
+  if (!photo?.folderPath) return { status: 404, body: apiError('photo_not_found', 'Photo not found') };
+  const read = SidecarService.readFolderSidecar(photo.folderPath);
+  const entry = read.kind === 'ok' ? read.data.photos[photo.filename] : undefined;
+  return { status: 200, body: { edits: photo.edits ?? [], history: SidecarService.editHistoryOf(entry) } };
 }
 
 /** The 400 body for an invalid edit chain, naming the step, filter and parameter. */

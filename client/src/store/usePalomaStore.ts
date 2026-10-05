@@ -1,13 +1,22 @@
 import { create } from 'zustand';
 import type { Photo, Folder } from '../../../shared/types.js';
 
-export type AppView = 'library' | 'editor' | 'collage' | 'map' | 'people' | 'plugins';
+export type AppView = 'library' | 'collage' | 'map' | 'people' | 'plugins' | 'settings';
+/** The photo viewer: a snapshot of the grid's photos when it opened, and the one shown. */
+export interface ViewerState {
+  photos: Photo[];
+  index: number;
+  /** Set once a photo's edits were saved, so closing refreshes the grid's thumbnails */
+  saved: boolean;
+}
+
 export type FilterType = 'all' | 'starred' | 'recent' | 'geotagged';
 
 interface PalomaStore {
   currentView: AppView;
   selectedPhotos: Photo[];
-  activeEditPhoto: Photo | null;
+  /** Open photo viewer, shown over the current view; null when closed */
+  viewer: ViewerState | null;
   searchQuery: string;
   selectedFolderId: number | null;
   selectedFilter: FilterType;
@@ -16,7 +25,13 @@ interface PalomaStore {
   libraryVersion: number;
 
   setCurrentView: (view: AppView) => void;
-  setActiveEditPhoto: (photo: Photo | null) => void;
+  /** Opens the viewer on `photos[index]`; `photos` is what the grid shows, in grid order */
+  openViewer: (photos: Photo[], index: number) => void;
+  /** Moves to the previous (-1) or next (+1) photo; stays put at either end */
+  moveViewer: (delta: number) => void;
+  /** Replaces a photo in the viewer's list with a fresh copy after its edits were saved */
+  replaceViewerPhoto: (photo: Photo) => void;
+  closeViewer: () => void;
   setSearchQuery: (query: string) => void;
   setSelectedFolderId: (folderId: number | null) => void;
   setSelectedFilter: (filter: FilterType) => void;
@@ -36,7 +51,7 @@ interface PalomaStore {
 export const usePalomaStore = create<PalomaStore>((set, get) => ({
   currentView: 'library',
   selectedPhotos: [],
-  activeEditPhoto: null,
+  viewer: null,
   searchQuery: '',
   selectedFolderId: null,
   selectedFilter: 'all',
@@ -44,7 +59,26 @@ export const usePalomaStore = create<PalomaStore>((set, get) => ({
   libraryVersion: 0,
 
   setCurrentView: (view) => set({ currentView: view }),
-  setActiveEditPhoto: (photo) => set({ activeEditPhoto: photo, currentView: photo ? 'editor' : 'library' }),
+  openViewer: (photos, index) => {
+    if (photos.length === 0) return;
+    set({ viewer: { photos, index: Math.min(Math.max(index, 0), photos.length - 1), saved: false } });
+  },
+  moveViewer: (delta) => {
+    const { viewer } = get();
+    if (!viewer) return;
+    const index = Math.min(Math.max(viewer.index + delta, 0), viewer.photos.length - 1);
+    if (index !== viewer.index) set({ viewer: { ...viewer, index } });
+  },
+  replaceViewerPhoto: (photo) => {
+    const { viewer } = get();
+    if (!viewer) return;
+    set({ viewer: { ...viewer, saved: true, photos: viewer.photos.map((p) => (p.id === photo.id ? photo : p)) } });
+  },
+  closeViewer: () => {
+    const { viewer, libraryVersion } = get();
+    if (!viewer) return;
+    set(viewer.saved ? { viewer: null, libraryVersion: libraryVersion + 1 } : { viewer: null });
+  },
   setSearchQuery: (searchQuery) => set({ searchQuery }),
   setSelectedFolderId: (selectedFolderId) => set({ selectedFolderId, selectedFilter: 'all', selectedAlbumToken: null }),
   setSelectedFilter: (selectedFilter) => set({ selectedFilter, selectedFolderId: null, selectedAlbumToken: null }),

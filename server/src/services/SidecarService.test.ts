@@ -488,3 +488,54 @@ describe('edits', () => {
     expect(SidecarService.getFolderState(dir).photos['a.jpg']).toEqual({ edits: [{ filter: 'bw' }] });
   });
 });
+
+describe('edit history', () => {
+  const HISTORY = { undo: [[], [{ filter: 'sepia' }]], redo: [[{ filter: 'sepia' }, { filter: 'bw' }]] };
+
+  it('is stored with the edits, kept when they are removed, and removed when both lists are empty', () => {
+    SidecarService.updatePhotoFields(dir, 'a.jpg', { edits: [{ filter: 'sepia' }], editHistory: { undo: [[]], redo: [] } });
+    expect(readJson().photos['a.jpg']).toEqual({
+      edits: [{ filter: 'sepia' }], editHistory: { undo: [[]], redo: [] }, modified: expect.any(String),
+    });
+
+    // Revert: no edits, but the history keeps the reverted chain
+    SidecarService.updatePhotoFields(dir, 'a.jpg', { edits: [], editHistory: { undo: [[], [{ filter: 'sepia' }]], redo: [] } });
+    expect(readJson().photos['a.jpg']).toEqual({
+      editHistory: { undo: [[], [{ filter: 'sepia' }]], redo: [] }, modified: expect.any(String),
+    });
+
+    SidecarService.updatePhotoFields(dir, 'a.jpg', { edits: [], editHistory: { undo: [], redo: [] } });
+    expect(readJson().photos['a.jpg']).toBeUndefined();
+  });
+
+  it('is not a library field', () => {
+    touch('a.jpg');
+    SidecarService.updatePhotoFields(dir, 'a.jpg', { edits: [{ filter: 'bw' }], editHistory: HISTORY });
+    expect(SidecarService.fieldsOf(readJson().photos['a.jpg'])).toEqual({ edits: [{ filter: 'bw' }] });
+    expect(SidecarService.getFolderState(dir).photos['a.jpg']).toEqual({ edits: [{ filter: 'bw' }] });
+    expect(SidecarService.editHistoryOf(readJson().photos['a.jpg'])).toEqual(HISTORY);
+  });
+
+  it('reads a history of the wrong type as empty and keeps it until the edits are saved', () => {
+    writeJson({ format: 'paloma-folder', version: 2, photos: { 'a.jpg': { editHistory: 'lost' }, 'b.jpg': { editHistory: { undo: [['x']], redo: [] } } } });
+    expect(SidecarService.editHistoryOf(readJson().photos['a.jpg'])).toEqual({ undo: [], redo: [] });
+    expect(SidecarService.editHistoryOf(readJson().photos['b.jpg'])).toEqual({ undo: [], redo: [] });
+    expect(SidecarService.editHistoryOf(undefined)).toEqual({ undo: [], redo: [] });
+
+    SidecarService.updatePhotoFields(dir, 'a.jpg', { star: true });
+    expect(readJson().photos['a.jpg'].editHistory).toBe('lost');
+
+    SidecarService.updatePhotoFields(dir, 'a.jpg', { edits: [{ filter: 'bw' }], editHistory: { undo: [[]], redo: [] } });
+    expect(readJson().photos['a.jpg'].editHistory).toEqual({ undo: [[]], redo: [] });
+  });
+
+  it('survives a Picasa re-import of an unmodified entry', () => {
+    const result = SidecarService.reimport(
+      { format: 'paloma-folder', version: 2, iniHash: 'old', photos: { 'a.jpg': { star: true, editHistory: HISTORY } } },
+      { 'a.jpg': { caption: 'From Picasa' } },
+      'new',
+    );
+    expect(result.photos['a.jpg']).toEqual({ caption: 'From Picasa', editHistory: HISTORY });
+  });
+});
+

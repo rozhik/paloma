@@ -21,7 +21,8 @@
     "people": "Orang",
     "map": "Peta",
     "collage": "Kolase",
-    "plugins": "Plugin"
+    "plugins": "Plugin",
+    "settings": "Pengaturan"
   },
   "sidebar": {
     "collections": "Koleksi",
@@ -42,7 +43,8 @@
     "star": "Beri bintang",
     "unstar": "Hapus bintang",
     "edited": "Diedit",
-    "geotagged": "Memiliki geotag"
+    "geotagged": "Memiliki geotag",
+    "select": "Pilih"
   },
   "tray": {
     "selected": "🖼️ Dipilih:",
@@ -79,12 +81,8 @@
   },
   "editor": {
     "holdForOriginal": "Tahan untuk melihat aslinya",
-    "title": "✏️ Editor foto",
-    "saving": "Menyimpan...",
-    "save": "Simpan perubahan",
     "undo": "Urungkan",
     "redo": "Ulangi",
-    "reset": "Kembalikan ke asli",
     "rotateLeft": "Putar ke kiri",
     "rotateRight": "Putar ke kanan",
     "groups": {
@@ -99,7 +97,8 @@
       "original": "Asli",
       "landscape": "Lanskap",
       "portrait": "Potret",
-      "apply": "Terapkan"
+      "apply": "Terapkan",
+      "size": "{{width, number}} × {{height, number}} px"
     },
     "steps": "Perubahan",
     "noSteps": "Belum ada perubahan. Foto asli tidak pernah diubah.",
@@ -107,7 +106,12 @@
     "unavailableHint": "Perubahan ini memerlukan plugin yang nonaktif atau belum dipasang. Perubahan tetap disimpan, tetapi tidak ditampilkan.",
     "notApplied": "tidak diterapkan",
     "removeStep": "Hapus perubahan {{n}}",
-    "loading": "Memuat pratinjau…"
+    "loading": "Memuat pratinjau…",
+    "revert": "Kembalikan ke asli",
+    "saveFailed": "Perubahan tidak dapat disimpan: {{message}}",
+    "retry": "Coba lagi",
+    "discard": "Buang perubahan",
+    "historyFailed": "Riwayat suntingan foto ini tidak dapat dimuat, jadi foto ini belum bisa disunting: {{message}}"
   },
   "collage": {
     "title": "🎨 Pembuat kolase Paloma",
@@ -185,7 +189,8 @@
     "plugin_unavailable": "Plugin “{{id}}” tidak dapat diaktifkan. Lihat galatnya di Plugin.",
     "plugin_invalid_body": "Pengaturan plugin tidak valid.",
     "edits_invalid": "Suntingan pada langkah {{step}} tidak valid.",
-    "render_failed": "Tidak dapat memproses foto: {{message}}"
+    "render_failed": "Tidak dapat memproses foto: {{message}}",
+    "filter_not_found": "Plugin “{{id}}” tidak memiliki ikon untuk filter “{{filter}}”."
   },
   "geo": {
     "coordinates": "{{lat}}; {{lon}}",
@@ -228,5 +233,32 @@
     "empty": "Tidak ada plugin.",
     "loading": "Memuat plugin…",
     "installHint": "Untuk memasang plugin, salin atau klon foldernya ke folder plugin lalu mulai ulang Paloma."
+  },
+  "settings": {
+    "title": "Pengaturan",
+    "intro": "Pengaturan ini hanya diingat di peramban ini.",
+    "viewer": "Penampil foto",
+    "navBar": "Bilah navigasi",
+    "navBarHint": "Tutup, foto sebelumnya dan berikutnya, serta zoom.",
+    "editBar": "Bilah suntingan",
+    "editBarHint": "Urungkan, ulangi, dan perbaikan foto seperti potong dan putar.",
+    "edges": {
+      "top": "Atas",
+      "bottom": "Bawah",
+      "left": "Kiri",
+      "right": "Kanan"
+    }
+  },
+  "viewer": {
+    "navigation": "Navigasi foto",
+    "editBar": "Perbaikan foto",
+    "close": "Tutup",
+    "previous": "Foto sebelumnya",
+    "next": "Foto berikutnya",
+    "position": "{{index, number}} / {{total, number}}",
+    "saving": "Menyimpan perubahan…",
+    "zoomIn": "Perbesar",
+    "zoomOut": "Perkecil",
+    "fit": "Paskan ke layar"
   }
 }

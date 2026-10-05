@@ -157,6 +157,36 @@ describe('PUT /api/photos/:id/edits', () => {
   });
 });
 
+describe('edit history', () => {
+  it('is saved with the edits and read back', async () => {
+    const history = { undo: [[]], redo: [] };
+    expect((await send('PUT', `/photos/${photoId}/edits`, { edits: [{ filter: 'sepia' }], history })).status).toBe(200);
+    expect(sidecar().photos['a.jpg'].editHistory).toEqual(history);
+    expect(await send('GET', `/photos/${photoId}/edits`)).toMatchObject({ status: 200, body: { edits: [{ filter: 'sepia' }], history } });
+  });
+
+  it('gives empty lists without history and keeps the stored history when none is sent', async () => {
+    expect(await send('GET', `/photos/${photoId}/edits`)).toMatchObject({ status: 200, body: { edits: [], history: { undo: [], redo: [] } } });
+    await send('PUT', `/photos/${photoId}/edits`, { edits: [{ filter: 'bw' }], history: { undo: [[]], redo: [] } });
+    await send('PUT', `/photos/${photoId}/edits`, { edits: [{ filter: 'sepia' }] });
+    expect(sidecar().photos['a.jpg']).toMatchObject({ edits: [{ filter: 'sepia' }], editHistory: { undo: [[]], redo: [] } });
+  });
+
+  it('rejects a history of the wrong shape and changes nothing', async () => {
+    await send('PUT', `/photos/${photoId}/edits`, { edits: [{ filter: 'bw' }], history: { undo: [[]], redo: [] } });
+    const before = fs.readFileSync(sidecarPath(), 'utf-8');
+    for (const history of [{ undo: 'sepia' }, { undo: [[{ name: 'x' }]], redo: [] }, [[]]]) {
+      expect(await send('PUT', `/photos/${photoId}/edits`, { edits: [], history }))
+        .toMatchObject({ status: 400, body: { code: 'invalid_field', params: { field: 'history' } } });
+    }
+    expect(fs.readFileSync(sidecarPath(), 'utf-8')).toBe(before);
+  });
+
+  it('responds 404 for an unknown photo', async () => {
+    expect((await send('GET', '/photos/999999/edits')).status).toBe(404);
+  });
+});
+
 describe('POST /api/photos/:id/preview', () => {
   it('renders unsaved steps fitted within maxSize and saves nothing', async () => {
     const { status, type, body } = await send('POST', `/photos/${bigId}/preview`, { edits: [{ filter: 'rotate', angle: 90 }], maxSize: 1200 });
@@ -176,6 +206,43 @@ describe('POST /api/photos/:id/preview', () => {
     const { data, info } = await sharp(body as Buffer).raw().toBuffer({ resolveWithObject: true });
     expect([info.width, info.height]).toEqual([200, 300]);
     expect(data[0]).toBe(data[1]);
+  });
+
+  it('reports the size the steps give at full resolution', async () => {
+    const res = await fetch(`${base}/photos/${bigId}/preview`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ edits: [{ filter: 'crop64', rect: { left: 0, top: 0, right: 0.5, bottom: 1 } }], maxSize: 1024 }),
+    });
+    const meta = await sharp(Buffer.from(await res.arrayBuffer())).metadata();
+    expect(Math.max(meta.width!, meta.height!)).toBeLessThanOrEqual(1024);
+    expect([res.headers.get('x-paloma-full-width'), res.headers.get('x-paloma-full-height')]).toEqual(['2000', '3000']);
+  });
+
+  it.each([
+    ['crop', [{ filter: 'crop64', rect: { left: 0.13, top: 0.07, right: 0.71, bottom: 0.94 } }]],
+    ['rotate', [{ filter: 'rotate', angle: 90 }]],
+    ['straighten', [{ filter: 'straighten', angle: 3.7 }]],
+    ['crop, rotate and straighten', [
+      { filter: 'crop64', rect: { left: 0.21, top: 0.1, right: 0.83, bottom: 0.77 } },
+      { filter: 'rotate', angle: 270 },
+      { filter: 'straighten', angle: -6.3 },
+    ]],
+  ])('reports a full size within 0.5% of a full-size render for %s', async (_case, edits) => {
+    const { RenderService } = await import('../services/RenderService.js');
+    const { libraryLookup } = await import('../services/libraryImages.js');
+    const full = await RenderService.renderWithSize(path.join(bigDir, 'big.jpg'), edits, { lookup: libraryLookup });
+    for (const maxSize of [800, 1600]) {
+      const res = await fetch(`${base}/photos/${bigId}/preview`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ edits, maxSize }),
+      });
+      expect(res.status).toBe(200);
+      // Whole-pixel details such as straighten's 2 px margin scale with the preview, hence a relative bound
+      expect(Math.abs(Number(res.headers.get('x-paloma-full-width')) - full.width)).toBeLessThanOrEqual(Math.max(1, Math.round(full.width * 0.005)));
+      expect(Math.abs(Number(res.headers.get('x-paloma-full-height')) - full.height)).toBeLessThanOrEqual(Math.max(1, Math.round(full.height * 0.005)));
+    }
   });
 
   it('validates the steps and maxSize', async () => {

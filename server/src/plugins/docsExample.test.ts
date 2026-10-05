@@ -31,13 +31,16 @@ afterAll(() => {
 
 describe('docs/plugins.md example', () => {
   it('has the manifest, package.json and module', () => {
-    expect(Object.keys(exampleFiles()).sort()).toEqual(['index.js', 'package.json', 'paloma-plugin.json']);
+    expect(Object.keys(exampleFiles()).sort()).toEqual(['icons/grain.svg', 'index.js', 'package.json', 'paloma-plugin.json']);
   });
 
   it('installs as an external plugin that is off, switches on and renders grain', async () => {
     const folder = path.join(tmp, 'external', 'paloma-film-grain');
     fs.mkdirSync(folder, { recursive: true });
-    for (const [name, content] of Object.entries(exampleFiles())) fs.writeFileSync(path.join(folder, name), content);
+    for (const [name, content] of Object.entries(exampleFiles())) {
+      fs.mkdirSync(path.dirname(path.join(folder, name)), { recursive: true });
+      fs.writeFileSync(path.join(folder, name), content);
+    }
 
     const registry = new PluginRegistry({
       bundledDir: path.join(tmp, 'bundled'),
@@ -50,6 +53,7 @@ describe('docs/plugins.md example', () => {
     const info = await registry.setEnabled('film-grain', true);
     expect(info).toMatchObject({ status: 'active', warnings: [], error: null });
     expect(info.filters.map((f) => f.name)).toEqual(['grain']);
+    expect(info.filters[0].iconUrl).toBe('/api/plugins/film-grain/filters/grain/icon?v=1.0.0');
 
     const photo = path.join(tmp, 'grey.png');
     await sharp({ create: { width: 64, height: 48, channels: 3, background: '#808080' } }).png().toFile(photo);

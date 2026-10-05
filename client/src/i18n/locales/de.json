@@ -22,7 +22,8 @@
     "people": "Personen",
     "map": "Karte",
     "collage": "Collage",
-    "plugins": "Plugins"
+    "plugins": "Plugins",
+    "settings": "Einstellungen"
   },
   "sidebar": {
     "collections": "Sammlungen",
@@ -43,7 +44,8 @@
     "star": "Markieren",
     "unstar": "Markierung entfernen",
     "edited": "Bearbeitet",
-    "geotagged": "Mit Geotag"
+    "geotagged": "Mit Geotag",
+    "select": "Auswählen"
   },
   "tray": {
     "selected": "🖼️ Ausgewählt:",
@@ -81,12 +83,8 @@
   },
   "editor": {
     "holdForOriginal": "Gedrückt halten für das Original",
-    "title": "✏️ Fotoeditor",
-    "saving": "Wird gespeichert...",
-    "save": "Änderungen speichern",
     "undo": "Rückgängig",
     "redo": "Wiederholen",
-    "reset": "Original wiederherstellen",
     "rotateLeft": "Nach links drehen",
     "rotateRight": "Nach rechts drehen",
     "groups": {
@@ -101,7 +99,8 @@
       "original": "Original",
       "landscape": "Querformat",
       "portrait": "Hochformat",
-      "apply": "Anwenden"
+      "apply": "Anwenden",
+      "size": "{{width, number}} × {{height, number}} px"
     },
     "steps": "Änderungen",
     "noSteps": "Noch keine Änderungen. Das Originalfoto wird nie verändert.",
@@ -109,7 +108,12 @@
     "unavailableHint": "Diese Änderung braucht ein Plugin, das ausgeschaltet oder nicht installiert ist. Sie bleibt erhalten, wird aber nicht angezeigt.",
     "notApplied": "nicht angewendet",
     "removeStep": "Änderung {{n}} entfernen",
-    "loading": "Vorschau wird geladen…"
+    "loading": "Vorschau wird geladen…",
+    "revert": "Zum Original zurückkehren",
+    "saveFailed": "Die Änderung konnte nicht gespeichert werden: {{message}}",
+    "retry": "Erneut versuchen",
+    "discard": "Änderung verwerfen",
+    "historyFailed": "Der Bearbeitungsverlauf dieses Fotos konnte nicht geladen werden, daher kann es gerade nicht bearbeitet werden: {{message}}"
   },
   "collage": {
     "title": "🎨 Paloma-Collage-Editor",
@@ -192,7 +196,8 @@
     "plugin_unavailable": "Das Plugin „{{id}}“ kann nicht eingeschaltet werden. Den Fehler finden Sie unter Plugins.",
     "plugin_invalid_body": "Die Plugin-Einstellung ist ungültig.",
     "edits_invalid": "Die Bearbeitung in Schritt {{step}} ist ungültig.",
-    "render_failed": "Das Foto konnte nicht berechnet werden: {{message}}"
+    "render_failed": "Das Foto konnte nicht berechnet werden: {{message}}",
+    "filter_not_found": "Das Plugin „{{id}}“ hat kein Symbol für den Filter „{{filter}}“."
   },
   "geo": {
     "coordinates": "{{lat}}; {{lon}}",
@@ -240,5 +245,32 @@
     "empty": "Keine Plugins gefunden.",
     "loading": "Plugins werden geladen…",
     "installHint": "Um ein Plugin zu installieren, kopieren oder klonen Sie seinen Ordner in den Plugin-Ordner und starten Sie Paloma neu."
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "intro": "Diese Einstellungen werden nur in diesem Browser gespeichert.",
+    "viewer": "Fotoansicht",
+    "navBar": "Navigationsleiste",
+    "navBarHint": "Schließen, vorheriges und nächstes Foto sowie Zoom.",
+    "editBar": "Bearbeitungsleiste",
+    "editBarHint": "Rückgängig, Wiederholen und die Fotokorrekturen wie Zuschneiden und Drehen.",
+    "edges": {
+      "top": "Oben",
+      "bottom": "Unten",
+      "left": "Links",
+      "right": "Rechts"
+    }
+  },
+  "viewer": {
+    "navigation": "Fotonavigation",
+    "editBar": "Fotokorrekturen",
+    "close": "Schließen",
+    "previous": "Vorheriges Foto",
+    "next": "Nächstes Foto",
+    "position": "{{index, number}} / {{total, number}}",
+    "saving": "Änderung wird gespeichert…",
+    "zoomIn": "Vergrößern",
+    "zoomOut": "Verkleinern",
+    "fit": "An Bildschirm anpassen"
   }
 }

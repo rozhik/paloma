@@ -100,6 +100,40 @@ body {
   color: #f59e0b;
 }
 
+/* Select checkbox: always shown when selected, otherwise on hover or keyboard focus */
+.photo-card .select-btn {
+  position: absolute;
+  top: 6px;
+  inset-inline-start: 6px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.photo-card:hover .select-btn,
+.photo-card:focus-within .select-btn,
+.photo-card.selected .select-btn {
+  opacity: 1;
+}
+
+.photo-card.selected .select-btn {
+  background: transparent;
+}
+
+.photo-card:focus-visible {
+  outline: 3px solid #0284c7;
+  outline-offset: 2px;
+}
+
 /* Photo Tray (Bottom Selection Bar) */
 .photo-tray {
   position: fixed;
@@ -343,3 +377,193 @@ body {
     linear-gradient(to bottom, rgba(255, 255, 255, 0.45) 1px, transparent 1px);
   background-size: 10% 10%;
 }
+
+/* Settings: edge choices with a small picture of the screen */
+.settings-edge {
+  min-width: 120px;
+  padding: 12px 16px;
+}
+
+.settings-screen {
+  position: relative;
+  display: block;
+  width: 72px;
+  height: 48px;
+  border: 2px solid currentColor;
+  border-radius: 4px;
+  opacity: 0.9;
+}
+
+.settings-screen-bar {
+  position: absolute;
+  background: currentColor;
+}
+
+/* Photo viewer: the photo fills the window, every control floats over it */
+.photo-viewer {
+  /* --viewer-bar-size is set inline from VIEWER_BAR_SIZE */
+  position: fixed;
+  inset: 0;
+  /* Above the navbar and tray, below Bootstrap's tooltips (1080) */
+  z-index: 1040;
+  background: #0b0d10;
+  color: #f8fafc;
+  outline: none;
+  overflow: hidden;
+}
+
+.viewer-stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+}
+
+.viewer-placeholder {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.viewer-bar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  background: rgba(15, 18, 24, 0.72);
+  backdrop-filter: blur(6px);
+  z-index: 2;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.viewer-bar.flex-row {
+  flex-direction: row;
+}
+
+.viewer-bar.flex-column {
+  flex-direction: column;
+}
+
+.viewer-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #f8fafc;
+}
+
+.viewer-btn:hover:not(:disabled),
+.viewer-btn:focus-visible {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.viewer-btn:focus-visible {
+  outline: 3px solid #38bdf8;
+  outline-offset: -3px;
+}
+
+.viewer-btn.active {
+  background: #0284c7;
+}
+
+.viewer-btn:disabled {
+  opacity: 0.35;
+}
+
+.viewer-bar-separator {
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.viewer-bar-separator.vertical {
+  width: 1px;
+  height: 36px;
+  margin: 0 6px;
+}
+
+.viewer-bar-separator.horizontal {
+  height: 1px;
+  width: 36px;
+  margin: 6px 0;
+}
+
+.viewer-nav-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 12px;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+
+.viewer-nav-title.vertical {
+  writing-mode: vertical-rl;
+  padding: 12px 0;
+}
+
+.viewer-nav-filename {
+  font-size: 1.15rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.viewer-nav-position,
+.viewer-nav-zoom {
+  font-size: 1rem;
+  color: #cbd5e1;
+  flex-shrink: 0;
+}
+
+.viewer-nav-zoom {
+  min-width: 3.5em;
+  text-align: center;
+}
+
+.viewer-panel {
+  position: fixed;
+  z-index: 3;
+  width: min(360px, calc(100vw - 16px));
+  max-height: calc(100vh - 16px);
+  overflow: auto;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(22, 26, 34, 0.94);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+.viewer-step {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.viewer-toast {
+  position: absolute;
+  top: calc(var(--viewer-bar-size) + 16px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 4;
+  width: min(560px, calc(100vw - 32px));
+}
+
+.viewer-attention {
+  animation: viewer-shake 0.4s;
+}
+
+@keyframes viewer-shake {
+  20%, 60% { transform: translateX(-8px); }
+  40%, 80% { transform: translateX(8px); }
+}
+

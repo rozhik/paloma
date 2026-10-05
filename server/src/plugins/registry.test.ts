@@ -201,3 +201,71 @@ export function activate() {
     expect(after).toEqual(before);
   });
 });
+
+describe('filter icons', () => {
+  const iconModule = (icon: unknown) => `
+export function activate() {
+  return { filters: [{ name: 'grain', label: 'Grain', group: 'effects', icon: ${JSON.stringify(icon)}, render: ({ image }) => image }] };
+}`;
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/></svg>';
+
+  it('lists the URL of a usable icon and resolves it to the file', async () => {
+    const folder = writeTestPlugin(bundled, 'film', { module: iconModule('icons/grain.svg'), version: '1.2.0' });
+    fs.mkdirSync(path.join(folder, 'icons'));
+    fs.writeFileSync(path.join(folder, 'icons', 'grain.svg'), svg);
+    const registry = newRegistry();
+    await registry.init();
+
+    const info = registry.get('film')!;
+    expect(info.warnings).toEqual([]);
+    expect(info.filters[0].iconUrl).toBe('/api/plugins/film/filters/grain/icon?v=1.2.0');
+    expect(registry.getFilterIcon('film', 'grain')).toEqual({ file: path.join(folder, 'icons', 'grain.svg') });
+  });
+
+  it.each([
+    ['a path outside the plugin folder', '../../secret.svg'],
+    ['an absolute path', '/etc/secret.svg'],
+    ['a file that is not .svg', 'icons/grain.png'],
+    ['a missing file', 'icons/missing.svg'],
+    ['a symlink leading out of the folder', 'icons/link.svg'],
+  ])('drops %s with a warning and keeps the filter', async (_case, icon) => {
+    fs.writeFileSync(path.join(tmp, 'secret.svg'), svg);
+    const folder = writeTestPlugin(bundled, 'film', { module: iconModule(icon) });
+    fs.mkdirSync(path.join(folder, 'icons'));
+    fs.writeFileSync(path.join(folder, 'icons', 'grain.png'), 'png');
+    fs.symlinkSync(path.join(tmp, 'secret.svg'), path.join(folder, 'icons', 'link.svg'));
+    const registry = newRegistry();
+    await registry.init();
+
+    const info = registry.get('film')!;
+    expect(info.status).toBe('active');
+    expect(info.filters[0].name).toBe('grain');
+    expect(info.filters[0].iconUrl).toBeUndefined();
+    expect(info.warnings).toEqual([
+      `filter "grain": icon ${JSON.stringify(icon)} is not an .svg file inside the plugin folder; the filter has no icon`,
+    ]);
+    expect(registry.getFilter('grain')?.pluginId).toBe('film');
+    expect(registry.getFilterIcon('film', 'grain')).toEqual({ missing: 'filter' });
+  });
+
+  it('drops an icon that is not a string', async () => {
+    writeTestPlugin(bundled, 'film', { module: iconModule(42) });
+    const registry = newRegistry();
+    await registry.init();
+    expect(registry.get('film')!.warnings).toEqual(['filter "grain": icon is not a file path; the filter has no icon']);
+    expect(registry.getFilter('grain')).toBeDefined();
+  });
+
+  it('does not give the icon of a plugin that is off or unknown', async () => {
+    const folder = writeTestPlugin(external, 'film', { module: iconModule('grain.svg') });
+    fs.writeFileSync(path.join(folder, 'grain.svg'), svg);
+    const registry = newRegistry();
+    await registry.init();
+
+    expect(registry.getFilterIcon('film', 'grain')).toEqual({ missing: 'plugin' });
+    expect(registry.getFilterIcon('nope', 'grain')).toEqual({ missing: 'plugin' });
+    await registry.setEnabled('film', true);
+    expect(registry.getFilterIcon('film', 'grain')).toEqual({ file: path.join(folder, 'grain.svg') });
+    expect(registry.getFilterIcon('film', 'other')).toEqual({ missing: 'filter' });
+  });
+});

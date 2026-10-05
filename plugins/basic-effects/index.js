@@ -68,6 +68,7 @@ export function activate(host) {
         name: 'brightness',
         label: LABELS.brightness,
         group: 'tuning',
+        icon: 'icons/brightness.svg',
         params: [amountParam()],
         render({ image, params }) {
           const amount = /** @type {number} */ (params.amount);
@@ -78,6 +79,7 @@ export function activate(host) {
         name: 'contrast',
         label: LABELS.contrast,
         group: 'tuning',
+        icon: 'icons/contrast.svg',
         params: [amountParam()],
         render({ image, params }) {
           const amount = /** @type {number} */ (params.amount);
@@ -91,6 +93,7 @@ export function activate(host) {
         name: 'bw',
         label: LABELS.bw,
         group: 'effects',
+        icon: 'icons/bw.svg',
         params: [],
         async render({ image }) {
           return (await toRgb(image, host)).recomb([LUMINANCE, LUMINANCE, LUMINANCE]);
@@ -100,6 +103,7 @@ export function activate(host) {
         name: 'sepia',
         label: LABELS.sepia,
         group: 'effects',
+        icon: 'icons/sepia.svg',
         params: [],
         async render({ image }) {
           return (await toRgb(image, host)).recomb(SEPIA);

@@ -21,7 +21,8 @@
     "people": "人物",
     "map": "地図",
     "collage": "コラージュ",
-    "plugins": "プラグイン"
+    "plugins": "プラグイン",
+    "settings": "設定"
   },
   "sidebar": {
     "collections": "コレクション",
@@ -42,7 +43,8 @@
     "star": "スターを付ける",
     "unstar": "スターを外す",
     "edited": "編集済み",
-    "geotagged": "位置情報あり"
+    "geotagged": "位置情報あり",
+    "select": "選択"
   },
   "tray": {
     "selected": "🖼️ 選択中:",
@@ -79,12 +81,8 @@
   },
   "editor": {
     "holdForOriginal": "押している間オリジナルを表示",
-    "title": "✏️ 写真エディタ",
-    "saving": "保存中...",
-    "save": "変更を保存",
     "undo": "元に戻す",
     "redo": "やり直す",
-    "reset": "元の写真に戻す",
     "rotateLeft": "左に回転",
     "rotateRight": "右に回転",
     "groups": {
@@ -99,7 +97,8 @@
       "original": "元の比率",
       "landscape": "横向き",
       "portrait": "縦向き",
-      "apply": "適用"
+      "apply": "適用",
+      "size": "{{width, number}} × {{height, number}} px"
     },
     "steps": "変更",
     "noSteps": "まだ変更はありません。元の写真が変更されることはありません。",
@@ -107,7 +106,12 @@
     "unavailableHint": "この変更には、オフになっているかインストールされていないプラグインが必要です。変更は保持されますが、表示されません。",
     "notApplied": "未適用",
     "removeStep": "変更 {{n}} を削除",
-    "loading": "プレビューを読み込んでいます…"
+    "loading": "プレビューを読み込んでいます…",
+    "revert": "オリジナルに戻す",
+    "saveFailed": "変更を保存できませんでした: {{message}}",
+    "retry": "もう一度試す",
+    "discard": "変更を破棄",
+    "historyFailed": "この写真の編集履歴を読み込めなかったため、今は編集できません: {{message}}"
   },
   "collage": {
     "title": "🎨 Paloma コラージュ作成",
@@ -185,7 +189,8 @@
     "plugin_unavailable": "プラグイン「{{id}}」をオンにできません。「プラグイン」でエラーを確認してください。",
     "plugin_invalid_body": "プラグインの設定が正しくありません。",
     "edits_invalid": "ステップ {{step}} の編集が正しくありません。",
-    "render_failed": "写真を処理できませんでした: {{message}}"
+    "render_failed": "写真を処理できませんでした: {{message}}",
+    "filter_not_found": "プラグイン「{{id}}」にはフィルター「{{filter}}」のアイコンがありません。"
   },
   "geo": {
     "coordinates": "{{lat}}、{{lon}}",
@@ -228,5 +233,32 @@
     "empty": "プラグインが見つかりません。",
     "loading": "プラグインを読み込んでいます…",
     "installHint": "プラグインをインストールするには、そのフォルダーをプラグイン フォルダーにコピーまたはクローンし、Paloma を再起動してください。"
+  },
+  "settings": {
+    "title": "設定",
+    "intro": "これらの設定はこのブラウザーにのみ保存されます。",
+    "viewer": "写真ビューアー",
+    "navBar": "ナビゲーションバー",
+    "navBarHint": "閉じる、前後の写真、ズーム。",
+    "editBar": "編集バー",
+    "editBarHint": "元に戻す、やり直し、トリミングや回転などの写真の補正。",
+    "edges": {
+      "top": "上",
+      "bottom": "下",
+      "left": "左",
+      "right": "右"
+    }
+  },
+  "viewer": {
+    "navigation": "写真のナビゲーション",
+    "editBar": "写真の補正",
+    "close": "閉じる",
+    "previous": "前の写真",
+    "next": "次の写真",
+    "position": "{{index, number}} / {{total, number}}",
+    "saving": "変更を保存しています…",
+    "zoomIn": "拡大",
+    "zoomOut": "縮小",
+    "fit": "画面に合わせる"
   }
 }

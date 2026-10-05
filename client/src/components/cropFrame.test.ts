@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { dragCorner, fitRatio, FULL_FRAME, moveFrame, pixelRatio } from './cropFrame.js';
+import { dragCorner, fitRatio, FULL_FRAME, moveFrame, pixelRatio, framePixelSize } from './cropFrame.js';
 
 /** Width:height of a frame in pixels on a W×H image. */
 const pixels = (rect: { left: number; top: number; right: number; bottom: number }, w: number, h: number) =>
@@ -58,3 +58,16 @@ describe('moveFrame', () => {
     expect(moveFrame(rect, 1, -1)).toEqual({ left: 0.6, top: 0, right: 1, bottom: 0.3 });
   });
 });
+
+describe('framePixelSize', () => {
+  it('measures the frame on the full-size image', () => {
+    expect(framePixelSize({ left: 0, top: 0, right: 0.5, bottom: 1 }, { width: 4000, height: 3000 })).toEqual({ width: 2000, height: 3000 });
+    expect(framePixelSize({ left: 0.1, top: 0.25, right: 0.9, bottom: 0.75 }, { width: 1000, height: 800 })).toEqual({ width: 800, height: 400 });
+  });
+
+  it('rounds to whole pixels and never goes below 1', () => {
+    expect(framePixelSize({ left: 0.333333, top: 0, right: 0.666667, bottom: 0.5 }, { width: 1001, height: 3 })).toEqual({ width: 334, height: 2 });
+    expect(framePixelSize({ left: 0.5, top: 0.5, right: 0.5001, bottom: 0.5001 }, { width: 100, height: 100 })).toEqual({ width: 1, height: 1 });
+  });
+});
+

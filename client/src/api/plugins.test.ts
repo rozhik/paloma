@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { fetchPlugins, savePhotoEdits, setPluginEnabled } from './plugins.js';
+import { fetchPhotoEdits, fetchPlugins, savePhotoEdits, setPluginEnabled } from './plugins.js';
 import { ApiRequestError } from './http.js';
 
 afterEach(() => {
@@ -44,5 +44,15 @@ describe('plugins API', () => {
     expect(url).toBe('/api/photos/7/edits');
     expect(init?.method).toBe('PUT');
     expect(JSON.parse(String(init?.body))).toEqual({ edits: [{ filter: 'bw' }] });
+  });
+
+  it('saves the history with the edits and reads both back', async () => {
+    const put = stubFetch(200, { id: 7 });
+    await savePhotoEdits(7, [{ filter: 'sepia' }], { undo: [[]], redo: [] });
+    expect(JSON.parse(String(put.mock.calls[0][1]?.body))).toEqual({ edits: [{ filter: 'sepia' }], history: { undo: [[]], redo: [] } });
+
+    const get = stubFetch(200, { edits: [], history: { undo: [], redo: [] } });
+    expect(await fetchPhotoEdits(7)).toEqual({ edits: [], history: { undo: [], redo: [] } });
+    expect(get.mock.calls[0][0]).toBe('/api/photos/7/edits');
   });
 });

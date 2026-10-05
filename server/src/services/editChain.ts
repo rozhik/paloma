@@ -1,4 +1,4 @@
-import type { EditStep } from '../../../shared/types.js';
+import type { EditHistory, EditStep } from '../../../shared/types.js';
 import type { ParamDefinition } from '../plugins/api.js';
 import { isRelativeRect } from '../plugins/contributions.js';
 import type { RegisteredFilter } from '../plugins/registry.js';
@@ -23,6 +23,13 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 /** True for a list of objects that each have a string `filter`: the shape `edits` must have to be used. */
 export function isEditChain(value: unknown): value is EditStep[] {
   return Array.isArray(value) && value.every((step) => isPlainObject(step) && typeof step.filter === 'string' && step.filter !== '');
+}
+
+/** Whether a value is an edit history: `undo` and `redo` lists of chains. */
+export function isEditHistory(value: unknown): value is EditHistory {
+  return isPlainObject(value)
+    && Array.isArray(value.undo) && value.undo.every(isEditChain)
+    && Array.isArray(value.redo) && value.redo.every(isEditChain);
 }
 
 function paramValueProblem(param: ParamDefinition, value: unknown): string | null {

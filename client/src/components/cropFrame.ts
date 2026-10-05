@@ -85,3 +85,11 @@ export function moveFrame(rect: RelativeRect, dx: number, dy: number): RelativeR
   const top = clamp(rect.top + dy, 0, 1 - height);
   return roundRect({ left, top, right: left + width, bottom: top + height });
 }
+
+/** Pixel size of the area inside `rect` on an image of `size` pixels; at least 1×1. */
+export function framePixelSize(rect: RelativeRect, size: { width: number; height: number }): { width: number; height: number } {
+  return {
+    width: Math.max(1, Math.round((rect.right - rect.left) * size.width)),
+    height: Math.max(1, Math.round((rect.bottom - rect.top) * size.height)),
+  };
+}

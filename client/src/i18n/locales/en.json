@@ -21,7 +21,8 @@
     "people": "People",
     "map": "Map",
     "collage": "Collage",
-    "plugins": "Plugins"
+    "plugins": "Plugins",
+    "settings": "Settings"
   },
   "sidebar": {
     "collections": "Collections",
@@ -42,7 +43,8 @@
     "star": "Add to starred",
     "unstar": "Remove from starred",
     "edited": "Edited",
-    "geotagged": "Geotagged"
+    "geotagged": "Geotagged",
+    "select": "Select"
   },
   "tray": {
     "selected": "🖼️ Selected:",
@@ -80,12 +82,8 @@
   },
   "editor": {
     "holdForOriginal": "Hold to see the original",
-    "title": "✏️ Photo editor",
-    "saving": "Saving...",
-    "save": "Save changes",
     "undo": "Undo",
     "redo": "Redo",
-    "reset": "Reset to original",
     "rotateLeft": "Rotate left",
     "rotateRight": "Rotate right",
     "groups": {
@@ -100,7 +98,8 @@
       "original": "Original",
       "landscape": "Landscape",
       "portrait": "Portrait",
-      "apply": "Apply"
+      "apply": "Apply",
+      "size": "{{width, number}} × {{height, number}} px"
     },
     "steps": "Changes",
     "noSteps": "No changes yet. The original photo is never modified.",
@@ -108,7 +107,12 @@
     "unavailableHint": "This change needs a plugin that is off or not installed. It is kept, but not shown.",
     "notApplied": "not applied",
     "removeStep": "Remove change {{n}}",
-    "loading": "Loading preview…"
+    "loading": "Loading preview…",
+    "revert": "Revert to original",
+    "saveFailed": "The change could not be saved: {{message}}",
+    "retry": "Try again",
+    "discard": "Discard change",
+    "historyFailed": "The edit history of this photo could not be loaded, so it cannot be edited now: {{message}}"
   },
   "collage": {
     "title": "🎨 Paloma collage builder",
@@ -191,7 +195,8 @@
     "plugin_unavailable": "The plugin “{{id}}” cannot be switched on. See its error in Plugins.",
     "plugin_invalid_body": "The plugin setting is invalid.",
     "edits_invalid": "The edit in step {{step}} is invalid.",
-    "render_failed": "Could not render the photo: {{message}}"
+    "render_failed": "Could not render the photo: {{message}}",
+    "filter_not_found": "The plugin “{{id}}” has no icon for the filter “{{filter}}”."
   },
   "geo": {
     "coordinates": "{{lat}}, {{lon}}",
@@ -239,5 +244,32 @@
     "empty": "No plugins found.",
     "loading": "Loading plugins…",
     "installHint": "To install a plugin, copy or clone its folder into the plugins folder and restart Paloma."
+  },
+  "settings": {
+    "title": "Settings",
+    "intro": "These settings are remembered in this browser only.",
+    "viewer": "Photo viewer",
+    "navBar": "Navigation bar",
+    "navBarHint": "Close, previous and next photo, and zoom.",
+    "editBar": "Edit bar",
+    "editBarHint": "Undo, redo and the photo fixes, such as crop and rotate.",
+    "edges": {
+      "top": "Top",
+      "bottom": "Bottom",
+      "left": "Left",
+      "right": "Right"
+    }
+  },
+  "viewer": {
+    "navigation": "Photo navigation",
+    "editBar": "Photo fixes",
+    "close": "Close",
+    "previous": "Previous photo",
+    "next": "Next photo",
+    "position": "{{index, number}} / {{total, number}}",
+    "saving": "Saving the change…",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "fit": "Fit to screen"
   }
 }

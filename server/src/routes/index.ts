@@ -5,13 +5,13 @@ import { db } from '../db/index.js';
 import { folders, photos, edits, people, faceAnnotations, tags, photoTags } from '../db/schema.js';
 import { eq, inArray } from 'drizzle-orm';
 import { ThumbnailService } from '../services/ThumbnailService.js';
-import { listFolders, listPhotos, saveEdits, setPhotosLocation, updatePhoto } from '../services/photoApi.js';
+import { getEdits, listFolders, listPhotos, saveEdits, setPhotosLocation, updatePhoto } from '../services/photoApi.js';
 import {
   addAlbumPhotos, createAlbumFromPhotos, deleteAlbumEverywhere, editAlbumProperties, listAlbums, removeAlbumPhotos,
 } from '../services/albumApi.js';
 import { getGeoSettings, listGeoPoints, listPlaces, searchPlaces } from '../services/geoApi.js';
 import { MetadataService } from '../services/MetadataService.js';
-import { listPlugins, switchPlugin } from '../services/pluginApi.js';
+import { filterIcon, listPlugins, switchPlugin } from '../services/pluginApi.js';
 import { photoImage, renderPreview, type ImageResult } from '../services/renderApi.js';
 import { RenderService } from '../services/RenderService.js';
 import { libraryLookup } from '../services/libraryImages.js';
@@ -54,6 +54,11 @@ router.patch('/photos/:id/star', (req, res) => {
 });
 
 // --- Edits API ---
+router.get('/photos/:id/edits', (req, res) => {
+  const result = getEdits(Number(req.params.id));
+  res.status(result.status).json(result.body);
+});
+
 router.put('/photos/:id/edits', (req, res) => {
   const result = saveEdits(Number(req.params.id), req.body);
   res.status(result.status).json(result.body);
@@ -65,6 +70,10 @@ function sendImage(res: Response, result: ImageResult): void {
   } else if (result.kind === 'buffer') {
     res.setHeader('Content-Type', result.type);
     res.setHeader('Cache-Control', 'no-store');
+    if (result.fullSize) {
+      res.setHeader('X-Paloma-Full-Width', String(result.fullSize.width));
+      res.setHeader('X-Paloma-Full-Height', String(result.fullSize.height));
+    }
     res.send(result.image);
   } else {
     // The URL carries the render key, so a changed look always gets a new URL
@@ -302,6 +311,20 @@ router.delete('/albums/:token/photos', (req, res) => {
 router.get('/plugins', async (req, res, next) => {
   try {
     res.json(await listPlugins(req.query.lang));
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/plugins/:id/filters/:name/icon', async (req, res, next) => {
+  try {
+    const result = await filterIcon(req.params.id, req.params.name);
+    if (result.status !== 200) return res.status(result.status).json(result.body);
+    res.setHeader('Content-Type', 'image/svg+xml');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    // The URL carries the plugin version; a day is enough for an edited icon to show up without a version bump
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.sendFile(result.file);
   } catch (err) {
     next(err);
   }

@@ -68,6 +68,7 @@ export function activate(host) {
         name: 'crop64',
         label: LABELS.crop,
         group: 'basic',
+        icon: 'icons/crop64.svg',
         params: [{ name: 'rect', label: LABELS.frame, type: 'rect', default: { left: 0, top: 0, right: 1, bottom: 1 } }],
         render({ image, width, height, params }) {
           const rect = /** @type {RelativeRect} */ (params.rect);
@@ -82,6 +83,7 @@ export function activate(host) {
         name: 'rotate',
         label: LABELS.rotate,
         group: 'basic',
+        icon: 'icons/rotate.svg',
         params: [{
           name: 'angle',
           label: LABELS.angle,
@@ -97,6 +99,7 @@ export function activate(host) {
         name: 'flip',
         label: LABELS.flip,
         group: 'basic',
+        icon: 'icons/flip.svg',
         params: [{
           name: 'direction',
           label: LABELS.direction,
@@ -113,6 +116,7 @@ export function activate(host) {
         name: 'straighten',
         label: LABELS.straighten,
         group: 'basic',
+        icon: 'icons/straighten.svg',
         params: [{ name: 'angle', label: LABELS.angle, type: 'number', min: -45, max: 45, step: 0.1, default: 0 }],
         async render({ image, width, height, params }) {
           const angle = /** @type {number} */ (params.angle);

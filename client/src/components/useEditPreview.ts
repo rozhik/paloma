@@ -4,7 +4,8 @@ import { ApiRequestError } from '../api/http.js';
 
 const DEBOUNCE_MS = 150;
 const CACHE_SIZE = 12;
-export const MAX_PREVIEW_SIZE = 2048;
+/** The server's limit for `maxSize` */
+export const MAX_PREVIEW_SIZE = 4096;
 
 export interface EditPreview {
   /** Object URL of the latest rendered preview; kept while the next one loads */
@@ -12,11 +13,14 @@ export interface EditPreview {
   /** Pixel size of that preview */
   width: number;
   height: number;
+  /** Size the same steps give at full resolution, as the server reports it */
+  fullWidth: number;
+  fullHeight: number;
   loading: boolean;
   error: unknown;
 }
 
-/** Preview size for a box on screen: its longer side in device pixels, in steps of 256, at most 2048. */
+/** Preview size for a box on screen: its longer side in device pixels, in steps of 256, at most 4096. */
 export function previewSizeFor(boxWidth: number, boxHeight: number, pixelRatio: number): number {
   const needed = Math.max(boxWidth, boxHeight, 256) * pixelRatio;
   return Math.min(MAX_PREVIEW_SIZE, Math.ceil(needed / 256) * 256);
@@ -26,6 +30,8 @@ interface Cached {
   url: string;
   width: number;
   height: number;
+  fullWidth: number;
+  fullHeight: number;
 }
 
 /**
@@ -33,12 +39,20 @@ interface Cached {
  * for a moment, and a newer request cancels the older one. Recent results are kept for instant switching,
  * for example while "Show original" is held.
  */
+const EMPTY: EditPreview = { url: null, width: 0, height: 0, fullWidth: 0, fullHeight: 0, loading: true, error: null };
+
 export function useEditPreview(photoId: number, steps: EditStep[], maxSize: number): EditPreview {
-  const [preview, setPreview] = useState<EditPreview>({ url: null, width: 0, height: 0, loading: true, error: null });
+  const [preview, setPreview] = useState<EditPreview>(EMPTY);
   const cache = useRef(new Map<string, Cached>());
+  const shownPhoto = useRef(photoId);
   const key = JSON.stringify([steps, maxSize]);
 
   useEffect(() => {
+    // Another photo: its predecessor's image is no longer valid (and its object URL is revoked)
+    if (shownPhoto.current !== photoId) {
+      shownPhoto.current = photoId;
+      setPreview(EMPTY);
+    }
     const cached = cache.current.get(key);
     if (cached) {
       setPreview({ ...cached, loading: false, error: null });
@@ -57,12 +71,15 @@ export function useEditPreview(photoId: number, steps: EditStep[], maxSize: numb
         if (!res.ok) throw new ApiRequestError(res.status, await res.json().catch(() => null));
         const url = URL.createObjectURL(await res.blob());
         const { width, height } = await imageSize(url);
+        // Older servers do not send the full size; the preview's own size is the best guess then
+        const fullWidth = Number(res.headers.get('X-Paloma-Full-Width')) || width;
+        const fullHeight = Number(res.headers.get('X-Paloma-Full-Height')) || height;
         if (controller.signal.aborted) {
           URL.revokeObjectURL(url);
           return;
         }
-        remember(cache.current, key, { url, width, height });
-        setPreview({ url, width, height, loading: false, error: null });
+        remember(cache.current, key, { url, width, height, fullWidth, fullHeight });
+        setPreview({ url, width, height, fullWidth, fullHeight, loading: false, error: null });
       } catch (err) {
         if (!controller.signal.aborted) setPreview((current) => ({ ...current, loading: false, error: err }));
       }
