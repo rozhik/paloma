@@ -91,11 +91,15 @@ If loading a plugin's module fails, or the module does not export what this plug
 - **THEN** the plugin is listed with status `error` and the error message, and the bundled filters still work
 
 ### Requirement: Plugins contribute filters
-A plugin's module SHALL be able to contribute image filters. Each filter SHALL have a name, a label (a string or an object of language tags to strings that includes `en`), a group (`basic`, `tuning` or `effects`) and a list of parameters. Each parameter SHALL have a name, a label, a type (`number` with minimum, maximum, step and default, `boolean` with default, `choice` with options and default, or `rect` with default) and SHALL be described in terms that do not depend on image resolution.
+A plugin's module SHALL be able to contribute image filters. Each filter SHALL have a name, a label (a string or an object of language tags to strings that includes `en`), a group (`basic`, `tuning` or `effects`), a list of parameters and optionally an icon, which is the path of an SVG file inside the plugin's folder. Each parameter SHALL have a name, a label, a type (`number` with minimum, maximum, step and default, `boolean` with default, `choice` with options and default, or `rect` with default) and SHALL be described in terms that do not depend on image resolution.
 
 #### Scenario: Filter listed with its parameters
 - **WHEN** the enabled plugin `film-grain` contributes the filter `grain` in group `effects` with a number parameter `amount` from 0 to 100, step 1, default 20
 - **THEN** the plugin list shows `grain` with that group and parameter
+
+#### Scenario: Filter with an icon
+- **WHEN** the enabled plugin `film-grain` declares the icon `icons/grain.svg` for `grain`, and that file exists in its folder
+- **THEN** the edit bar shows that icon for `grain`
 
 ### Requirement: Filter names are unique across plugins
 A filter name SHALL belong to at most one plugin. If an enabled plugin contributes a filter whose name is already taken by a bundled plugin, or by an external plugin whose id sorts first, that filter SHALL NOT be available. The plugin's other filters SHALL still work, and the plugin SHALL show a warning naming the filter.
@@ -105,7 +109,7 @@ A filter name SHALL belong to at most one plugin. If an enabled plugin contribut
 - **THEN** `sepia` steps are still rendered by the bundled filter, `grain` is available, and the external plugin shows a warning naming `sepia`
 
 ### Requirement: Plugins API
-`GET /api/plugins` SHALL return every listed plugin with its id, name and description in the requested language, version, source (`bundled` or `external`), whether it is on, status (`active`, `off` or `error`), error and warning messages, and, when active, its filters with their labels in the requested language. `PATCH /api/plugins/:id` with `{"enabled": true|false}` SHALL switch the plugin and respond with it. Switching an unknown plugin SHALL fail with 404, switching a plugin in `error` status because of its manifest, id or API version SHALL fail with 409, and an invalid body SHALL be rejected with 400.
+`GET /api/plugins` SHALL return every listed plugin with its id, name and description in the requested language, version, source (`bundled` or `external`), whether it is on, status (`active`, `off` or `error`), error and warning messages, and, when active, its filters with their labels in the requested language and, for a filter with a usable icon, the URL of that icon. `PATCH /api/plugins/:id` with `{"enabled": true|false}` SHALL switch the plugin and respond with it. Switching an unknown plugin SHALL fail with 404, switching a plugin in `error` status because of its manifest, id or API version SHALL fail with 409, and an invalid body SHALL be rejected with 400.
 
 #### Scenario: Switch a plugin off through the API
 - **WHEN** a client sends `PATCH /api/plugins/basic-effects` with `{"enabled": false}`
@@ -118,6 +122,10 @@ A filter name SHALL belong to at most one plugin. If an enabled plugin contribut
 #### Scenario: Unknown plugin
 - **WHEN** a client sends `PATCH /api/plugins/nope` with `{"enabled": true}`
 - **THEN** the server responds 404
+
+#### Scenario: Icon URL
+- **WHEN** a client requests `GET /api/plugins` and `basic-effects` is active with an icon for `sepia`
+- **THEN** the `sepia` filter has an icon URL, and requesting that URL returns the SVG image
 
 ### Requirement: Plugin texts follow the active language
 Plugin names, descriptions, filter labels and parameter labels SHALL be shown in the active UI language if the plugin provides it, otherwise in English.
@@ -140,3 +148,14 @@ The top bar SHALL open a Plugins view that lists every plugin with its name, des
 #### Scenario: Plugin with an error
 - **WHEN** a plugin failed to load
 - **THEN** the view shows its error message
+
+### Requirement: Filter icons stay inside the plugin folder
+Paloma SHALL serve a filter's icon only if it is an `.svg` file inside its plugin's folder and the plugin is active. An icon path that leads outside the plugin folder, or a file that is missing or not `.svg`, SHALL NOT be served. Such a filter SHALL have no icon URL, the plugin SHALL show a warning naming the filter, and the edit bar SHALL show a generic filter icon for it. The filter SHALL still work.
+
+#### Scenario: Path outside the plugin
+- **WHEN** an enabled plugin declares the icon `../../secret.svg` for its filter `grain`
+- **THEN** `grain` has no icon URL, the plugin shows a warning naming `grain`, and the edit bar shows `grain` with the generic icon
+
+#### Scenario: Missing icon file
+- **WHEN** an enabled plugin declares `icons/grain.svg` and the file does not exist
+- **THEN** `grain` is offered with the generic icon and works as before

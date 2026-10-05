@@ -9,7 +9,7 @@ Current state that shapes the approach:
 - **Grid**: `PhotoCard.tsx` toggles selection on click and opens the editor on double-click through `setActiveEditPhoto`. The star is in the top-end corner, and a check icon appears top-start only when the photo is selected. `VirtualPhotoGrid` gets the `photos` list from `App`, which fetches it for the current folder, album, filter and search.
 - **Store**: `usePalomaStore` has `currentView: 'editor'` plus `activeEditPhoto`. `App` returns `<EditorCanvas>` early, so the library unmounts and the grid's scroll position is lost.
 - **Editor**: `EditorCanvas.tsx` (447 lines) has a fixed two-column layout, explicit Save/Cancel, and filter controls generated from `GET /api/plugins`. It reuses:
-  - `editChain.ts`: a pure reducer with undo/redo and `commit` merging, with tests.
+  - `editChain.ts`: a pure reducer with undo/redo and `commit` merging, with tests (reduced to undo only, D11).
   - `useEditPreview.ts`: server preview with debounce, abort, a small cache and the last image kept while loading. The client caps it at 2048 px.
   - `CropOverlay.tsx` and `cropFrame.ts`: frame and ratio maths, with tests.
 - **Preview API**: `renderApi.renderPreview` renders at a working size derived from `maxSize` (server cap 4096) and returns WebP only. It does not report the full-size dimensions.
@@ -71,24 +71,33 @@ New folder `client/src/components/viewer/`:
 - *Alternative*: `react-zoom-pan-pinch`. Rejected because limits are relative to actual pixels (which needs our full-size dimensions anyway), the frame-mode lock and RTL handling would have to fight the library, and the maths is about 80 lines.
 
 ### D4. Per-photo histories and auto-save
-- **Histories**: `useViewerEdits` keeps `Map<photoId, { chain: ChainState; saved: EditsPayload; status: 'saved' | 'saving' | 'failed'; error }>` for the photos shown since the viewer opened. The history itself lives in the sidecar (D11). When a photo is first shown, its chain starts from `photo.edits`, so the preview is not delayed. Its `{edits, history}` then load from `GET /api/photos/:id/edits` and become `steps`, `past` and `future`. Until they arrive, the edit bar is disabled, so a save can never overwrite a stored history the client has not seen.
-- **When to save**: after every reducer action except an in-progress slider change. Slider `onChange` dispatches `apply`/`update` without saving. `pointerup`/`keyup`/`blur` dispatch `commit`, and the save is scheduled then. In all cases a save of `{edits: steps, history: {undo: past, redo: future}}` is enqueued when it differs from `saved`, so no-op commits do not hit the server.
+- **Sessions**: `useViewerEdits` keeps `Map<photoId, { chain: ChainState; saved: EditStep[]; status: 'saved' | 'saving' | 'failed'; error }>` for the photos shown since the viewer opened, each starting from `photo.edits`. The edit list is the history (D11), so nothing else has to be loaded.
+- **When to save**: after every reducer action except an in-progress slider change. Slider `onChange` dispatches `apply`/`update` without saving. `pointerup`/`keyup`/`blur` dispatch `commit`, and the save is scheduled then. In all cases a save is enqueued when `chain.steps` differs from `saved`, so no-op commits do not hit the server.
 - **Queue** (`saveQueue.ts`): one in-flight `PUT /api/photos/:id/edits` per photo. A change made while a save is in flight sets a "pending" flag, and the latest steps are sent when the current save finishes. This avoids out-of-order writes to `.paloma.json`. On success, `saved` is updated, and the returned photo goes to `replaceViewerPhoto` and `refreshSelectedPhotos`.
 - **Save gate**: Close, Previous and Next first await the current photo's queue.
   - If the queue ends `failed`, they do not leave the photo, and an alert shows the localized error with "Try again" (re-enqueue) and "Discard change".
-  - Discard restores the last saved payload: its edits and its history.
+  - Discard restores the last saved steps.
   - While waiting, a small spinner shows in the navigation bar.
-- **Revert**: Revert to original is the existing `reset` action and is saved like any change.
 - *Alternative*: save on leaving the photo only. Rejected because a closed tab or a crash would lose work, and the spec asks for each change to be saved.
 
-### D11. Undo history in the sidecar
-- **Format**: entry key `editHistory: { undo: EditStep[][], redo: EditStep[][] }`, the same shape as the reducer's `past` and `future` (whole chains, oldest undo first, next redo first). Both empty means the key is deleted. Snapshots of whole chains are simple and robust. Chains are a few short steps, so even long histories stay small, though the file grows with every change because there is no limit (the user chose no limit).
-- **Not in the library**: `fieldsOf` ignores `editHistory`, the scanner never stores it, and Picasa re-imports never touch it (it is not in `SUPPORTED_FIELDS`). `GET /api/photos/:id/edits` reads the photo's entry from the sidecar on demand. Photo lists therefore do not carry histories, and a history edited outside Paloma is picked up on the next open.
-- **API**: `PUT` gains an optional `history`, which is structure-checked with `isEditChain` per item. Parameter ranges are not checked, because an undone chain is validated when it becomes `edits` again. A missing `history` leaves the stored one alone, so other clients keep working. `FieldPatch.editHistory` writes or deletes the key in the same atomic write as `edits`.
-- **Unreadable or wrong-typed history**: the history reads as empty lists. A wrong-typed value stays in the file until the next save replaces it, and an unreadable sidecar already blocks saving (existing rule).
-- *Alternatives*: the library DB (rejected by the user, because the history should travel with the folder) and browser memory (lost on reload).
+### D11. The edit list is the history
+- **Model**: like Picasa's `filters=`, `edits` is the record of what was done. Undo removes the last step. There is no Redo, no Revert and no editing of middle steps (the user's choice), so nothing outside `edits` is needed: no history key, no history API, and undo works after a restart and for imported Picasa steps.
+- **Reducer**: `editChain.ts` keeps `{ steps, merging }` with actions `load`, `apply` (updates a trailing step of the same filter, as before), `rotate`, `undo` and `commit`. `update`, `remove`, `reset`, `redo`, `past` and `future` are dropped. A slider drag or a second adjustment of the same filter still updates the trailing step, so undo removes that whole step, as Picasa does.
+- **Changes panel**: a read-only list. A crop frame opened right after a `crop64` step still edits that trailing step.
+- *Alternative*: snapshots of whole chains in an `editHistory` key, which was implemented first. It was replaced because it duplicated `edits` in the file and still could not undo Picasa edits.
 
-### D5. Bar placement
+### D12. Picasa `filters=` import
+- **Parser**: `picasaFilters.ts` reads `name=1,p1,p2;…` items (empty items skipped, a missing `=` drops the item). A first parameter of `0` gives `"enabled": false`.
+- **Mapping**:
+  - `crop64` gets a `rect`: the hex is padded to 16 digits, split into 16-bit words `left, top, right, bottom`, divided by 65535 and rounded to 6 decimals (doc 08 §4.3).
+  - `bw` and `sepia` map to the bundled filters.
+  - Filters with documented semantics keep named fields (doc 08 table): `tilt` gets `angle` and `scale`, numbers kept as they are, because the units are not established, so no conversion to `straighten`. `fill`, `unsharp2`, `sat` and `Boost` get `amount`; `finetune2` gets its five fields; `Vignette` gets four.
+  - Other filters keep `params`: the raw strings.
+  - A malformed value of a known filter, such as bad hex, drops that item.
+- **Plumbing**: `PhotoFields.edits` comes from the section, and `'edits'` joins `SUPPORTED_FIELDS` and `sameFields`, so it is imported on the first change, shown live before it, and re-imported for unmodified entries like the other fields. An entry the user edited has `modified`, so a later Picasa change never overwrites Paloma edits (existing conflict rule).
+- **Not imported**: `redo=` (no redo), `crop=` (a duplicate of the last `crop64`) and `rotate=` (a separate key, not part of `filters`; can be added later).
+
+### D5. Bar placement### D5. Bar placement
 - **Settings**: `{ navBar: Edge; editBar: Edge }` with `Edge = 'top' | 'bottom' | 'left' | 'right'`.
 - **Layout function**: `barLayout(settings)` returns, for each bar, its edge, orientation (`row` for top/bottom, `column` for left/right) and its offset from that edge.
   - The navigation bar always has offset 0.
@@ -111,7 +120,7 @@ New folder `client/src/components/viewer/`:
 - **Esc**: priority is frame → panel → viewer.
 - **Arrow keys**: `←`/`→` use `i18n.dir()`, so in RTL `←` means next. Shift+arrows pan.
 - **Zoom keys**: `+`/`=`, `-`, `0`.
-- **Undo/redo**: Ctrl/Cmd+Z and Ctrl/Cmd+Shift+Z move here from `EditorCanvas`.
+- **Undo**: Ctrl/Cmd+Z moves here from `EditorCanvas`.
 - **Icons**: the Previous and Next icons use the existing `flip-rtl` class.
 
 ### D8. Photo card interactions
@@ -137,7 +146,7 @@ New folder `client/src/components/viewer/`:
 - **Resolution choice**: when zoomed, the viewer asks for `maxSize = previewSizeFor(fullW × scale, fullH × scale, dpr)`, in steps of 256 and capped at 4096. It only asks again when the needed size grows beyond the current image, or when the chain changes. On returning to fit, the fit-size request is usually cached already.
 
 ### Files touched in photo folders
-This change reads and writes no files in photo folders beyond what `photo-edits` already does. Auto-save writes the photo's entry in that folder's `.paloma.json` through the existing `PUT /api/photos/:id/edits`, and never writes the photo file. It writes more often than before (on each finished change, not once on Save), and the entry also holds `editHistory` (D11), which grows with every change. Each write goes through `SidecarService`'s existing per-folder serialization. Plugin icons are read from plugin folders only.
+This change reads and writes no files in photo folders beyond what `photo-edits` already does. Auto-save writes the photo's entry in that folder's `.paloma.json` through the existing `PUT /api/photos/:id/edits`, and never writes the photo file. It writes more often than before (on each finished change, not once on Save). Each write goes through `SidecarService`'s existing per-folder serialization. Plugin icons are read from plugin folders only.
 
 ### MVP code: reused, rewritten, dropped
 - **Reused**:
@@ -154,7 +163,8 @@ This change reads and writes no files in photo folders beyond what `photo-edits`
 - [Zoomed previews up to 4096 px take longer to render, especially while editing] → The current image stays on screen scaled until the sharper one arrives. The debounce and abort in `useEditPreview` drop intermediate requests. Above 4096 px the photo is scaled up (non-goal).
 - [Full-size dimensions are derived from a working-size render] → Filters are resolution-independent by contract, but whole-pixel details such as `straighten`'s 2 px margin scale with the working size. The spec allows 0.5%, which is enough for a zoom percentage. A test compares the headers against a full render for crop, rotate and straighten.
 - [Plugin SVG icons are untrusted content] → They are only used as CSS masks (never inline or `<object>`), served with `nosniff` and confined to the plugin folder.
-- [Discarding after a failed save clears that photo's undo history] → This is rare, and the alternative (an undo stack containing unsaved states) complicates the queue.
+- [Undo after a second adjustment of the same filter removes the whole step, not just the last adjustment] → This is the Picasa behaviour the user asked for; the value can be set again from the filter's panel.
+- [Imported Picasa filters that no plugin provides (autolight, finetune2, …) are kept but not rendered, so a Picasa-edited photo can look different in Paloma] → They show as unavailable in Changes and can be undone; plugins can implement them later.
 - [Removing click-to-select changes a habit from the MVP] → The corner checkbox is visible on hover, and Ctrl/Cmd+click remains. The tray and map selection flows are unchanged.
 
 ## Migration Plan

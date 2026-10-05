@@ -1,0 +1,46 @@
+# photo-grid Specification
+
+## Purpose
+
+Defines how a photo card in the library grid responds to the user: opening the photo in the viewer, selecting it for the tray, and starring it from the card's corners.
+
+## Requirements
+
+### Requirement: Click opens the photo viewer
+A plain click on a photo card, outside its corner controls, SHALL open the photo viewer on that photo, with the photos the grid shows as the viewer's list. It SHALL NOT change the selection.
+
+#### Scenario: Open from the grid
+- **WHEN** the grid shows 120 photos and the user clicks the third card's image
+- **THEN** the viewer opens on that photo as `3 / 120`, and the tray is unchanged
+
+### Requirement: Corner checkbox selects
+Each photo card SHALL have a select checkbox in its top-start corner. It SHALL be shown while the photo is selected, and while the pointer is over the card or the card has keyboard focus. Clicking it SHALL toggle whether the photo is selected, without opening the viewer. Its accessible name SHALL be in the active UI language.
+
+#### Scenario: Select with the checkbox
+- **WHEN** the user clicks the checkbox of an unselected photo
+- **THEN** the photo is selected and appears in the tray, and the viewer does not open
+
+#### Scenario: Deselect with the checkbox
+- **WHEN** the user clicks the checkbox of a selected photo
+- **THEN** the photo leaves the selection and the tray
+
+### Requirement: Ctrl or Cmd click selects
+Clicking a photo card with Ctrl held, or Cmd on a Mac, SHALL toggle whether the photo is selected, without opening the viewer.
+
+#### Scenario: Ctrl-click two photos
+- **WHEN** the user Ctrl-clicks two unselected photos
+- **THEN** both are selected and the viewer does not open
+
+### Requirement: Star corner stars the photo
+The star button in a card's top-end corner SHALL toggle the photo's star without opening the viewer or changing the selection.
+
+#### Scenario: Star from the grid
+- **WHEN** the user clicks the star of an unstarred photo
+- **THEN** the photo is starred, the viewer does not open, and the selection is unchanged
+
+### Requirement: Cards work from the keyboard
+A photo card SHALL be reachable with Tab. Enter on a focused card SHALL open the viewer on it, and Space SHALL toggle whether it is selected.
+
+#### Scenario: Open with Enter
+- **WHEN** a card has keyboard focus and the user presses Enter
+- **THEN** the viewer opens on that photo
