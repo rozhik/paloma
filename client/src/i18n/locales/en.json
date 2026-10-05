@@ -83,7 +83,6 @@
   "editor": {
     "holdForOriginal": "Hold to see the original",
     "undo": "Undo",
-    "redo": "Redo",
     "rotateLeft": "Rotate left",
     "rotateRight": "Rotate right",
     "groups": {
@@ -106,13 +105,10 @@
     "unavailable": "unavailable",
     "unavailableHint": "This change needs a plugin that is off or not installed. It is kept, but not shown.",
     "notApplied": "not applied",
-    "removeStep": "Remove change {{n}}",
     "loading": "Loading preview…",
-    "revert": "Revert to original",
     "saveFailed": "The change could not be saved: {{message}}",
     "retry": "Try again",
-    "discard": "Discard change",
-    "historyFailed": "The edit history of this photo could not be loaded, so it cannot be edited now: {{message}}"
+    "discard": "Discard change"
   },
   "collage": {
     "title": "🎨 Paloma collage builder",

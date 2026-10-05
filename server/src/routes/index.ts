@@ -5,7 +5,7 @@ import { db } from '../db/index.js';
 import { folders, photos, edits, people, faceAnnotations, tags, photoTags } from '../db/schema.js';
 import { eq, inArray } from 'drizzle-orm';
 import { ThumbnailService } from '../services/ThumbnailService.js';
-import { getEdits, listFolders, listPhotos, saveEdits, setPhotosLocation, updatePhoto } from '../services/photoApi.js';
+import { listFolders, listPhotos, saveEdits, setPhotosLocation, updatePhoto } from '../services/photoApi.js';
 import {
   addAlbumPhotos, createAlbumFromPhotos, deleteAlbumEverywhere, editAlbumProperties, listAlbums, removeAlbumPhotos,
 } from '../services/albumApi.js';
@@ -54,11 +54,6 @@ router.patch('/photos/:id/star', (req, res) => {
 });
 
 // --- Edits API ---
-router.get('/photos/:id/edits', (req, res) => {
-  const result = getEdits(Number(req.params.id));
-  res.status(result.status).json(result.body);
-});
-
 router.put('/photos/:id/edits', (req, res) => {
   const result = saveEdits(Number(req.params.id), req.body);
   res.status(result.status).json(result.body);

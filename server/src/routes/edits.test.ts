@@ -157,36 +157,6 @@ describe('PUT /api/photos/:id/edits', () => {
   });
 });
 
-describe('edit history', () => {
-  it('is saved with the edits and read back', async () => {
-    const history = { undo: [[]], redo: [] };
-    expect((await send('PUT', `/photos/${photoId}/edits`, { edits: [{ filter: 'sepia' }], history })).status).toBe(200);
-    expect(sidecar().photos['a.jpg'].editHistory).toEqual(history);
-    expect(await send('GET', `/photos/${photoId}/edits`)).toMatchObject({ status: 200, body: { edits: [{ filter: 'sepia' }], history } });
-  });
-
-  it('gives empty lists without history and keeps the stored history when none is sent', async () => {
-    expect(await send('GET', `/photos/${photoId}/edits`)).toMatchObject({ status: 200, body: { edits: [], history: { undo: [], redo: [] } } });
-    await send('PUT', `/photos/${photoId}/edits`, { edits: [{ filter: 'bw' }], history: { undo: [[]], redo: [] } });
-    await send('PUT', `/photos/${photoId}/edits`, { edits: [{ filter: 'sepia' }] });
-    expect(sidecar().photos['a.jpg']).toMatchObject({ edits: [{ filter: 'sepia' }], editHistory: { undo: [[]], redo: [] } });
-  });
-
-  it('rejects a history of the wrong shape and changes nothing', async () => {
-    await send('PUT', `/photos/${photoId}/edits`, { edits: [{ filter: 'bw' }], history: { undo: [[]], redo: [] } });
-    const before = fs.readFileSync(sidecarPath(), 'utf-8');
-    for (const history of [{ undo: 'sepia' }, { undo: [[{ name: 'x' }]], redo: [] }, [[]]]) {
-      expect(await send('PUT', `/photos/${photoId}/edits`, { edits: [], history }))
-        .toMatchObject({ status: 400, body: { code: 'invalid_field', params: { field: 'history' } } });
-    }
-    expect(fs.readFileSync(sidecarPath(), 'utf-8')).toBe(before);
-  });
-
-  it('responds 404 for an unknown photo', async () => {
-    expect((await send('GET', '/photos/999999/edits')).status).toBe(404);
-  });
-});
-
 describe('POST /api/photos/:id/preview', () => {
   it('renders unsaved steps fitted within maxSize and saves nothing', async () => {
     const { status, type, body } = await send('POST', `/photos/${bigId}/preview`, { edits: [{ filter: 'rotate', angle: 90 }], maxSize: 1200 });

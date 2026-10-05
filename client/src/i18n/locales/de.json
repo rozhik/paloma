@@ -84,7 +84,6 @@
   "editor": {
     "holdForOriginal": "Gedrückt halten für das Original",
     "undo": "Rückgängig",
-    "redo": "Wiederholen",
     "rotateLeft": "Nach links drehen",
     "rotateRight": "Nach rechts drehen",
     "groups": {
@@ -107,13 +106,10 @@
     "unavailable": "nicht verfügbar",
     "unavailableHint": "Diese Änderung braucht ein Plugin, das ausgeschaltet oder nicht installiert ist. Sie bleibt erhalten, wird aber nicht angezeigt.",
     "notApplied": "nicht angewendet",
-    "removeStep": "Änderung {{n}} entfernen",
     "loading": "Vorschau wird geladen…",
-    "revert": "Zum Original zurückkehren",
     "saveFailed": "Die Änderung konnte nicht gespeichert werden: {{message}}",
     "retry": "Erneut versuchen",
-    "discard": "Änderung verwerfen",
-    "historyFailed": "Der Bearbeitungsverlauf dieses Fotos konnte nicht geladen werden, daher kann es gerade nicht bearbeitet werden: {{message}}"
+    "discard": "Änderung verwerfen"
   },
   "collage": {
     "title": "🎨 Paloma-Collage-Editor",

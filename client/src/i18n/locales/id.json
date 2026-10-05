@@ -82,7 +82,6 @@
   "editor": {
     "holdForOriginal": "Tahan untuk melihat aslinya",
     "undo": "Urungkan",
-    "redo": "Ulangi",
     "rotateLeft": "Putar ke kiri",
     "rotateRight": "Putar ke kanan",
     "groups": {
@@ -105,13 +104,10 @@
     "unavailable": "tidak tersedia",
     "unavailableHint": "Perubahan ini memerlukan plugin yang nonaktif atau belum dipasang. Perubahan tetap disimpan, tetapi tidak ditampilkan.",
     "notApplied": "tidak diterapkan",
-    "removeStep": "Hapus perubahan {{n}}",
     "loading": "Memuat pratinjau…",
-    "revert": "Kembalikan ke asli",
     "saveFailed": "Perubahan tidak dapat disimpan: {{message}}",
     "retry": "Coba lagi",
-    "discard": "Buang perubahan",
-    "historyFailed": "Riwayat suntingan foto ini tidak dapat dimuat, jadi foto ini belum bisa disunting: {{message}}"
+    "discard": "Buang perubahan"
   },
   "collage": {
     "title": "🎨 Pembuat kolase Paloma",

@@ -1,7 +1,7 @@
 import React, { useLayoutEffect, useRef, useState } from 'react';
 import { Badge, Form } from 'react-bootstrap';
 import { useTranslation } from 'react-i18next';
-import { Crop, Trash2, X } from 'lucide-react';
+import { Crop, X } from 'lucide-react';
 import type { EditStep, FilterInfo, FilterParamInfo } from '../../../../shared/types.js';
 import type { Edge } from '../../settings/uiSettings.js';
 import { CROP_RATIOS, type CropRatio } from '../cropFrame.js';
@@ -221,15 +221,13 @@ export const FrameControls: React.FC<FrameControlsProps> = ({ hint, pixelSize, r
 interface ChangesListProps {
   steps: EditStep[];
   filters: Map<string, FilterInfo> | null;
-  selected: number | null;
-  onSelect: (index: number | null) => void;
-  onRemove: (index: number) => void;
-  /** Controls of the selected step */
-  renderControls: (filter: FilterInfo, step: EditStep, index: number) => React.ReactNode;
 }
 
-/** The chain's steps with their filter icons, an "unavailable" badge for missing filters and a remove button. */
-export const ChangesList: React.FC<ChangesListProps> = ({ steps, filters, selected, onSelect, onRemove, renderControls }) => {
+/**
+ * The chain's steps, read-only: the chain is the photo's history, changed only by new steps and Undo. Each
+ * step shows its filter's icon and values, and a step whose filter is missing is marked unavailable.
+ */
+export const ChangesList: React.FC<ChangesListProps> = ({ steps, filters }) => {
   const { t, i18n } = useTranslation();
   const formatNumber = (value: number) => new Intl.NumberFormat(i18n.language).format(value);
 
@@ -254,34 +252,16 @@ export const ChangesList: React.FC<ChangesListProps> = ({ steps, filters, select
       {steps.map((step, index) => {
         const filter = filters?.get(step.filter);
         const available = !filters || !!filter;
-        const isSelected = selected === index;
         return (
-          <li key={index} className={`rounded p-2 mb-2 ${isSelected ? 'bg-secondary' : 'viewer-step'}`}>
-            <div className="d-flex align-items-center gap-2">
-              <button
-                type="button"
-                className="btn btn-link text-start text-white flex-grow-1 p-0 fs-5 text-decoration-none d-flex align-items-center gap-2"
-                aria-expanded={filter && filter.params.length > 0 ? isSelected : undefined}
-                onClick={() => onSelect(isSelected || !filter || filter.params.length === 0 ? null : index)}
-              >
-                <span>{index + 1}.</span>
-                <FilterIcon url={filter?.iconUrl} size={22} />
-                <span dir="auto">{stepLabel(step)}</span>
-              </button>
+          <li key={index} className="rounded p-2 mb-2 viewer-step">
+            <div className="d-flex align-items-center gap-2 fs-5">
+              <span>{index + 1}.</span>
+              <FilterIcon url={filter?.iconUrl} size={22} />
+              <span dir="auto" className="flex-grow-1">{stepLabel(step)}</span>
               {!available && <Badge bg="warning" text="dark">{t('editor.unavailable')}</Badge>}
               {step.enabled === false && <Badge bg="secondary">{t('editor.notApplied')}</Badge>}
-              <button
-                type="button"
-                className="btn btn-outline-danger"
-                aria-label={t('editor.removeStep', { n: index + 1 })}
-                title={t('editor.removeStep', { n: index + 1 })}
-                onClick={() => onRemove(index)}
-              >
-                <Trash2 size={20} />
-              </button>
             </div>
             {!available && <div className="small mt-1">{t('editor.unavailableHint')}</div>}
-            {isSelected && filter && <div className="mt-2">{renderControls(filter, step, index)}</div>}
           </li>
         );
       })}

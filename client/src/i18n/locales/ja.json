@@ -82,7 +82,6 @@
   "editor": {
     "holdForOriginal": "押している間オリジナルを表示",
     "undo": "元に戻す",
-    "redo": "やり直す",
     "rotateLeft": "左に回転",
     "rotateRight": "右に回転",
     "groups": {
@@ -105,13 +104,10 @@
     "unavailable": "使用不可",
     "unavailableHint": "この変更には、オフになっているかインストールされていないプラグインが必要です。変更は保持されますが、表示されません。",
     "notApplied": "未適用",
-    "removeStep": "変更 {{n}} を削除",
     "loading": "プレビューを読み込んでいます…",
-    "revert": "オリジナルに戻す",
     "saveFailed": "変更を保存できませんでした: {{message}}",
     "retry": "もう一度試す",
-    "discard": "変更を破棄",
-    "historyFailed": "この写真の編集履歴を読み込めなかったため、今は編集できません: {{message}}"
+    "discard": "変更を破棄"
   },
   "collage": {
     "title": "🎨 Paloma コラージュ作成",

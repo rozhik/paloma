@@ -22,7 +22,7 @@ import { ZoomStage } from './ZoomStage.js';
 interface FrameEdit {
   filter: string;
   param: string;
-  /** The step being changed, or null for a new step */
+  /** The trailing step being changed, or null for a new step */
   index: number | null;
   rect: RelativeRect;
   ratio: CropRatio;
@@ -64,7 +64,6 @@ const ViewerScreen: React.FC<{ viewer: ViewerState }> = ({ viewer }) => {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [panel, setPanel] = useState<(PanelKind & { anchor: PanelAnchor }) | null>(null);
   const [frame, setFrame] = useState<FrameEdit | null>(null);
-  const [selectedStep, setSelectedStep] = useState<number | null>(null);
   const [showOriginal, setShowOriginal] = useState(false);
   const [showGrid, setShowGrid] = useState(false);
   const [stage, setStage] = useState<Size>({ width: window.innerWidth, height: window.innerHeight });
@@ -87,7 +86,6 @@ const ViewerScreen: React.FC<{ viewer: ViewerState }> = ({ viewer }) => {
     setZoomChoice('fit');
     setPanel(null);
     setFrame(null);
-    setSelectedStep(null);
     setBlocked(false);
   }, [photo.id]);
 
@@ -98,11 +96,6 @@ const ViewerScreen: React.FC<{ viewer: ViewerState }> = ({ viewer }) => {
     root.current?.focus();
     return () => before?.focus?.();
   }, []);
-
-  // A selected step that disappeared (undo, remove) is no longer selected
-  useEffect(() => {
-    if (selectedStep !== null && selectedStep >= chain.steps.length) setSelectedStep(null);
-  }, [chain.steps.length, selectedStep]);
 
   const previewSteps = showOriginal ? [] : frame ? chain.steps.slice(0, frame.index ?? chain.steps.length) : chain.steps;
 
@@ -152,23 +145,21 @@ const ViewerScreen: React.FC<{ viewer: ViewerState }> = ({ viewer }) => {
   const next = () => canNext && leave(() => moveViewer(1));
   const close = () => leave(closeViewer);
 
-  /** Opens the frame editor for a rectangle parameter: of the step at `index`, or for a new step. */
-  const openFrame = (filter: FilterInfo, param: FilterParamInfo & { type: 'rect' }, index: number | null) => {
-    // A new frame right after a step of the same filter changes that step, as other controls do
+  /** Opens the frame editor for a rectangle parameter, for a new step or a trailing step of the same filter. */
+  const openFrame = (filter: FilterInfo, param: FilterParamInfo & { type: 'rect' }) => {
+    // A frame right after a step of the same filter changes that step, as other controls do
     const last = chain.steps.length - 1;
-    const target = index ?? (chain.steps[last]?.filter === filter.name && chain.steps[last].enabled !== false ? last : null);
+    const target = chain.steps[last]?.filter === filter.name && chain.steps[last].enabled !== false ? last : null;
     const current = target !== null ? chain.steps[target][param.name] as RelativeRect | undefined : undefined;
     setFrame({ filter: filter.name, param: param.name, index: target, rect: current ?? param.default ?? FULL_FRAME, ratio: 'free', portrait: false });
   };
 
   const applyFrame = () => {
     if (!frame || !filters) return;
-    if (frame.index !== null) {
-      dispatch({ type: 'update', index: frame.index, params: { [frame.param]: frame.rect } });
-    } else {
-      const filter = filters.get(frame.filter)!;
-      dispatch({ type: 'apply', filter: frame.filter, params: { ...valuesOf(filter, undefined), [frame.param]: frame.rect } });
-    }
+    // `apply` changes a trailing step of the same filter, or adds a step with the other values at their defaults
+    const filter = filters.get(frame.filter)!;
+    const step = frame.index !== null ? chain.steps[frame.index] : undefined;
+    dispatch({ type: 'apply', filter: frame.filter, params: { ...valuesOf(filter, step), [frame.param]: frame.rect } });
     dispatch({ type: 'commit' });
     setFrame(null);
     setPanel(null);
@@ -203,7 +194,7 @@ const ViewerScreen: React.FC<{ viewer: ViewerState }> = ({ viewer }) => {
     setPanel({ kind: 'filter', name: filter.name, anchor });
     // A filter that is only a frame, like crop, goes straight to the frame
     const only = filter.params.length === 1 ? filter.params[0] : null;
-    if (only?.type === 'rect') openFrame(filter, only, null);
+    if (only?.type === 'rect') openFrame(filter, only);
   };
 
   const lastStep = chain.steps[chain.steps.length - 1];
@@ -224,7 +215,7 @@ const ViewerScreen: React.FC<{ viewer: ViewerState }> = ({ viewer }) => {
       if (typing) return;
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
         event.preventDefault();
-        if (!frame) dispatch({ type: event.shiftKey ? 'redo' : 'undo' });
+        if (!frame && !event.shiftKey) dispatch({ type: 'undo' });
         return;
       }
       if (event.ctrlKey || event.metaKey || event.altKey) return;
@@ -253,7 +244,6 @@ const ViewerScreen: React.FC<{ viewer: ViewerState }> = ({ viewer }) => {
   const panelFilter = panel?.kind === 'filter' ? filters?.get(panel.name) : undefined;
   const panelSide = inwardSide(layout.editBar.edge);
   const saveMessage = edits.status === 'failed' ? describeError(edits.error, t) : null;
-  const historyMessage = edits.load.state === 'failed' ? describeError(edits.load.error, t) : null;
 
   return (
     <div
@@ -311,19 +301,15 @@ const ViewerScreen: React.FC<{ viewer: ViewerState }> = ({ viewer }) => {
         placement={layout.editBar}
         style={barStyle(layout.editBar)}
         filters={filters}
-        canUndo={chain.past.length > 0}
-        canRedo={chain.future.length > 0}
-        canRevert={chain.steps.length > 0}
-        locked={!!frame || edits.load.state !== 'ready'}
+        canUndo={chain.steps.length > 0}
+        locked={!!frame}
         openPanel={panel}
         showingOriginal={showOriginal}
         onUndo={() => dispatch({ type: 'undo' })}
-        onRedo={() => dispatch({ type: 'redo' })}
         onRotate={(delta) => dispatch({ type: 'rotate', delta })}
         onFilter={chooseFilter}
         onChanges={(anchor) => setPanel(panel?.kind === 'changes' ? null : { kind: 'changes', anchor })}
         onShowOriginal={setShowOriginal}
-        onRevert={() => dispatch({ type: 'reset' })}
       />
 
       {panel && (panelFilter || panel.kind === 'changes') && (
@@ -352,35 +338,17 @@ const ViewerScreen: React.FC<{ viewer: ViewerState }> = ({ viewer }) => {
               editing={lastStep?.filter === panelFilter.name}
               onChange={(values) => dispatch({ type: 'apply', filter: panelFilter.name, params: values })}
               onCommit={() => dispatch({ type: 'commit' })}
-              onFrame={(param) => openFrame(panelFilter, param, null)}
+              onFrame={(param) => openFrame(panelFilter, param)}
               onSliding={(sliding) => setShowGrid(sliding && panelFilter.name === STRAIGHTEN)}
               idPrefix="panel"
             />
           ) : (
-            <ChangesList
-              steps={chain.steps}
-              filters={filters}
-              selected={selectedStep}
-              onSelect={setSelectedStep}
-              onRemove={(index) => dispatch({ type: 'remove', index })}
-              renderControls={(filter, step, index) => (
-                <FilterControls
-                  filter={filter}
-                  values={valuesOf(filter, step)}
-                  editing
-                  onChange={(values) => dispatch({ type: 'update', index, params: values })}
-                  onCommit={() => dispatch({ type: 'commit' })}
-                  onFrame={(param) => openFrame(filter, param, index)}
-                  onSliding={(sliding) => setShowGrid(sliding && filter.name === STRAIGHTEN)}
-                  idPrefix={`step-${index}`}
-                />
-              )}
-            />
+            <ChangesList steps={chain.steps} filters={filters} />
           )}
         </FloatingPanel>
       )}
 
-      {(saveMessage || historyMessage || loadError || preview.error != null) && (
+      {(saveMessage || loadError || preview.error != null) && (
         <div className="viewer-toast">
           {saveMessage && (
             <Alert variant="danger" className={`mb-2 fs-5 ${blocked ? 'viewer-attention' : ''}`} onAnimationEnd={() => setBlocked(false)}>
@@ -391,7 +359,6 @@ const ViewerScreen: React.FC<{ viewer: ViewerState }> = ({ viewer }) => {
               </div>
             </Alert>
           )}
-          {historyMessage && <Alert variant="danger" className="mb-2 fs-5">{t('editor.historyFailed', { message: historyMessage })}</Alert>}
           {loadError && <Alert variant="danger" className="mb-2 fs-5" onClose={() => setLoadError(null)} dismissible>{loadError}</Alert>}
           {preview.error != null && <Alert variant="danger" className="mb-0 fs-5">{describeError(preview.error, t)}</Alert>}
         </div>

@@ -86,7 +86,6 @@
   "editor": {
     "holdForOriginal": "Mantenha pressionado para ver o original",
     "undo": "Desfazer",
-    "redo": "Refazer",
     "rotateLeft": "Girar para a esquerda",
     "rotateRight": "Girar para a direita",
     "groups": {
@@ -109,13 +108,10 @@
     "unavailable": "indisponível",
     "unavailableHint": "Esta alteração precisa de um plugin desativado ou não instalado. Ela é mantida, mas não é exibida.",
     "notApplied": "não aplicada",
-    "removeStep": "Remover a alteração {{n}}",
     "loading": "Carregando a prévia…",
-    "revert": "Voltar ao original",
     "saveFailed": "Não foi possível salvar a alteração: {{message}}",
     "retry": "Tentar novamente",
-    "discard": "Descartar alteração",
-    "historyFailed": "Não foi possível carregar o histórico de edições desta foto, por isso ela não pode ser editada agora: {{message}}"
+    "discard": "Descartar alteração"
   },
   "collage": {
     "title": "🎨 Criador de colagens do Paloma",

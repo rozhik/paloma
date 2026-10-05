@@ -4,17 +4,18 @@ import { chainReducer, initialChain, type ChainAction, type ChainState } from '.
 const run = (state: ChainState, ...actions: ChainAction[]) => actions.reduce(chainReducer, state);
 
 describe('chainReducer', () => {
-  it('merges consecutive slider changes into one step and one undo entry', () => {
+  it('merges consecutive slider changes into one step', () => {
     const state = run(
       initialChain([{ filter: 'sepia' }]),
       { type: 'apply', filter: 'brightness', params: { amount: 20 } },
       { type: 'apply', filter: 'brightness', params: { amount: 35 } },
     );
     expect(state.steps).toEqual([{ filter: 'sepia' }, { filter: 'brightness', amount: 35 }]);
-    expect(run(state, { type: 'undo' }).steps).toEqual([{ filter: 'sepia' }]);
+    expect(state.merging).toBe('apply:brightness');
+    expect(run(state, { type: 'commit' }).merging).toBeNull();
   });
 
-  it('gives a new undo entry to a second drag after a commit, still updating the same step', () => {
+  it('updates a trailing step of the same filter even after a commit, so undo removes the whole step', () => {
     const state = run(
       initialChain(),
       { type: 'apply', filter: 'brightness', params: { amount: 20 } },
@@ -22,7 +23,7 @@ describe('chainReducer', () => {
       { type: 'apply', filter: 'brightness', params: { amount: 35 } },
     );
     expect(state.steps).toEqual([{ filter: 'brightness', amount: 35 }]);
-    expect(run(state, { type: 'undo' }).steps).toEqual([{ filter: 'brightness', amount: 20 }]);
+    expect(run(state, { type: 'undo' }).steps).toEqual([]);
   });
 
   it('appends a step when the last step uses another filter', () => {
@@ -54,46 +55,28 @@ describe('chainReducer', () => {
     expect(state.steps).toEqual([{ filter: 'rotate', angle: 90 }, { filter: 'bw' }, { filter: 'rotate', angle: 90 }]);
   });
 
-  it('updates and removes a step by position, keeping unknown steps untouched', () => {
+  it('undoes by removing the last step, also of a saved or unknown chain', () => {
     const grain = { filter: 'grain', amount: 30 };
-    let state = run(initialChain([grain, { filter: 'brightness', amount: 10 }, { filter: 'sepia' }]),
-      { type: 'update', index: 1, params: { amount: 50 } });
-    expect(state.steps).toEqual([grain, { filter: 'brightness', amount: 50 }, { filter: 'sepia' }]);
-    state = run(state, { type: 'remove', index: 2 });
-    expect(state.steps).toEqual([grain, { filter: 'brightness', amount: 50 }]);
+    let state = run(initialChain([grain, { filter: 'crop64', rect: { left: 0, top: 0, right: 0.5, bottom: 1 } }]), { type: 'apply', filter: 'bw', params: {} });
+    state = run(state, { type: 'undo' });
+    expect(state.steps.map((s) => s.filter)).toEqual(['grain', 'crop64']);
+    state = run(state, { type: 'undo' });
+    expect(state.steps).toEqual([grain]);
     expect(state.steps[0]).toBe(grain);
   });
 
-  it('undoes and redoes changes in order', () => {
-    let state = run(initialChain(), { type: 'rotate', delta: 90 }, { type: 'apply', filter: 'bw', params: {} });
-    state = run(state, { type: 'undo' });
-    expect(state.steps).toEqual([{ filter: 'rotate', angle: 90 }]);
-    state = run(state, { type: 'undo' });
-    expect(state.steps).toEqual([]);
+  it('does nothing when undoing an empty chain', () => {
+    const state = initialChain();
     expect(run(state, { type: 'undo' })).toBe(state);
-    state = run(state, { type: 'redo' }, { type: 'redo' });
-    expect(state.steps).toEqual([{ filter: 'rotate', angle: 90 }, { filter: 'bw' }]);
   });
 
-  it('drops the redo history after a new change', () => {
-    const state = run(initialChain(), { type: 'rotate', delta: 90 }, { type: 'undo' }, { type: 'apply', filter: 'bw', params: {} });
-    expect(state.future).toEqual([]);
-    expect(run(state, { type: 'redo' }).steps).toEqual([{ filter: 'bw' }]);
+  it('keeps the state when a change changes nothing', () => {
+    const state = initialChain([{ filter: 'bw' }]);
+    const next = run(state, { type: 'apply', filter: 'bw', params: {} });
+    expect(next.steps).toBe(state.steps);
   });
 
-  it('resets to the original in a way that can be undone', () => {
-    const steps = [{ filter: 'crop64', rect: { left: 0, top: 0, right: 0.5, bottom: 1 } }, { filter: 'sepia' }];
-    const state = run(initialChain(steps), { type: 'reset' });
-    expect(state.steps).toEqual([]);
-    expect(run(state, { type: 'undo' }).steps).toEqual(steps);
-  });
-
-  it('does not record changes that change nothing', () => {
-    const state = run(initialChain([{ filter: 'bw' }]), { type: 'apply', filter: 'bw', params: {} }, { type: 'remove', index: 5 });
-    expect(state.past).toEqual([]);
-  });
-
-  it('load replaces the chain and clears the history', () => {
+  it('load replaces the chain', () => {
     const state = run(initialChain(), { type: 'rotate', delta: 90 }, { type: 'load', steps: [{ filter: 'bw' }] });
     expect(state).toEqual(initialChain([{ filter: 'bw' }]));
   });

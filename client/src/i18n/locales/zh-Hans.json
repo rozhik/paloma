@@ -82,7 +82,6 @@
   "editor": {
     "holdForOriginal": "按住查看原图",
     "undo": "撤销",
-    "redo": "重做",
     "rotateLeft": "向左旋转",
     "rotateRight": "向右旋转",
     "groups": {
@@ -105,13 +104,10 @@
     "unavailable": "不可用",
     "unavailableHint": "此更改需要一个已停用或未安装的插件。更改会保留，但不会显示。",
     "notApplied": "未应用",
-    "removeStep": "删除更改 {{n}}",
     "loading": "正在加载预览…",
-    "revert": "恢复原图",
     "saveFailed": "无法保存更改：{{message}}",
     "retry": "重试",
-    "discard": "放弃更改",
-    "historyFailed": "无法加载此照片的编辑历史，因此现在无法编辑：{{message}}"
+    "discard": "放弃更改"
   },
   "collage": {
     "title": "🎨 Paloma 拼贴制作",

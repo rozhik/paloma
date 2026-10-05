@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Spinner } from 'react-bootstrap';
 import { useTranslation } from 'react-i18next';
-import { Eye, ListOrdered, Redo2, RotateCcw, RotateCw, Undo2, Undo } from 'lucide-react';
+import { Eye, ListOrdered, RotateCcw, RotateCw, Undo2 } from 'lucide-react';
 import type { FilterGroup, FilterInfo } from '../../../../shared/types.js';
 import { inwardSide, type BarPlacement } from './barLayout.js';
 import { FilterIcon } from './FilterIcon.js';
@@ -25,21 +25,18 @@ interface EditBarProps {
   style: React.CSSProperties;
   /** Filters of active plugins; null while loading */
   filters: Map<string, FilterInfo> | null;
+  /** Undo removes the last step, so it is possible while the chain has steps */
   canUndo: boolean;
-  canRedo: boolean;
-  canRevert: boolean;
   /** Everything but the frame's own panel is off while a frame is edited */
   locked: boolean;
   openPanel: PanelKind | null;
   showingOriginal: boolean;
   onUndo: () => void;
-  onRedo: () => void;
   onRotate: (delta: 90 | -90) => void;
   /** A filter was chosen; `anchor` places its panel */
   onFilter: (filter: FilterInfo, anchor: PanelAnchor) => void;
   onChanges: (anchor: PanelAnchor) => void;
   onShowOriginal: (show: boolean) => void;
-  onRevert: () => void;
 }
 
 const anchorOf = (event: React.MouseEvent<HTMLElement>): PanelAnchor => ({
@@ -48,8 +45,8 @@ const anchorOf = (event: React.MouseEvent<HTMLElement>): PanelAnchor => ({
 });
 
 /**
- * The viewer's edit bar: Undo and Redo first, then Rotate left/right, the filters of active plugins grouped
- * as Basic, Tuning and Effects, and finally Show original, Changes and Revert to original.
+ * The viewer's edit bar: Undo first, then Rotate left/right, the filters of active plugins grouped as Basic,
+ * Tuning and Effects, and finally Show original and Changes.
  */
 export const EditBar: React.FC<EditBarProps> = (props) => {
   const { t } = useTranslation();
@@ -74,9 +71,6 @@ export const EditBar: React.FC<EditBarProps> = (props) => {
     >
       <ViewerButton label={t('editor.undo')} tip={tip} onClick={props.onUndo} disabled={!props.canUndo || locked}>
         <Undo2 size={26} className="flip-rtl" />
-      </ViewerButton>
-      <ViewerButton label={t('editor.redo')} tip={tip} onClick={props.onRedo} disabled={!props.canRedo || locked}>
-        <Redo2 size={26} className="flip-rtl" />
       </ViewerButton>
 
       {filters === null && <Spinner animation="border" size="sm" className="m-3" aria-label={t('editor.loading')} />}
@@ -141,9 +135,6 @@ export const EditBar: React.FC<EditBarProps> = (props) => {
         onClick={(event) => props.onChanges(anchorOf(event))}
       >
         <ListOrdered size={26} className="flip-rtl" />
-      </ViewerButton>
-      <ViewerButton label={t('editor.revert')} tip={tip} onClick={props.onRevert} disabled={!props.canRevert || locked}>
-        <Undo size={26} className="flip-rtl" />
       </ViewerButton>
     </div>
   );

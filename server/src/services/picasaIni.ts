@@ -3,6 +3,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import type { EditStep, Geotag } from '../../../shared/types.js';
 import { isGeotag, roundGeotag } from './location.js';
+import { parseFilters } from './picasaFilters.js';
 
 /** Photo fields Paloma takes from a Picasa .ini file section (and stores in .paloma.json). */
 export interface PhotoFields {
@@ -14,7 +15,7 @@ export interface PhotoFields {
   albums?: string[];
   /** Location in decimal degrees; null (sidecar only) means the location was removed */
   geotag?: Geotag | null;
-  /** Edit chain (sidecar only; Picasa `filters=` is not imported) */
+  /** Edit chain; from Picasa `filters=`, which is also the photo's edit history */
   edits?: EditStep[];
 }
 
@@ -90,6 +91,8 @@ function toFields(entries: Map<string, string>): PhotoFields {
   if (albums.length) fields.albums = albums;
   const geotag = parseGeotag(entries.get('geotag'));
   if (geotag) fields.geotag = geotag;
+  const edits = parseFilters(entries.get('filters'));
+  if (edits.length) fields.edits = edits;
   return fields;
 }
 

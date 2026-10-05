@@ -266,6 +266,7 @@ describe('updatePhotoFields', () => {
       'b.jpg': { star: true },
       'c.jpg': { star: true, modified: expect.any(String) },
       'gone.jpg': { star: true },
+      'x.jpg': { edits: [{ filter: 'enhance' }] },
     });
     expect(fs.readFileSync(path.join(dir, '.picasa.ini')).equals(iniBefore)).toBe(true);
   });
@@ -473,13 +474,41 @@ describe('edits', () => {
     expect(readJson().photos['a.jpg'].edits).toEqual([{ filter: 'bw' }]);
   });
 
-  it('survives a Picasa re-import of an unmodified entry', () => {
+  it('follows the Picasa filters in a re-import of an unmodified entry', () => {
     const result = SidecarService.reimport(
-      { format: 'paloma-folder', version: 2, iniHash: 'old', photos: { 'a.jpg': { star: true, edits: [{ filter: 'bw' }] } } },
-      { 'a.jpg': { caption: 'From Picasa' } },
+      {
+        format: 'paloma-folder',
+        version: 2,
+        iniHash: 'old',
+        photos: { 'a.jpg': { star: true, edits: [{ filter: 'bw' }] }, 'b.jpg': { edits: [{ filter: 'bw' }] } },
+      },
+      { 'a.jpg': { caption: 'From Picasa' }, 'b.jpg': { edits: [{ filter: 'bw' }, { filter: 'sepia' }] } },
       'new',
     );
-    expect(result.photos['a.jpg']).toEqual({ caption: 'From Picasa', edits: [{ filter: 'bw' }] });
+    expect(result.photos['a.jpg']).toEqual({ caption: 'From Picasa' });
+    expect(result.photos['b.jpg']).toEqual({ edits: [{ filter: 'bw' }, { filter: 'sepia' }] });
+  });
+
+  it('keeps edits made in Paloma when Picasa changes its filters, and logs a conflict', () => {
+    const entry = { edits: [{ filter: 'sepia' }], modified: '2026-10-05T10:00:00.000Z' };
+    const result = SidecarService.reimport(
+      { format: 'paloma-folder', version: 2, iniHash: 'old', photos: { 'a.jpg': entry } },
+      { 'a.jpg': { edits: [{ filter: 'bw' }] } },
+      'new',
+    );
+    expect(result.photos['a.jpg']).toEqual(entry);
+    expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('Conflict'));
+  });
+
+  it('is shown live from the Picasa .ini and becomes undoable after the first change', () => {
+    touch('a.jpg');
+    writeIni('[a.jpg]', 'filters=crop64=1,33101d68ffffffff;sepia=1;');
+    const crop = { filter: 'crop64', rect: { left: 0.199466, top: 0.11487, right: 1, bottom: 1 } };
+    expect(SidecarService.getFolderState(dir).photos['a.jpg']).toEqual({ edits: [crop, { filter: 'sepia' }] });
+
+    // Undo in the viewer saves the chain without its last step
+    SidecarService.updatePhotoFields(dir, 'a.jpg', { edits: [crop] });
+    expect(readJson().photos['a.jpg']).toEqual({ edits: [crop], modified: expect.any(String) });
   });
 
   it('is part of the folder state', () => {
@@ -488,54 +517,3 @@ describe('edits', () => {
     expect(SidecarService.getFolderState(dir).photos['a.jpg']).toEqual({ edits: [{ filter: 'bw' }] });
   });
 });
-
-describe('edit history', () => {
-  const HISTORY = { undo: [[], [{ filter: 'sepia' }]], redo: [[{ filter: 'sepia' }, { filter: 'bw' }]] };
-
-  it('is stored with the edits, kept when they are removed, and removed when both lists are empty', () => {
-    SidecarService.updatePhotoFields(dir, 'a.jpg', { edits: [{ filter: 'sepia' }], editHistory: { undo: [[]], redo: [] } });
-    expect(readJson().photos['a.jpg']).toEqual({
-      edits: [{ filter: 'sepia' }], editHistory: { undo: [[]], redo: [] }, modified: expect.any(String),
-    });
-
-    // Revert: no edits, but the history keeps the reverted chain
-    SidecarService.updatePhotoFields(dir, 'a.jpg', { edits: [], editHistory: { undo: [[], [{ filter: 'sepia' }]], redo: [] } });
-    expect(readJson().photos['a.jpg']).toEqual({
-      editHistory: { undo: [[], [{ filter: 'sepia' }]], redo: [] }, modified: expect.any(String),
-    });
-
-    SidecarService.updatePhotoFields(dir, 'a.jpg', { edits: [], editHistory: { undo: [], redo: [] } });
-    expect(readJson().photos['a.jpg']).toBeUndefined();
-  });
-
-  it('is not a library field', () => {
-    touch('a.jpg');
-    SidecarService.updatePhotoFields(dir, 'a.jpg', { edits: [{ filter: 'bw' }], editHistory: HISTORY });
-    expect(SidecarService.fieldsOf(readJson().photos['a.jpg'])).toEqual({ edits: [{ filter: 'bw' }] });
-    expect(SidecarService.getFolderState(dir).photos['a.jpg']).toEqual({ edits: [{ filter: 'bw' }] });
-    expect(SidecarService.editHistoryOf(readJson().photos['a.jpg'])).toEqual(HISTORY);
-  });
-
-  it('reads a history of the wrong type as empty and keeps it until the edits are saved', () => {
-    writeJson({ format: 'paloma-folder', version: 2, photos: { 'a.jpg': { editHistory: 'lost' }, 'b.jpg': { editHistory: { undo: [['x']], redo: [] } } } });
-    expect(SidecarService.editHistoryOf(readJson().photos['a.jpg'])).toEqual({ undo: [], redo: [] });
-    expect(SidecarService.editHistoryOf(readJson().photos['b.jpg'])).toEqual({ undo: [], redo: [] });
-    expect(SidecarService.editHistoryOf(undefined)).toEqual({ undo: [], redo: [] });
-
-    SidecarService.updatePhotoFields(dir, 'a.jpg', { star: true });
-    expect(readJson().photos['a.jpg'].editHistory).toBe('lost');
-
-    SidecarService.updatePhotoFields(dir, 'a.jpg', { edits: [{ filter: 'bw' }], editHistory: { undo: [[]], redo: [] } });
-    expect(readJson().photos['a.jpg'].editHistory).toEqual({ undo: [[]], redo: [] });
-  });
-
-  it('survives a Picasa re-import of an unmodified entry', () => {
-    const result = SidecarService.reimport(
-      { format: 'paloma-folder', version: 2, iniHash: 'old', photos: { 'a.jpg': { star: true, editHistory: HISTORY } } },
-      { 'a.jpg': { caption: 'From Picasa' } },
-      'new',
-    );
-    expect(result.photos['a.jpg']).toEqual({ caption: 'From Picasa', editHistory: HISTORY });
-  });
-});
-

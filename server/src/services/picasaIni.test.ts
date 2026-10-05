@@ -19,7 +19,7 @@ describe('findPicasaIni', () => {
 });
 
 describe('parsePicasaIni', () => {
-  it('maps star, hidden, caption and keywords and ignores other keys', () => {
+  it('maps star, hidden, caption, keywords and filters and ignores other keys', () => {
     const sections = sectionsOf(crlf(
       '[a.jpg]',
       'star=yes',
@@ -32,7 +32,13 @@ describe('parsePicasaIni', () => {
       'backuphash=52410',
     ));
     expect(sections).toEqual({
-      'a.jpg': { star: true, hidden: true, caption: 'Sunrise', keywords: ['mountains', 'dawn'] },
+      'a.jpg': {
+        star: true,
+        hidden: true,
+        caption: 'Sunrise',
+        keywords: ['mountains', 'dawn'],
+        edits: [{ filter: 'crop64', rect: { left: 0.297093, top: 0.104311, right: 0.823163, bottom: 0.481117 } }],
+      },
     });
   });
 

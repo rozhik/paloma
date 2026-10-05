@@ -86,7 +86,6 @@
   "editor": {
     "holdForOriginal": "Maintenir pour voir l’original",
     "undo": "Annuler",
-    "redo": "Rétablir",
     "rotateLeft": "Pivoter à gauche",
     "rotateRight": "Pivoter à droite",
     "groups": {
@@ -109,13 +108,10 @@
     "unavailable": "indisponible",
     "unavailableHint": "Cette modification nécessite un module désactivé ou non installé. Elle est conservée, mais pas affichée.",
     "notApplied": "non appliquée",
-    "removeStep": "Supprimer la modification {{n}}",
     "loading": "Chargement de l’aperçu…",
-    "revert": "Revenir à l’original",
     "saveFailed": "La modification n’a pas pu être enregistrée : {{message}}",
     "retry": "Réessayer",
-    "discard": "Abandonner la modification",
-    "historyFailed": "L’historique des retouches de cette photo n’a pas pu être chargé ; elle ne peut pas être retouchée pour l’instant : {{message}}"
+    "discard": "Abandonner la modification"
   },
   "collage": {
     "title": "🎨 Créateur de collages Paloma",

@@ -86,7 +86,6 @@
   "editor": {
     "holdForOriginal": "Mantén pulsado para ver el original",
     "undo": "Deshacer",
-    "redo": "Rehacer",
     "rotateLeft": "Girar a la izquierda",
     "rotateRight": "Girar a la derecha",
     "groups": {
@@ -109,13 +108,10 @@
     "unavailable": "no disponible",
     "unavailableHint": "Este cambio necesita un complemento desactivado o no instalado. Se conserva, pero no se muestra.",
     "notApplied": "no aplicado",
-    "removeStep": "Quitar el cambio {{n}}",
     "loading": "Cargando vista previa…",
-    "revert": "Volver al original",
     "saveFailed": "No se pudo guardar el cambio: {{message}}",
     "retry": "Intentar de nuevo",
-    "discard": "Descartar el cambio",
-    "historyFailed": "No se pudo cargar el historial de edición de esta foto, así que ahora no se puede editar: {{message}}"
+    "discard": "Descartar el cambio"
   },
   "collage": {
     "title": "🎨 Creador de collages de Paloma",
