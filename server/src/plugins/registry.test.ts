@@ -57,6 +57,7 @@ describe('PluginRegistry', () => {
       description: 'Test plugin basic-effects',
       version: '1.0.0',
       source: 'bundled',
+      level: 'normal',
       enabled: true,
       status: 'active',
       error: null,
@@ -66,8 +67,55 @@ describe('PluginRegistry', () => {
         label: 'sepia мітка',
         group: 'effects',
         params: [{ name: 'amount', label: 'Amount', type: 'number', min: 0, max: 100, step: 1, default: 20 }],
+        level: 'normal',
       }],
     }]);
+  });
+
+  describe('levels', () => {
+    const leveledModule = (filters: { name: string; level?: string }[]) => `
+export function activate() {
+  return {
+    filters: ${JSON.stringify(filters)}.map((filter) => ({
+      ...filter, label: filter.name, group: 'effects', render: ({ image }) => image,
+    })),
+  };
+}
+`;
+
+    it('gives filters without a level their plugin\'s level, and keeps a filter\'s own', async () => {
+      writeTestPlugin(bundled, 'film-grain', {
+        manifest: { level: 'easy' },
+        module: leveledModule([{ name: 'grain' }, { name: 'dust', level: 'pro' }]),
+      });
+      const registry = newRegistry();
+      await registry.init();
+      const info = registry.get('film-grain')!;
+      expect(info.level).toBe('easy');
+      expect(info.filters.map(({ name, level }) => ({ name, level }))).toEqual([
+        { name: 'grain', level: 'easy' }, { name: 'dust', level: 'pro' },
+      ]);
+    });
+
+    it('drops a filter with an unknown level and keeps the others', async () => {
+      writeTestPlugin(bundled, 'film-grain', { module: leveledModule([{ name: 'grain', level: 'expert' }, { name: 'dust' }]) });
+      const registry = newRegistry();
+      await registry.init();
+      const info = registry.get('film-grain')!;
+      expect(info.filters.map((filter) => filter.name)).toEqual(['dust']);
+      expect(info.warnings.join('\n')).toMatch(/filter "grain" has level "expert"/);
+      expect(registry.getFilter('grain')).toBeUndefined();
+      expect(registry.getFilter('dust')?.pluginId).toBe('film-grain');
+    });
+
+    it('lists a plugin with an unknown level as an error', async () => {
+      writeTestPlugin(bundled, 'film-grain', { manifest: { level: 'expert' }, module: leveledModule([{ name: 'grain' }]) });
+      const registry = newRegistry();
+      await registry.init();
+      expect(registry.get('film-grain')).toMatchObject({ status: 'error', level: 'normal', filters: [] });
+      expect(registry.get('film-grain')!.error).toMatch(/"level" must be one of/);
+      expect(registry.getFilter('grain')).toBeUndefined();
+    });
   });
 
   it('never imports the module of an external plugin that is off', async () => {

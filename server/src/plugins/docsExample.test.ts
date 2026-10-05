@@ -53,6 +53,8 @@ describe('docs/plugins.md example', () => {
     const info = await registry.setEnabled('film-grain', true);
     expect(info).toMatchObject({ status: 'active', warnings: [], error: null });
     expect(info.filters.map((f) => f.name)).toEqual(['grain']);
+    expect(info.level).toBe('easy');
+    expect(info.filters[0].level).toBe('easy');
     expect(info.filters[0].iconUrl).toBe('/api/plugins/film-grain/filters/grain/icon?v=1.0.0');
 
     const photo = path.join(tmp, 'grey.png');

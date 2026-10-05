@@ -43,7 +43,9 @@
   },
   "grid": {
     "emptyTitle": "写真が見つかりません",
-    "emptyHint": ".env ファイルの PALOMA_PHOTOS_DIRS のフォルダを確認するか、検索条件を変更してください。"
+    "emptyHint": ".env ファイルの PALOMA_PHOTOS_DIRS のフォルダを確認するか、検索条件を変更してください。",
+    "chooseAlbumTitle": "アルバムを選んでください",
+    "chooseAlbumHint": "一覧からアルバムを選ぶと、その写真が表示されます。"
   },
   "photo": {
     "star": "スターを付ける",
@@ -239,6 +241,12 @@
   "settings": {
     "title": "設定",
     "intro": "これらの設定はこのブラウザーにのみ保存されます。",
+    "language": "言語",
+    "languageHint": "Paloma のすべての文字の言語です。",
+    "level": "レベル",
+    "levelHint": "Paloma に表示するツールの量です。初心者や子どもには低いレベルを選んでください。",
+    "changePin": "PIN を変更",
+    "pinChanged": "PIN を変更しました。",
     "viewer": "写真ビューアー",
     "navBar": "ナビゲーションバー",
     "navBarHint": "閉じる、前後の写真、ズーム。",
@@ -299,5 +307,53 @@
     "zoomIn": "拡大",
     "zoomOut": "縮小",
     "fit": "画面に合わせる"
+  },
+  "levels": {
+    "child": {
+      "name": "子ども",
+      "description": "アルバムとスライドショーだけで、何も変更できません。設定には PIN が必要です。子どもによるうっかりした変更を防ぐためのもので、セキュリティ上のロックではありません。"
+    },
+    "easy": {
+      "name": "かんたん",
+      "description": "アルバム、フォルダー、検索、スター、簡単な補正、書き出しと印刷。"
+    },
+    "normal": {
+      "name": "標準",
+      "description": "すべてのツール：人物、地図、コラージュ、ムービー、プラグイン、すべての写真補正。"
+    },
+    "pro": {
+      "name": "プロ",
+      "description": "標準のすべてに加え、追加され次第、経験豊富な人向けのツールも使えます。"
+    },
+    "developer": {
+      "name": "開発者",
+      "description": "Paloma とそのプラグインが提供するすべて。開発者向けのツールも含みます。"
+    },
+    "pin": {
+      "unlockTitle": "PIN を入力",
+      "unlockHint": "設定はロックされています。開くには PIN を入力してください。",
+      "createTitle": "PIN を設定",
+      "changeTitle": "PIN を変更",
+      "createHint": "4〜8 桁の PIN を決めてください。設定を開くときに必要になります。",
+      "repeatHint": "同じ PIN をもう一度入力してください。",
+      "wrong": "PIN が違います。",
+      "invalid": "PIN は 4〜8 桁の数字にしてください。",
+      "mismatch": "PIN が一致しません。最初からやり直してください。",
+      "wait": "間違った PIN が多すぎます。{{time}} 後にもう一度お試しください。",
+      "deleteDigit": "最後の数字を消す",
+      "next": "次へ",
+      "ok": "OK"
+    }
+  },
+  "slideshow": {
+    "start": "スライドショー",
+    "title": "スライドショー",
+    "exit": "スライドショーを終了",
+    "previous": "前の写真",
+    "next": "次の写真",
+    "play": "再生",
+    "pause": "一時停止",
+    "interval": "1 枚あたりの時間",
+    "seconds": "{{seconds, number}} 秒"
   }
 }

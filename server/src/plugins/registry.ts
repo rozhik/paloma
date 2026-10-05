@@ -6,7 +6,7 @@ import type { FilterInfo, FilterParamInfo, PluginInfo } from '../../../shared/ty
 import { PLUGIN_API_VERSION, type FilterDefinition, type ParamDefinition, type PluginHost, type PluginModule } from './api.js';
 import { checkContributions } from './contributions.js';
 import { discoverPlugins, type DiscoveredPlugin } from './discovery.js';
-import { localize } from './manifest.js';
+import { DEFAULT_PLUGIN_LEVEL, localize } from './manifest.js';
 import { PluginState } from './state.js';
 
 /** A filter that rendering can use, with the plugin that provides it. */
@@ -225,6 +225,7 @@ export class PluginRegistry {
     const { partial } = discovered;
     const on = this.isOn(entry);
     const status = !discovered.manifest || (on && entry.loadError) ? 'error' : this.isActive(entry) ? 'active' : 'off';
+    const level = discovered.manifest?.level ?? partial.level ?? DEFAULT_PLUGIN_LEVEL;
     const filters: FilterInfo[] = status !== 'active' ? [] : entry.contributed
       .filter((definition) => this.filters.get(definition.name)?.pluginId === discovered.id)
       .map((definition) => {
@@ -233,6 +234,7 @@ export class PluginRegistry {
           label: localize(definition.label, lang),
           group: definition.group,
           params: (definition.params ?? []).map((param) => paramInfo(param, lang)),
+          level: definition.level ?? level,
         };
         if (entry.icons.has(definition.name)) {
           const version = encodeURIComponent(partial.version ?? '');
@@ -246,6 +248,7 @@ export class PluginRegistry {
       description: partial.description ? localize(partial.description, lang) : '',
       version: partial.version ?? null,
       source: discovered.source,
+      level,
       enabled: on,
       status,
       error: discovered.error ?? (on ? entry.loadError : null),

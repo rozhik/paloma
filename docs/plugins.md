@@ -42,7 +42,8 @@ paloma-film-grain/
   "description": { "en": "Adds the grain of analogue film.", "uk": "Додає зерно плівкової фотографії." },
   "version": "1.0.0",
   "apiVersion": 1,
-  "server": "index.js"
+  "server": "index.js",
+  "level": "easy"
 }
 ```
 
@@ -53,6 +54,7 @@ paloma-film-grain/
 | `version` | Your plugin's version. Changing it re-renders thumbnails that use your filters. |
 | `apiVersion` | The plugin API version you wrote against. This Paloma supports `1`. |
 | `server` | Path of the module, relative to the folder. It must stay inside the folder. |
+| `level` | Optional. The lowest [level](complexity-levels.md) at which the UI offers what the plugin contributes: `child`, `easy`, `normal`, `pro` or `developer`. Without it, `normal`. Any other value is an error, and the plugin is not loaded. See [Levels](#levels). |
 
 <!-- file: package.json -->
 ```json
@@ -109,6 +111,7 @@ If `activate` throws, or the module does not export it, the plugin shows the err
 | `label` | Shown in the editor as the icon's tooltip; a string or an object by language, as in the manifest. |
 | `group` | Edit bar group: `basic`, `tuning` or `effects`. |
 | `icon` | Optional. Path of an SVG icon, relative to the plugin folder (see below). |
+| `level` | Optional. The lowest level at which the edit bar offers the filter. Without it, the plugin's `level`. See [Levels](#levels). |
 | `params` | The step's parameters (below). The editor makes a control for each one. |
 | `render(input)` | Returns a sharp image with the result; it may be async. |
 
@@ -122,6 +125,14 @@ Parameter types:
 | `rect` | `default: { left, top, right, bottom }` | frame over the image | fractions 0..1 of the image at that step, `left < right`, `top < bottom` |
 
 Parameter names are letters, digits and `_`, starting with a letter. `filter` and `enabled` are reserved.
+
+### Levels
+
+Users choose a level in **Settings**: Child, Easy, Normal, Professional or Developer, from the simplest to the most capable. A filter is in the edit bar only when the user's level is at least the plugin's `level` and at least the filter's own `level`. So give a plugin for beginners `"level": "easy"`, a plugin for experts `"level": "pro"`, and a single advanced filter of an easy plugin `level: 'pro'`.
+
+- Levels only decide what the editor offers. Steps of your filters are rendered at every level, in thumbnails, the viewer and exports, and are kept when the user edits other steps.
+- At the Child level the edit bar is not shown at all, so `child` makes no difference for filters yet.
+- A filter whose `level` is not one of the five values is not available, and **Plugins** shows a warning naming it. The plugin's other filters still work.
 
 ### Icons
 

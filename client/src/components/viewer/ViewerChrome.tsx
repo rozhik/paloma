@@ -44,23 +44,25 @@ export const ViewerChrome: React.FC<ViewerChromeProps> = ({ model: v, className 
         onFit={v.fit}
       />
 
-      <EditBar
-        className={className}
-        placement={v.layout.editBar}
-        style={barStyle(v.layout.editBar)}
-        filters={v.filters}
-        canUndo={chain.steps.length > 0}
-        locked={!!frame}
-        openPanel={panel}
-        showingOriginal={v.showOriginal}
-        onUndo={() => dispatch({ type: 'undo' })}
-        onRotate={(delta) => dispatch({ type: 'rotate', delta })}
-        onFilter={v.chooseFilter}
-        onChanges={(anchor) => v.setPanel(panel?.kind === 'changes' ? null : { kind: 'changes', anchor })}
-        onShowOriginal={v.setShowOriginal}
-      />
+      {v.canEdit && (
+        <EditBar
+          className={className}
+          placement={v.layout.editBar}
+          style={barStyle(v.layout.editBar)}
+          filters={v.barFilters}
+          canUndo={chain.steps.length > 0}
+          locked={!!frame}
+          openPanel={panel}
+          showingOriginal={v.showOriginal}
+          onUndo={() => dispatch({ type: 'undo' })}
+          onRotate={(delta) => dispatch({ type: 'rotate', delta })}
+          onFilter={v.chooseFilter}
+          onChanges={(anchor) => v.setPanel(panel?.kind === 'changes' ? null : { kind: 'changes', anchor })}
+          onShowOriginal={v.setShowOriginal}
+        />
+      )}
 
-      {panel && (panelFilter || panel.kind === 'changes') && (
+      {v.canEdit && panel && (panelFilter || panel.kind === 'changes') && (
         <FloatingPanel
           className={className}
           side={v.panelSide}

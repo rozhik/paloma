@@ -23,6 +23,8 @@ export interface AppShellProps {
 /** The library grid of a skin, with its photo cards. */
 export interface PhotoGridProps {
   photos: Photo[];
+  /** An album's or the library's header is shown above the grid */
+  belowHeader: boolean;
   onStarToggle: (photoId: number, currentStarred: boolean) => void;
 }
 

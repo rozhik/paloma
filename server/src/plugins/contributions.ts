@@ -1,6 +1,6 @@
 import type { FilterGroup, RelativeRect } from '../../../shared/types.js';
 import type { FilterDefinition, ParamDefinition, PluginContributions } from './api.js';
-import { isLocalizedText } from './manifest.js';
+import { COMPLEXITY_LEVELS, isComplexityLevel, isLocalizedText } from './manifest.js';
 
 const FILTER_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const GROUPS: readonly FilterGroup[] = ['basic', 'tuning', 'effects'];
@@ -73,6 +73,9 @@ function filterProblem(filter: unknown): string | null {
   if (!isLocalizedText(filter.label)) return `filter "${name}" has no valid label`;
   if (!GROUPS.includes(filter.group as FilterGroup)) return `filter "${name}" has unknown group ${JSON.stringify(filter.group)}`;
   if (typeof filter.render !== 'function') return `filter "${name}" has no render function`;
+  if (filter.level !== undefined && !isComplexityLevel(filter.level)) {
+    return `filter "${name}" has level ${JSON.stringify(filter.level)}, which is not one of ${COMPLEXITY_LEVELS.join(', ')}`;
+  }
   if (filter.params !== undefined && !Array.isArray(filter.params)) return `filter "${name}" has params that are not a list`;
   const seen = new Set<string>();
   for (const param of (filter.params as unknown[] | undefined) ?? []) {

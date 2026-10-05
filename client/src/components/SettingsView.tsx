@@ -1,9 +1,116 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Alert } from 'react-bootstrap';
 import { useTranslation } from 'react-i18next';
-import { Settings } from 'lucide-react';
+import { KeyRound, Settings } from 'lucide-react';
 import { EDGES, THEME_CHOICES, useUiSettings, type Edge, type ThemeChoice, type UiSettings } from '../settings/uiSettings.js';
 import { SKIN_IDS, type SkinId } from '../appearance/skins/ids.js';
 import { THEMES } from '../appearance/themes/index.js';
+import { LANGUAGES } from '../i18n/languages.js';
+import { changeLanguage, currentLanguage } from '../i18n/index.js';
+import { LEVELS, type Level } from '../levels/levels.js';
+import { keepSettingsUnlocked } from '../levels/pinGate.js';
+import { PinDialog, type PinDialogMode } from '../levels/PinDialog.js';
+import type { PinRecord } from '../levels/pin.js';
+import { usePalomaStore } from '../store/usePalomaStore.js';
+
+/** Every UI language by its own name, as large choices; the same choice as the top bar's switcher. */
+const LanguageSection: React.FC = () => {
+  const { t, i18n } = useTranslation();
+  const active = currentLanguage();
+  return (
+    <fieldset className="mb-4">
+      <legend className="fs-3 fw-bold mb-1">{t('settings.language')}</legend>
+      <p className="fs-5 text-secondary mb-2">{t('settings.languageHint')}</p>
+      <div className="settings-language-grid" key={i18n.language}>
+        {LANGUAGES.map(({ tag, nativeName, dir }) => (
+          <div key={tag}>
+            <input
+              type="radio"
+              className="btn-check"
+              name="language"
+              id={`language-${tag}`}
+              checked={tag === active}
+              onChange={() => changeLanguage(tag)}
+            />
+            <label className="btn btn-outline-primary w-100 fs-5" htmlFor={`language-${tag}`} lang={tag} dir={dir}>
+              {nativeName}
+            </label>
+          </div>
+        ))}
+      </div>
+    </fieldset>
+  );
+};
+
+/**
+ * The five levels as large choices. Choosing Child first sets a PIN; leaving Child drops it. At Child the PIN
+ * can be changed here.
+ */
+const LevelSection: React.FC = () => {
+  const { t } = useTranslation();
+  const level = useUiSettings((state) => state.level);
+  const update = useUiSettings((state) => state.update);
+  const [dialog, setDialog] = useState<PinDialogMode | null>(null);
+  const [pinChanged, setPinChanged] = useState(false);
+
+  const choose = (next: Level) => {
+    setPinChanged(false);
+    if (next === level) return;
+    if (next === 'child') setDialog('create');
+    else update({ level: next, pin: null });
+  };
+
+  const pinSet = (pin: PinRecord | undefined) => {
+    if (!pin) return;
+    if (dialog === 'create') {
+      // The user who just set the PIN stays in Settings
+      keepSettingsUnlocked();
+      usePalomaStore.getState().enterChildMode();
+      update({ level: 'child', pin });
+    } else {
+      update({ pin });
+      setPinChanged(true);
+    }
+    setDialog(null);
+  };
+
+  return (
+    <fieldset className="mb-4">
+      <legend className="fs-3 fw-bold mb-1">{t('settings.level')}</legend>
+      <p className="fs-5 text-secondary mb-2">{t('settings.levelHint')}</p>
+      <div className="settings-appearance-grid">
+        {LEVELS.map((option) => {
+          const id = `level-${option}`;
+          return (
+            <div key={option}>
+              <input
+                type="radio"
+                className="btn-check"
+                name="level"
+                id={id}
+                checked={level === option}
+                onChange={() => choose(option)}
+                aria-describedby={`${id}-description`}
+              />
+              <label className="btn btn-outline-primary settings-appearance d-block text-start h-100" htmlFor={id}>
+                <span className="d-block fs-5 fw-semibold">{t(`levels.${option}.name`)}</span>
+                <span id={`${id}-description`} className="d-block settings-appearance-description">{t(`levels.${option}.description`)}</span>
+              </label>
+            </div>
+          );
+        })}
+      </div>
+      {level === 'child' && (
+        <button type="button" className="btn btn-outline-primary btn-lg-custom mt-3" onClick={() => { setPinChanged(false); setDialog('change'); }}>
+          <KeyRound size={20} />
+          <span>{t('settings.changePin')}</span>
+        </button>
+      )}
+      {pinChanged && <Alert variant="success" className="mt-3 mb-0" role="status">{t('settings.pinChanged')}</Alert>}
+      <PinDialog show={dialog !== null} mode={dialog ?? 'create'} onDone={pinSet} onCancel={() => setDialog(null)} />
+    </fieldset>
+  );
+};
 
 /** A small screen with a bar along `edge`, so each choice shows where the bar goes. */
 const EdgePicture: React.FC<{ edge: Edge }> = ({ edge }) => {
@@ -137,6 +244,9 @@ export const SettingsView: React.FC = () => {
           <span>{t('settings.title')}</span>
         </h2>
         <p className="fs-5 text-secondary">{t('settings.intro')}</p>
+
+        <LanguageSection />
+        <LevelSection />
 
         <h3 className="fs-3 fw-bold mt-4 mb-3">{t('settings.appearance')}</h3>
         <AppearanceChoice

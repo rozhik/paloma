@@ -4,6 +4,7 @@ import { CheckCircle, Circle, MapPin, Sliders, Star } from 'lucide-react';
 import type { Photo } from '../../../shared/types.js';
 import { usePalomaStore } from '../store/usePalomaStore.js';
 import { usePlaceLabel } from '../components/placeLabel.js';
+import { useAllows } from '../levels/controls.js';
 
 interface SquarePhotoCardProps {
   photo: Photo;
@@ -22,7 +23,10 @@ export const SquarePhotoCard: React.FC<SquarePhotoCardProps> = ({ photo, onStarT
   const { t } = useTranslation();
   const { toggleSelectPhoto, isPhotoSelected } = usePalomaStore();
   const placeLabel = usePlaceLabel();
-  const selected = isPhotoSelected(photo.id);
+  // Below their levels (at Child) a card only opens the viewer
+  const canSelect = useAllows('photo.select');
+  const canStar = useAllows('photo.star');
+  const selected = canSelect && isPhotoSelected(photo.id);
   return (
     <div
       className={`photo-card square-card ${className} ${selected ? 'selected' : ''}`}
@@ -30,7 +34,7 @@ export const SquarePhotoCard: React.FC<SquarePhotoCardProps> = ({ photo, onStarT
       tabIndex={0}
       aria-label={photo.filename}
       title={photo.filename}
-      onClick={(event) => (event.ctrlKey || event.metaKey ? toggleSelectPhoto(photo) : onOpen())}
+      onClick={(event) => (canSelect && (event.ctrlKey || event.metaKey) ? toggleSelectPhoto(photo) : onOpen())}
       onKeyDown={(event) => {
         if (event.target !== event.currentTarget) return;
         if (event.key === 'Enter') {
@@ -38,37 +42,41 @@ export const SquarePhotoCard: React.FC<SquarePhotoCardProps> = ({ photo, onStarT
           onOpen();
         } else if (event.key === ' ') {
           event.preventDefault();
-          toggleSelectPhoto(photo);
+          if (canSelect) toggleSelectPhoto(photo);
         }
       }}
     >
-      <button
-        type="button"
-        role="checkbox"
-        aria-checked={selected}
-        className="select-btn"
-        aria-label={t('photo.select')}
-        title={t('photo.select')}
-        onClick={(e) => {
-          e.stopPropagation();
-          toggleSelectPhoto(photo);
-        }}
-      >
-        {selected ? <CheckCircle size={iconSize + 5} className="select-mark" /> : <Circle size={iconSize + 5} />}
-      </button>
-      <button
-        type="button"
-        className={`star-btn ${photo.isStarred ? 'starred' : ''}`}
-        aria-label={photo.isStarred ? t('photo.unstar') : t('photo.star')}
-        aria-pressed={photo.isStarred}
-        title={photo.isStarred ? t('photo.unstar') : t('photo.star')}
-        onClick={(e) => {
-          e.stopPropagation();
-          onStarToggle(photo.id, photo.isStarred);
-        }}
-      >
-        <Star size={iconSize} fill={photo.isStarred ? 'currentColor' : 'none'} />
-      </button>
+      {canSelect && (
+        <button
+          type="button"
+          role="checkbox"
+          aria-checked={selected}
+          className="select-btn"
+          aria-label={t('photo.select')}
+          title={t('photo.select')}
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleSelectPhoto(photo);
+          }}
+        >
+          {selected ? <CheckCircle size={iconSize + 5} className="select-mark" /> : <Circle size={iconSize + 5} />}
+        </button>
+      )}
+      {canStar && (
+        <button
+          type="button"
+          className={`star-btn ${photo.isStarred ? 'starred' : ''}`}
+          aria-label={photo.isStarred ? t('photo.unstar') : t('photo.star')}
+          aria-pressed={photo.isStarred}
+          title={photo.isStarred ? t('photo.unstar') : t('photo.star')}
+          onClick={(e) => {
+            e.stopPropagation();
+            onStarToggle(photo.id, photo.isStarred);
+          }}
+        >
+          <Star size={iconSize} fill={photo.isStarred ? 'currentColor' : 'none'} />
+        </button>
+      )}
       <div className="photo-card-thumb">
         <img src={photo.thumbnailUrl} alt={photo.filename} loading="lazy" />
       </div>

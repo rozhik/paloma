@@ -43,7 +43,9 @@
   },
   "grid": {
     "emptyTitle": "未找到照片",
-    "emptyHint": "请检查 .env 文件中 PALOMA_PHOTOS_DIRS 的文件夹，或更改搜索条件。"
+    "emptyHint": "请检查 .env 文件中 PALOMA_PHOTOS_DIRS 的文件夹，或更改搜索条件。",
+    "chooseAlbumTitle": "请选择一个相册",
+    "chooseAlbumHint": "在列表中选择一个相册即可查看其中的照片。"
   },
   "photo": {
     "star": "加星标",
@@ -239,6 +241,12 @@
   "settings": {
     "title": "设置",
     "intro": "这些设置只保存在此浏览器中。",
+    "language": "语言",
+    "languageHint": "Paloma 中所有文字的语言。",
+    "level": "级别",
+    "levelHint": "Paloma 显示多少工具。为新手或儿童选择较低的级别。",
+    "changePin": "更改 PIN",
+    "pinChanged": "PIN 已更改。",
     "viewer": "照片查看器",
     "navBar": "导航栏",
     "navBarHint": "关闭、上一张和下一张照片以及缩放。",
@@ -299,5 +307,53 @@
     "zoomIn": "放大",
     "zoomOut": "缩小",
     "fit": "适应屏幕"
+  },
+  "levels": {
+    "child": {
+      "name": "儿童",
+      "description": "只有相册和幻灯片，无法更改任何内容。设置需要 PIN。这可以防止儿童误改内容，但不是安全锁。"
+    },
+    "easy": {
+      "name": "简单",
+      "description": "相册、文件夹、搜索、星标、简单修饰、导出和打印。"
+    },
+    "normal": {
+      "name": "普通",
+      "description": "所有工具：人物、地图、拼贴、影片、插件和所有照片修饰。"
+    },
+    "pro": {
+      "name": "专业",
+      "description": "包含“普通”的全部内容，以及陆续加入的面向有经验用户的工具。"
+    },
+    "developer": {
+      "name": "开发者",
+      "description": "Paloma 及其插件提供的一切，包括开发者工具。"
+    },
+    "pin": {
+      "unlockTitle": "输入 PIN",
+      "unlockHint": "设置已锁定。输入 PIN 以打开。",
+      "createTitle": "设置 PIN",
+      "changeTitle": "更改 PIN",
+      "createHint": "请设置 4 到 8 位数字的 PIN。打开设置时需要输入。",
+      "repeatHint": "请再次输入相同的 PIN。",
+      "wrong": "PIN 错误。",
+      "invalid": "PIN 必须是 4 到 8 位数字。",
+      "mismatch": "两次输入的 PIN 不一致。请重新开始。",
+      "wait": "错误的 PIN 次数过多。请在 {{time}} 后重试。",
+      "deleteDigit": "删除最后一位",
+      "next": "下一步",
+      "ok": "确定"
+    }
+  },
+  "slideshow": {
+    "start": "幻灯片放映",
+    "title": "幻灯片放映",
+    "exit": "退出幻灯片放映",
+    "previous": "上一张照片",
+    "next": "下一张照片",
+    "play": "播放",
+    "pause": "暂停",
+    "interval": "每张照片的时长",
+    "seconds": "{{seconds, number}} 秒"
   }
 }

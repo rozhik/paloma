@@ -805,3 +805,98 @@ img {
   background: var(--pal-overlay);
   color: var(--pal-viewer-text);
 }
+
+/* PIN dialog: a large keypad, digits in phone order in every language */
+.pin-input {
+  letter-spacing: 0.4em;
+}
+.pin-keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+.pin-keypad .btn {
+  min-height: 3.5rem;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Language choices in Settings: each language's name in itself */
+.settings-language-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--pal-gap);
+}
+
+/* Slideshow: the photo fitted on the viewer's dark background, controls floating at the bottom */
+.slideshow {
+  position: fixed;
+  inset: 0;
+  /* Above the viewer, below Bootstrap's tooltips (1080) */
+  z-index: 1050;
+  background: var(--pal-viewer-bg);
+  color: var(--pal-viewer-text);
+  outline: none;
+  overflow: hidden;
+}
+.slideshow-idle {
+  cursor: none;
+}
+.slideshow-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+}
+.slideshow-controls {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  max-width: calc(100% - 32px);
+  padding: 8px 12px;
+  border-radius: var(--pal-radius);
+  background: var(--pal-overlay);
+}
+.slideshow-controls[hidden] {
+  display: none;
+}
+.slideshow-btn {
+  min-width: 52px;
+  min-height: 52px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid transparent;
+  border-radius: var(--pal-radius);
+  background: transparent;
+  color: var(--pal-viewer-text);
+}
+.slideshow-btn:hover,
+.slideshow-btn:focus-visible {
+  border-color: var(--pal-viewer-text);
+}
+.slideshow-interval {
+  display: flex;
+  gap: 4px;
+  margin-inline-start: 8px;
+}
+.slideshow-interval-btn {
+  padding: 0 10px;
+  font-size: var(--pal-font-size-small);
+}
+.slideshow-interval-btn.active {
+  background: var(--pal-viewer-text);
+  color: var(--pal-viewer-bg);
+}
+.slideshow-position {
+  padding: 0 8px;
+  font-variant-numeric: tabular-nums;
+}

@@ -12,6 +12,7 @@ import { usePalomaStore } from '../store/usePalomaStore.js';
 import { libraryQueryParams } from '../api/library.js';
 import { describeError } from '../api/http.js';
 import { fetchGeoPoints, fetchGeoSettings, fetchPlaces, searchAddress, setPhotosLocation } from '../api/geo.js';
+import { useAllows } from '../levels/controls.js';
 import { currentLanguage } from '../i18n/index.js';
 import { useFormat } from '../i18n/format.js';
 import { ConfirmModal } from './ConfirmModal.js';
@@ -134,6 +135,8 @@ export const PlacesMap: React.FC = () => {
   } = usePalomaStore();
   const { t, i18n } = useTranslation();
   const { formatNumber } = useFormat();
+  const canPlace = useAllows('map.placePhotos');
+  const canRemove = useAllows('map.removeLocation');
 
   const [settings, setSettings] = useState<GeoSettings | null>(null);
   const [points, setPoints] = useState<GeoPoint[] | null>(null);
@@ -260,7 +263,7 @@ export const PlacesMap: React.FC = () => {
     const id = Number(event.dataTransfer.getData(PHOTO_DRAG_TYPE));
     const map = mapRef.current;
     const photo = selectedPhotos.find((p) => p.id === id);
-    if (!map || !photo) return;
+    if (!map || !photo || !canPlace) return;
     event.preventDefault();
     const at = map.mouseEventToLatLng(event.nativeEvent);
     requestPlacement([photo], { lat: at.lat, lon: L.Util.wrapNum(at.lng, [-180, 180], true) });
@@ -279,16 +282,18 @@ export const PlacesMap: React.FC = () => {
         {points && <span className="badge bg-primary fs-5">{t('map.found', { count: points.length })}</span>}
 
         <div className="d-flex align-items-center gap-2 ms-auto">
-          <button
-            className={`btn btn-lg-custom ${placing ? 'btn-warning' : 'btn-light'}`}
-            disabled={selectedPhotos.length === 0}
-            onClick={() => setPlacing(!placing)}
-            title={selectedPhotos.length === 0 ? t('geo.selectPhotosFirst') : undefined}
-          >
-            <Crosshair size={20} />
-            <span>{placing ? t('geo.cancelSetLocation') : t('geo.setLocation')}</span>
-          </button>
-          {geotaggedSelection.length > 0 && (
+          {canPlace && (
+            <button
+              className={`btn btn-lg-custom ${placing ? 'btn-warning' : 'btn-light'}`}
+              disabled={selectedPhotos.length === 0}
+              onClick={() => setPlacing(!placing)}
+              title={selectedPhotos.length === 0 ? t('geo.selectPhotosFirst') : undefined}
+            >
+              <Crosshair size={20} />
+              <span>{placing ? t('geo.cancelSetLocation') : t('geo.setLocation')}</span>
+            </button>
+          )}
+          {canRemove && geotaggedSelection.length > 0 && (
             <button className="btn btn-outline-light btn-lg-custom" onClick={() => setConfirmRemove(true)}>
               <MapPinOff size={20} />
               <span>{t('geo.removeLocation')}</span>
@@ -384,7 +389,7 @@ export const PlacesMap: React.FC = () => {
               <TileLayer attribution={settings.tileAttribution} url={settings.tileUrl} />
               {points && <ClusterLayer points={points} onOpen={setPopup} />}
               {points && <FitBounds fitKey={selectionKey} bounds={pointsBounds} />}
-              <ClickToPlace active={placing} onPlace={(at) => requestPlacement(selectedPhotos, at)} />
+              <ClickToPlace active={canPlace && placing} onPlace={(at) => requestPlacement(selectedPhotos, at)} />
 
               {popup && (
                 <Popup position={popup.position} eventHandlers={{ remove: () => setPopup(null) }} maxWidth={360}>
@@ -403,14 +408,16 @@ export const PlacesMap: React.FC = () => {
                 <Marker position={[found.lat, found.lon]} icon={FOUND_ICON}>
                   <Popup>
                     <div className="fw-semibold mb-2" dir="auto">{found.name}</div>
-                    <button
-                      type="button"
-                      className="btn btn-primary btn-sm"
-                      disabled={selectedPhotos.length === 0}
-                      onClick={() => requestPlacement(selectedPhotos, { lat: found.lat, lon: found.lon })}
-                    >
-                      {t('geo.placeHere', { count: selectedPhotos.length })}
-                    </button>
+                    {canPlace && (
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        disabled={selectedPhotos.length === 0}
+                        onClick={() => requestPlacement(selectedPhotos, { lat: found.lat, lon: found.lon })}
+                      >
+                        {t('geo.placeHere', { count: selectedPhotos.length })}
+                      </button>
+                    )}
                   </Popup>
                 </Marker>
               )}

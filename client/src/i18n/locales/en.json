@@ -43,7 +43,9 @@
   },
   "grid": {
     "emptyTitle": "No photos found",
-    "emptyHint": "Check the folders in PALOMA_PHOTOS_DIRS in the .env file or change your search."
+    "emptyHint": "Check the folders in PALOMA_PHOTOS_DIRS in the .env file or change your search.",
+    "chooseAlbumTitle": "Choose an album",
+    "chooseAlbumHint": "Pick an album in the list to see its photos."
   },
   "photo": {
     "star": "Add to starred",
@@ -250,6 +252,12 @@
   "settings": {
     "title": "Settings",
     "intro": "These settings are remembered in this browser only.",
+    "language": "Language",
+    "languageHint": "The language of every text in Paloma.",
+    "level": "Level",
+    "levelHint": "How many tools Paloma shows. Choose a lower level for a beginner or a child.",
+    "changePin": "Change PIN",
+    "pinChanged": "The PIN has been changed.",
     "viewer": "Photo viewer",
     "navBar": "Navigation bar",
     "navBarHint": "Close, previous and next photo, and zoom.",
@@ -310,5 +318,53 @@
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out",
     "fit": "Fit to screen"
+  },
+  "levels": {
+    "child": {
+      "name": "Child",
+      "description": "Only albums and slideshows; nothing can be changed. Settings need a PIN. This keeps children from changing things by accident, but it is not a security lock."
+    },
+    "easy": {
+      "name": "Easy",
+      "description": "Albums, folders, search, stars, simple fixes, export and print."
+    },
+    "normal": {
+      "name": "Normal",
+      "description": "Every tool: people, map, collage, movies, plugins and all photo fixes."
+    },
+    "pro": {
+      "name": "Professional",
+      "description": "Everything in Normal, and tools for experienced users as they are added."
+    },
+    "developer": {
+      "name": "Developer",
+      "description": "Everything Paloma and its plugins offer, including tools for developers."
+    },
+    "pin": {
+      "unlockTitle": "Enter the PIN",
+      "unlockHint": "Settings are locked. Enter the PIN to open them.",
+      "createTitle": "Set a PIN",
+      "changeTitle": "Change the PIN",
+      "createHint": "Choose a PIN of 4 to 8 digits. It will be needed to open Settings.",
+      "repeatHint": "Enter the same PIN again.",
+      "wrong": "Wrong PIN.",
+      "invalid": "The PIN must have 4 to 8 digits.",
+      "mismatch": "The PINs differ. Please start again.",
+      "wait": "Too many wrong PINs. Try again in {{time}}.",
+      "deleteDigit": "Delete the last digit",
+      "next": "Next",
+      "ok": "OK"
+    }
+  },
+  "slideshow": {
+    "start": "Slideshow",
+    "title": "Slideshow",
+    "exit": "Exit slideshow",
+    "previous": "Previous photo",
+    "next": "Next photo",
+    "play": "Play",
+    "pause": "Pause",
+    "interval": "Time per photo",
+    "seconds": "{{seconds, number}} s"
   }
 }

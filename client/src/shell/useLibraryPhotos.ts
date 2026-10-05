@@ -4,14 +4,27 @@ import type { Photo } from '../../../shared/types.js';
 import { libraryQueryParams } from '../api/library.js';
 import { currentLanguage } from '../i18n/index.js';
 import { usePalomaStore } from '../store/usePalomaStore.js';
+import { useLevel } from '../levels/controls.js';
 
-/** The photos of the current folder, album, filter and search, and starring; the same for every skin. */
+/** At Child the library shows only albums: until one is chosen, it shows no photos and asks for one. */
+export function useNeedsAlbum(): boolean {
+  const level = useLevel();
+  const selectedAlbumToken = usePalomaStore((state) => state.selectedAlbumToken);
+  return level === 'child' && selectedAlbumToken === null;
+}
+
+/** The photos of the current folder, album, filter and search (at Child, of the album), and starring; the same for every skin. */
 export function useLibraryPhotos(): { photos: Photo[]; toggleStar: (photoId: number, currentStarred: boolean) => void } {
   const { selectedFolderId, selectedFilter, selectedAlbumToken, searchQuery, libraryVersion } = usePalomaStore();
   const { i18n } = useTranslation();
   const [photos, setPhotos] = useState<Photo[]>([]);
+  const needsAlbum = useNeedsAlbum();
 
   const fetchPhotos = useCallback(async () => {
+    if (needsAlbum) {
+      setPhotos([]);
+      return;
+    }
     try {
       const params = libraryQueryParams(
         { selectedFolderId, selectedAlbumToken, selectedFilter, searchQuery }, currentLanguage(),
@@ -21,7 +34,7 @@ export function useLibraryPhotos(): { photos: Photo[]; toggleStar: (photoId: num
     } catch (err) {
       console.error('Failed to fetch photos:', err);
     }
-  }, [selectedFolderId, selectedFilter, selectedAlbumToken, searchQuery]);
+  }, [selectedFolderId, selectedFilter, selectedAlbumToken, searchQuery, needsAlbum]);
 
   useEffect(() => {
     fetchPhotos();

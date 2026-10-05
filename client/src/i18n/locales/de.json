@@ -44,7 +44,9 @@
   },
   "grid": {
     "emptyTitle": "Keine Fotos gefunden",
-    "emptyHint": "Prüfen Sie die Ordner in PALOMA_PHOTOS_DIRS in der Datei .env oder ändern Sie die Suche."
+    "emptyHint": "Prüfen Sie die Ordner in PALOMA_PHOTOS_DIRS in der Datei .env oder ändern Sie die Suche.",
+    "chooseAlbumTitle": "Wählen Sie ein Album",
+    "chooseAlbumHint": "Wählen Sie ein Album in der Liste, um seine Fotos zu sehen."
   },
   "photo": {
     "star": "Markieren",
@@ -251,6 +253,12 @@
   "settings": {
     "title": "Einstellungen",
     "intro": "Diese Einstellungen werden nur in diesem Browser gespeichert.",
+    "language": "Sprache",
+    "languageHint": "Die Sprache aller Texte in Paloma.",
+    "level": "Stufe",
+    "levelHint": "Wie viele Werkzeuge Paloma zeigt. Wählen Sie für Einsteiger oder Kinder eine niedrigere Stufe.",
+    "changePin": "PIN ändern",
+    "pinChanged": "Die PIN wurde geändert.",
     "viewer": "Fotoansicht",
     "navBar": "Navigationsleiste",
     "navBarHint": "Schließen, vorheriges und nächstes Foto sowie Zoom.",
@@ -311,5 +319,53 @@
     "zoomIn": "Vergrößern",
     "zoomOut": "Verkleinern",
     "fit": "An Bildschirm anpassen"
+  },
+  "levels": {
+    "child": {
+      "name": "Kind",
+      "description": "Nur Alben und Diashows; nichts kann geändert werden. Die Einstellungen brauchen eine PIN. Das schützt vor versehentlichen Änderungen durch Kinder, ist aber keine Sicherheitssperre."
+    },
+    "easy": {
+      "name": "Einfach",
+      "description": "Alben, Ordner, Suche, Sterne, einfache Korrekturen, Export und Druck."
+    },
+    "normal": {
+      "name": "Normal",
+      "description": "Alle Werkzeuge: Personen, Karte, Collage, Filme, Plugins und alle Fotokorrekturen."
+    },
+    "pro": {
+      "name": "Profi",
+      "description": "Alles aus „Normal“ und Werkzeuge für erfahrene Nutzer, sobald es sie gibt."
+    },
+    "developer": {
+      "name": "Entwickler",
+      "description": "Alles, was Paloma und seine Plugins bieten, auch Werkzeuge für Entwickler."
+    },
+    "pin": {
+      "unlockTitle": "PIN eingeben",
+      "unlockHint": "Die Einstellungen sind gesperrt. Geben Sie die PIN ein, um sie zu öffnen.",
+      "createTitle": "PIN festlegen",
+      "changeTitle": "PIN ändern",
+      "createHint": "Wählen Sie eine PIN aus 4 bis 8 Ziffern. Sie wird zum Öffnen der Einstellungen gebraucht.",
+      "repeatHint": "Geben Sie dieselbe PIN noch einmal ein.",
+      "wrong": "Falsche PIN.",
+      "invalid": "Die PIN muss 4 bis 8 Ziffern haben.",
+      "mismatch": "Die PINs stimmen nicht überein. Bitte beginnen Sie von vorn.",
+      "wait": "Zu viele falsche PINs. Versuchen Sie es in {{time}} erneut.",
+      "deleteDigit": "Letzte Ziffer löschen",
+      "next": "Weiter",
+      "ok": "OK"
+    }
+  },
+  "slideshow": {
+    "start": "Diashow",
+    "title": "Diashow",
+    "exit": "Diashow beenden",
+    "previous": "Vorheriges Foto",
+    "next": "Nächstes Foto",
+    "play": "Abspielen",
+    "pause": "Pause",
+    "interval": "Zeit pro Foto",
+    "seconds": "{{seconds, number}} s"
   }
 }

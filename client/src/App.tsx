@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { usePalomaStore } from './store/usePalomaStore.js';
 import { PhotoViewer } from './components/viewer/PhotoViewer.js';
 import { ExportWizardModal } from './components/ExportWizardModal.js';
@@ -10,29 +10,51 @@ import { PeopleView } from './components/PeopleView.js';
 import { PluginsView } from './components/PluginsView.js';
 import { SettingsView } from './components/SettingsView.js';
 import { AlbumHeader } from './components/AlbumHeader.js';
+import { LibraryHeader } from './components/LibraryHeader.js';
+import { Slideshow } from './components/slideshow/Slideshow.js';
 import { useLibraryPhotos } from './shell/useLibraryPhotos.js';
 import { useAppearanceSync, useSkin } from './appearance/runtime.js';
+import { allows, useLevel } from './levels/controls.js';
+import { usePinGate } from './levels/pinGate.js';
+import { SettingsPinDialog } from './levels/PinDialog.js';
 
-/** The library: the album's header, if one is open, over the skin's photo grid. */
+/** The library: the album's header if one is open, else a header with the slideshow, over the skin's photo grid. */
 const Library: React.FC = () => {
   const selectedAlbumToken = usePalomaStore((state) => state.selectedAlbumToken);
   const { components: { PhotoGrid } } = useSkin();
   const { photos, toggleStar } = useLibraryPhotos();
+  const header = selectedAlbumToken !== null
+    ? <AlbumHeader token={selectedAlbumToken} photos={photos} />
+    : photos.length > 0 ? <LibraryHeader photos={photos} /> : null;
   return (
     <>
-      {selectedAlbumToken !== null && <AlbumHeader token={selectedAlbumToken} />}
-      <PhotoGrid photos={photos} onStarToggle={toggleStar} />
+      {header}
+      <PhotoGrid photos={photos} belowHeader={header !== null} onStarToggle={toggleStar} />
     </>
   );
 };
 
 export const App: React.FC = () => {
   useAppearanceSync();
-  const currentView = usePalomaStore((state) => state.currentView);
+  const level = useLevel();
+  const settingsUnlocked = usePinGate((state) => state.unlocked);
+  const chosenView = usePalomaStore((state) => state.currentView);
+  // A view the level does not offer, or Settings at Child before the PIN, shows the library instead
+  const currentView = !allows(level, `view.${chosenView}`) || (chosenView === 'settings' && level === 'child' && !settingsUnlocked)
+    ? 'library'
+    : chosenView;
   const { components: { AppShell } } = useSkin();
   const [showExportModal, setShowExportModal] = useState(false);
   const [showPrintModal, setShowPrintModal] = useState(false);
   const [showMovieModal, setShowMovieModal] = useState(false);
+
+  // Child cannot use these dialogs; close them if they were open when the level changed
+  useEffect(() => {
+    if (level !== 'child') return;
+    setShowExportModal(false);
+    setShowPrintModal(false);
+    setShowMovieModal(false);
+  }, [level]);
 
   if (currentView === 'collage') {
     return <CollageBuilder />;
@@ -68,6 +90,10 @@ export const App: React.FC = () => {
 
       {/* Over whatever view opened it, which stays mounted with its scroll position */}
       <PhotoViewer />
+
+      <Slideshow />
+
+      <SettingsPinDialog />
     </>
   );
 };

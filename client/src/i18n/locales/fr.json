@@ -45,7 +45,9 @@
   },
   "grid": {
     "emptyTitle": "Aucune photo trouvée",
-    "emptyHint": "Vérifiez les dossiers de PALOMA_PHOTOS_DIRS dans le fichier .env ou modifiez la recherche."
+    "emptyHint": "Vérifiez les dossiers de PALOMA_PHOTOS_DIRS dans le fichier .env ou modifiez la recherche.",
+    "chooseAlbumTitle": "Choisissez un album",
+    "chooseAlbumHint": "Choisissez un album dans la liste pour voir ses photos."
   },
   "photo": {
     "star": "Ajouter aux favoris",
@@ -263,6 +265,12 @@
   "settings": {
     "title": "Réglages",
     "intro": "Ces réglages sont mémorisés uniquement dans ce navigateur.",
+    "language": "Langue",
+    "languageHint": "La langue de tous les textes de Paloma.",
+    "level": "Niveau",
+    "levelHint": "Le nombre d’outils affichés par Paloma. Choisissez un niveau plus bas pour un débutant ou un enfant.",
+    "changePin": "Modifier le code PIN",
+    "pinChanged": "Le code PIN a été modifié.",
     "viewer": "Visionneuse de photos",
     "navBar": "Barre de navigation",
     "navBarHint": "Fermer, photo précédente et suivante, et zoom.",
@@ -323,5 +331,53 @@
     "zoomIn": "Zoom avant",
     "zoomOut": "Zoom arrière",
     "fit": "Ajuster à l’écran"
+  },
+  "levels": {
+    "child": {
+      "name": "Enfant",
+      "description": "Seulement les albums et les diaporamas ; rien ne peut être modifié. Les réglages demandent un code PIN. Cela évite les modifications accidentelles par les enfants, mais ce n’est pas une protection de sécurité."
+    },
+    "easy": {
+      "name": "Facile",
+      "description": "Albums, dossiers, recherche, étoiles, retouches simples, export et impression."
+    },
+    "normal": {
+      "name": "Normal",
+      "description": "Tous les outils : personnes, carte, collage, films, extensions et toutes les retouches photo."
+    },
+    "pro": {
+      "name": "Professionnel",
+      "description": "Tout ce qu’offre Normal, et des outils pour utilisateurs expérimentés à mesure qu’ils arrivent."
+    },
+    "developer": {
+      "name": "Développeur",
+      "description": "Tout ce que proposent Paloma et ses extensions, y compris les outils pour développeurs."
+    },
+    "pin": {
+      "unlockTitle": "Saisissez le code PIN",
+      "unlockHint": "Les réglages sont verrouillés. Saisissez le code PIN pour les ouvrir.",
+      "createTitle": "Définir un code PIN",
+      "changeTitle": "Modifier le code PIN",
+      "createHint": "Choisissez un code PIN de 4 à 8 chiffres. Il sera demandé pour ouvrir les réglages.",
+      "repeatHint": "Saisissez à nouveau le même code PIN.",
+      "wrong": "Code PIN incorrect.",
+      "invalid": "Le code PIN doit comporter de 4 à 8 chiffres.",
+      "mismatch": "Les codes PIN sont différents. Veuillez recommencer.",
+      "wait": "Trop de codes PIN incorrects. Réessayez dans {{time}}.",
+      "deleteDigit": "Effacer le dernier chiffre",
+      "next": "Suivant",
+      "ok": "OK"
+    }
+  },
+  "slideshow": {
+    "start": "Diaporama",
+    "title": "Diaporama",
+    "exit": "Quitter le diaporama",
+    "previous": "Photo précédente",
+    "next": "Photo suivante",
+    "play": "Lecture",
+    "pause": "Pause",
+    "interval": "Durée par photo",
+    "seconds": "{{seconds, number}} s"
   }
 }

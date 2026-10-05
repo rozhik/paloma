@@ -13,6 +13,8 @@ import type { PanelAnchor, PanelKind } from './EditBar.js';
 import { useViewerEdits } from './useViewerEdits.js';
 import { ZOOM_STEP, clampPan, clampScale, fitted, isFitted, panBy, zoomAt, type Size, type ZoomState } from './zoomMath.js';
 import { useSkin } from '../../appearance/runtime.js';
+import { useAllows, useLevel } from '../../levels/controls.js';
+import { offeredFilters } from '../../levels/filters.js';
 
 /** A rectangle parameter being edited as a frame over the photo. */
 export interface FrameEdit {
@@ -49,13 +51,19 @@ export function usePhotoViewer(viewer: ViewerState) {
   const photo = viewer.photos[viewer.index];
   const edits = useViewerEdits(photo);
   const { chain, dispatch } = edits;
+  /** Whether the edit bar is offered at the active level; without it the viewer only shows */
+  const canEdit = useAllows('viewer.editBar');
 
   const barSize = useSkin().skin.viewerBarSize;
   const navEdge = useUiSettings((state) => state.navBar);
   const editEdge = useUiSettings((state) => state.editBar);
   const layout = useMemo(() => barLayout({ navBar: navEdge, editBar: editEdge }), [navEdge, editEdge]);
 
+  const level = useLevel();
+  /** Every filter of an active plugin, by name: to name and edit steps */
   const [filters, setFilters] = useState<Map<string, FilterInfo> | null>(null);
+  /** The filters the edit bar offers at the active level */
+  const [barFilters, setBarFilters] = useState<Map<string, FilterInfo> | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [panel, setPanel] = useState<(PanelKind & { anchor: PanelAnchor }) | null>(null);
   const [frame, setFrame] = useState<FrameEdit | null>(null);
@@ -69,12 +77,13 @@ export function usePhotoViewer(viewer: ViewerState) {
   // Filters of the plugins that are on, with labels in the active language
   useEffect(() => {
     fetchPlugins(currentLanguage())
-      .then((plugins) => setFilters(new Map(plugins
-        .filter((plugin) => plugin.status === 'active')
-        .flatMap((plugin) => plugin.filters)
-        .map((filter) => [filter.name, filter]))))
+      .then((plugins) => {
+        const byName = (list: FilterInfo[]) => new Map(list.map((filter) => [filter.name, filter]));
+        setFilters(byName(plugins.filter((plugin) => plugin.status === 'active').flatMap((plugin) => plugin.filters)));
+        setBarFilters(byName(offeredFilters(plugins, level)));
+      })
       .catch((err) => setLoadError(describeError(err, t)));
-  }, [i18n.language]);
+  }, [i18n.language, level]);
 
   // Another photo starts fitted, with nothing open
   useEffect(() => {
@@ -210,7 +219,7 @@ export function usePhotoViewer(viewer: ViewerState) {
       if (typing) return;
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
         event.preventDefault();
-        if (!frame && !event.shiftKey) dispatch({ type: 'undo' });
+        if (canEdit && !frame && !event.shiftKey) dispatch({ type: 'undo' });
         return;
       }
       if (event.ctrlKey || event.metaKey || event.altKey) return;
@@ -241,7 +250,7 @@ export function usePhotoViewer(viewer: ViewerState) {
   const saveMessage = edits.status === 'failed' ? describeError(edits.error, t) : null;
 
   return {
-    root, photo, viewer, edits, chain, dispatch, layout, barSize, filters, loadError, setLoadError, panel, setPanel,
+    root, photo, viewer, edits, chain, dispatch, canEdit, layout, barSize, filters, barFilters, loadError, setLoadError, panel, setPanel,
     panelFilter, panelSide, frame, setFrame, frameRatio, imageAspect, showOriginal, setShowOriginal, showGrid,
     setShowGrid, stage, full, zoom, preview, setZoom, onStageResize, zoomBy, fit: () => setZoomChoice('fit'),
     canPrev, canNext, prev, next, close, openFrame, applyFrame, cancelFrame, setFrameRatio, chooseFilter, lastStep,

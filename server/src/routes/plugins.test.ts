@@ -74,6 +74,16 @@ describe('GET /api/plugins', () => {
     expect(body[3].error).toBe('the plugin needs plugin API 2, while Paloma supports 1');
   });
 
+  it('reports plugin and filter levels', async () => {
+    const { body } = await send('GET', '/plugins');
+    const levels = (id: string) => {
+      const plugin = body.find((p: { id: string }) => p.id === id);
+      return [plugin.level, ...new Set(plugin.filters.map((f: { level: string }) => f.level))];
+    };
+    expect(levels('basic-effects')).toEqual(['easy', 'easy']);
+    expect(levels('basic-transforms')).toEqual(['normal', 'normal']);
+  });
+
   it('falls back to English for a missing translation', async () => {
     const { body } = await send('GET', '/plugins?lang=de');
     expect(body.find((p: { id: string }) => p.id === 'film-grain').name).toBe('Film grain');

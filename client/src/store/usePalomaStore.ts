@@ -10,6 +10,12 @@ export interface ViewerState {
   saved: boolean;
 }
 
+/** A running slideshow: the grid's photos when it started, and where it started. */
+export interface SlideshowState {
+  photos: Photo[];
+  index: number;
+}
+
 export type FilterType = 'all' | 'starred' | 'recent' | 'geotagged';
 
 interface PalomaStore {
@@ -17,6 +23,8 @@ interface PalomaStore {
   selectedPhotos: Photo[];
   /** Open photo viewer, shown over the current view; null when closed */
   viewer: ViewerState | null;
+  /** Running slideshow, shown over everything; null when there is none */
+  slideshow: SlideshowState | null;
   searchQuery: string;
   selectedFolderId: number | null;
   selectedFilter: FilterType;
@@ -32,6 +40,9 @@ interface PalomaStore {
   /** Replaces a photo in the viewer's list with a fresh copy after its edits were saved */
   replaceViewerPhoto: (photo: Photo) => void;
   closeViewer: () => void;
+  /** Starts a slideshow of `photos` (the grid's, in grid order) at `photos[index]` */
+  startSlideshow: (photos: Photo[], index: number) => void;
+  stopSlideshow: () => void;
   setSearchQuery: (query: string) => void;
   setSelectedFolderId: (folderId: number | null) => void;
   setSelectedFilter: (filter: FilterType) => void;
@@ -45,6 +56,11 @@ interface PalomaStore {
   refreshSelectedPhotos: (photos: Photo[]) => void;
   removePhotoFromTray: (photoId: number) => void;
   clearTray: () => void;
+  /**
+   * What switching to the Child level resets: the selection, search, folder and shortcut, which Child cannot
+   * see or change. An open album stays.
+   */
+  enterChildMode: () => void;
   isPhotoSelected: (photoId: number) => boolean;
 }
 
@@ -52,6 +68,7 @@ export const usePalomaStore = create<PalomaStore>((set, get) => ({
   currentView: 'library',
   selectedPhotos: [],
   viewer: null,
+  slideshow: null,
   searchQuery: '',
   selectedFolderId: null,
   selectedFilter: 'all',
@@ -79,6 +96,11 @@ export const usePalomaStore = create<PalomaStore>((set, get) => ({
     if (!viewer) return;
     set(viewer.saved ? { viewer: null, libraryVersion: libraryVersion + 1 } : { viewer: null });
   },
+  startSlideshow: (photos, index) => {
+    if (photos.length === 0) return;
+    set({ slideshow: { photos, index: Math.min(Math.max(index, 0), photos.length - 1) } });
+  },
+  stopSlideshow: () => set({ slideshow: null }),
   setSearchQuery: (searchQuery) => set({ searchQuery }),
   setSelectedFolderId: (selectedFolderId) => set({ selectedFolderId, selectedFilter: 'all', selectedAlbumToken: null }),
   setSelectedFilter: (selectedFilter) => set({ selectedFilter, selectedFolderId: null, selectedAlbumToken: null }),
@@ -111,6 +133,8 @@ export const usePalomaStore = create<PalomaStore>((set, get) => ({
   },
 
   clearTray: () => set({ selectedPhotos: [] }),
+
+  enterChildMode: () => set({ selectedPhotos: [], searchQuery: '', selectedFolderId: null, selectedFilter: 'all' }),
 
   isPhotoSelected: (photoId) => {
     return get().selectedPhotos.some((p) => p.id === photoId);

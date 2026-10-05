@@ -1,11 +1,19 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import type { LocalizedText } from '../../../shared/types.js';
+import type { ComplexityLevel, LocalizedText } from '../../../shared/types.js';
 import { PLUGIN_API_VERSION } from './api.js';
 
 export const MANIFEST_NAME = 'paloma-plugin.json';
 
 const ID_PATTERN = /^[a-z0-9][a-z0-9-]*$/;
+
+/** The levels a plugin or filter may declare, lowest first. */
+export const COMPLEXITY_LEVELS = ['child', 'easy', 'normal', 'pro', 'developer'] as const satisfies readonly ComplexityLevel[];
+/** The level of a plugin whose manifest declares none */
+export const DEFAULT_PLUGIN_LEVEL: ComplexityLevel = 'normal';
+
+export const isComplexityLevel = (value: unknown): value is ComplexityLevel =>
+  COMPLEXITY_LEVELS.includes(value as ComplexityLevel);
 
 export interface PluginManifest {
   id: string;
@@ -15,6 +23,8 @@ export interface PluginManifest {
   apiVersion: number;
   /** Absolute path of the server module, inside the plugin folder */
   server: string;
+  /** The lowest level at which the UI offers what the plugin contributes */
+  level: ComplexityLevel;
 }
 
 /** What could be read of a manifest that cannot be used, so the plugin can still be listed. */
@@ -23,6 +33,7 @@ export interface PartialManifest {
   name?: LocalizedText;
   description?: LocalizedText;
   version?: string;
+  level?: ComplexityLevel;
 }
 
 export type ManifestRead =
@@ -80,6 +91,7 @@ export function readManifest(folder: string): ManifestRead {
   if (isLocalizedText(parsed.name)) partial.name = parsed.name;
   if (isLocalizedText(parsed.description)) partial.description = parsed.description;
   if (typeof parsed.version === 'string' && parsed.version.trim() !== '') partial.version = parsed.version;
+  if (isComplexityLevel(parsed.level)) partial.level = parsed.level;
   const invalid = (reason: string): ManifestRead => ({ kind: 'invalid', partial, reason });
 
   if (parsed.id === undefined) return invalid('the manifest has no "id"');
@@ -92,6 +104,9 @@ export function readManifest(folder: string): ManifestRead {
     return invalid(`the plugin needs plugin API ${parsed.apiVersion}, while Paloma supports ${PLUGIN_API_VERSION}`);
   }
   if (typeof parsed.server !== 'string' || parsed.server.trim() === '') return invalid('"server" must name the module file');
+  if (parsed.level !== undefined && !partial.level) {
+    return invalid(`"level" must be one of ${COMPLEXITY_LEVELS.join(', ')}`);
+  }
 
   const root = fs.realpathSync(folder);
   const server = path.resolve(root, parsed.server);
@@ -114,6 +129,7 @@ export function readManifest(folder: string): ManifestRead {
       version: partial.version,
       apiVersion: parsed.apiVersion,
       server: realServer,
+      level: partial.level ?? DEFAULT_PLUGIN_LEVEL,
     },
   };
 }

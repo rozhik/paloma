@@ -29,6 +29,12 @@ export interface RelativeRect {
 
 export type FilterGroup = 'basic' | 'tuning' | 'effects';
 
+/**
+ * How much of the UI a user sees, lowest first: `child`, `easy`, `normal`, `pro`, `developer`.
+ * Something with a level is available at that level and every higher one.
+ */
+export type ComplexityLevel = 'child' | 'easy' | 'normal' | 'pro' | 'developer';
+
 /** A filter parameter as listed by `GET /api/plugins`, with its label in the requested language. */
 export type FilterParamInfo =
   | { name: string; label: string; type: 'number'; min: number; max: number; step: number; default: number }
@@ -43,6 +49,8 @@ export interface FilterInfo {
   params: FilterParamInfo[];
   /** URL of the filter's SVG icon; absent when it has none and the editor shows a generic icon */
   iconUrl?: string;
+  /** The lowest level the editor offers it at: its own, else its plugin's */
+  level: ComplexityLevel;
 }
 
 export type PluginSource = 'bundled' | 'external';
@@ -56,6 +64,8 @@ export interface PluginInfo {
   description: string;
   version: string | null;
   source: PluginSource;
+  /** From the manifest; `normal` when it declares none */
+  level: ComplexityLevel;
   enabled: boolean;
   status: PluginStatus;
   error: string | null;

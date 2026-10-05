@@ -45,7 +45,9 @@
   },
   "grid": {
     "emptyTitle": "Nenhuma foto encontrada",
-    "emptyHint": "Verifique as pastas em PALOMA_PHOTOS_DIRS no arquivo .env ou altere a pesquisa."
+    "emptyHint": "Verifique as pastas em PALOMA_PHOTOS_DIRS no arquivo .env ou altere a pesquisa.",
+    "chooseAlbumTitle": "Escolha um álbum",
+    "chooseAlbumHint": "Escolha um álbum na lista para ver as fotos dele."
   },
   "photo": {
     "star": "Adicionar às favoritas",
@@ -263,6 +265,12 @@
   "settings": {
     "title": "Configurações",
     "intro": "Estas configurações ficam salvas apenas neste navegador.",
+    "language": "Idioma",
+    "languageHint": "O idioma de todos os textos do Paloma.",
+    "level": "Nível",
+    "levelHint": "Quantas ferramentas o Paloma mostra. Escolha um nível mais baixo para um iniciante ou uma criança.",
+    "changePin": "Alterar o PIN",
+    "pinChanged": "O PIN foi alterado.",
     "viewer": "Visualizador de fotos",
     "navBar": "Barra de navegação",
     "navBarHint": "Fechar, foto anterior e próxima, e zoom.",
@@ -323,5 +331,53 @@
     "zoomIn": "Aumentar zoom",
     "zoomOut": "Diminuir zoom",
     "fit": "Ajustar à tela"
+  },
+  "levels": {
+    "child": {
+      "name": "Criança",
+      "description": "Apenas álbuns e apresentações; nada pode ser alterado. As configurações pedem um PIN. Isso evita que crianças mudem algo sem querer, mas não é uma trava de segurança."
+    },
+    "easy": {
+      "name": "Fácil",
+      "description": "Álbuns, pastas, busca, estrelas, ajustes simples, exportar e imprimir."
+    },
+    "normal": {
+      "name": "Normal",
+      "description": "Todas as ferramentas: pessoas, mapa, colagem, filmes, plugins e todos os ajustes de fotos."
+    },
+    "pro": {
+      "name": "Profissional",
+      "description": "Tudo do nível Normal e ferramentas para usuários experientes conforme forem adicionadas."
+    },
+    "developer": {
+      "name": "Desenvolvedor",
+      "description": "Tudo o que o Paloma e seus plugins oferecem, incluindo ferramentas para desenvolvedores."
+    },
+    "pin": {
+      "unlockTitle": "Digite o PIN",
+      "unlockHint": "As configurações estão bloqueadas. Digite o PIN para abri-las.",
+      "createTitle": "Defina um PIN",
+      "changeTitle": "Alterar o PIN",
+      "createHint": "Escolha um PIN de 4 a 8 dígitos. Ele será pedido para abrir as configurações.",
+      "repeatHint": "Digite o mesmo PIN novamente.",
+      "wrong": "PIN incorreto.",
+      "invalid": "O PIN deve ter de 4 a 8 dígitos.",
+      "mismatch": "Os PINs são diferentes. Comece de novo.",
+      "wait": "PINs incorretos demais. Tente novamente em {{time}}.",
+      "deleteDigit": "Apagar o último dígito",
+      "next": "Próximo",
+      "ok": "OK"
+    }
+  },
+  "slideshow": {
+    "start": "Apresentação",
+    "title": "Apresentação",
+    "exit": "Sair da apresentação",
+    "previous": "Foto anterior",
+    "next": "Próxima foto",
+    "play": "Reproduzir",
+    "pause": "Pausar",
+    "interval": "Tempo por foto",
+    "seconds": "{{seconds, number}} s"
   }
 }

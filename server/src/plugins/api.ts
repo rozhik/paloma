@@ -7,9 +7,9 @@
  * of contributions without breaking existing plugins.
  */
 import type sharp from 'sharp';
-import type { FilterGroup, LocalizedText, RelativeRect } from '../../../shared/types.js';
+import type { ComplexityLevel, FilterGroup, LocalizedText, RelativeRect } from '../../../shared/types.js';
 
-export type { FilterGroup, LocalizedText, RelativeRect } from '../../../shared/types.js';
+export type { ComplexityLevel, FilterGroup, LocalizedText, RelativeRect } from '../../../shared/types.js';
 
 export const PLUGIN_API_VERSION = 1;
 
@@ -81,6 +81,11 @@ export interface FilterDefinition {
   params?: ParamDefinition[];
   /** Path of an SVG icon inside the plugin folder, relative to it; without one the editor shows a generic icon */
   icon?: string;
+  /**
+   * The lowest level at which the editor offers the filter: `child`, `easy`, `normal`, `pro` or `developer`.
+   * Without one it has the plugin's level. Steps of the filter are rendered at every level.
+   */
+  level?: ComplexityLevel;
   render(input: RenderInput): sharp.Sharp | Promise<sharp.Sharp>;
 }
 

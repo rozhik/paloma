@@ -36,8 +36,20 @@ describe('readManifest', () => {
     writePlugin(VALID);
     expect(readManifest(dir)).toEqual({
       kind: 'ok',
-      manifest: { ...VALID, server: path.join(dir, 'index.js') },
+      manifest: { ...VALID, server: path.join(dir, 'index.js'), level: 'normal' },
     });
+  });
+
+  it('reads a declared level', () => {
+    writePlugin({ ...VALID, level: 'pro' });
+    expect(readManifest(dir)).toMatchObject({ kind: 'ok', manifest: { level: 'pro' } });
+  });
+
+  it('rejects an unknown level, naming the allowed ones', () => {
+    writePlugin({ ...VALID, level: 'expert' });
+    const read = readManifest(dir);
+    expect(read.kind).toBe('invalid');
+    if (read.kind === 'invalid') expect(read.reason).toBe('"level" must be one of child, easy, normal, pro, developer');
   });
 
   it('reports a folder without a manifest as missing', () => {

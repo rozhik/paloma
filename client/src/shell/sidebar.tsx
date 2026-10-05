@@ -2,7 +2,9 @@ import React, { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BookImage, ChevronDown, Clock, Folder, Image, MapPin, Star, type LucideIcon } from 'lucide-react';
 import { usePalomaStore, type FilterType } from '../store/usePalomaStore.js';
-import { useUiSettings, type SidebarListId } from '../settings/uiSettings.js';
+import { SIDEBAR_LISTS, useUiSettings, type SidebarListId } from '../settings/uiSettings.js';
+import { allows, useLevel } from '../levels/controls.js';
+import type { Level } from '../levels/levels.js';
 import { useFolderTree } from './useFolderTree.js';
 
 /** One entry of a sidebar list: a shortcut, an album or a folder. */
@@ -51,9 +53,13 @@ const SHORTCUTS: { filter: FilterType; icon: LucideIcon; iconClass: string; labe
   { filter: 'geotagged', icon: MapPin, iconClass: 'text-danger', labelKey: 'sidebar.geotagged' },
 ];
 
-/** The sidebar's lists (shortcuts, albums, folders) with their entries and collapsed state. */
+/** The sidebar lists shown at a level. */
+export const sidebarListsFor = (level: Level): SidebarListId[] => SIDEBAR_LISTS.filter((id) => allows(level, `sidebar.${id}`));
+
+/** The sidebar's lists shown at the active level (shortcuts, albums, folders), with their entries and collapsed state. */
 export function useSidebarSections(): SidebarSectionData[] {
   const { t } = useTranslation();
+  const shown = sidebarListsFor(useLevel());
   const {
     selectedFolderId, setSelectedFolderId, selectedFilter, setSelectedFilter, selectedAlbumToken, setSelectedAlbum,
   } = usePalomaStore();
@@ -65,7 +71,7 @@ export function useSidebarSections(): SidebarSectionData[] {
     id, collapsed: collapsed.includes(id), toggle: () => toggleSidebarList(id), ...data,
   });
 
-  return [
+  const sections = [
     section('shortcuts', {
       title: t('sidebar.collections'),
       items: SHORTCUTS.map(({ filter, icon, iconClass, labelKey }) => ({
@@ -110,6 +116,7 @@ export function useSidebarSections(): SidebarSectionData[] {
       })),
     }),
   ];
+  return sections.filter((data) => shown.includes(data.id));
 }
 
 interface SidebarSectionProps {

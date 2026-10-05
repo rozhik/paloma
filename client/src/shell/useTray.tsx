@@ -9,6 +9,8 @@ import { AlbumPickerModal } from '../components/AlbumPickerModal.js';
 import { ConfirmModal } from '../components/ConfirmModal.js';
 import { usePlaceLabel } from '../components/placeLabel.js';
 import type { TrayHandlers } from '../appearance/skins/types.js';
+import { allows, useLevel } from '../levels/controls.js';
+import type { Level } from '../levels/levels.js';
 
 /** Data type of a photo id dragged from the tray, e.g. onto the map. */
 export const PHOTO_DRAG_TYPE = 'application/x-paloma-photo';
@@ -18,6 +20,9 @@ export const TRAY_ACTION_IDS = [
   'addToAlbum', 'removeFromAlbum', 'makeCover', 'removeLocation', 'clear', 'export', 'print', 'collage', 'movie',
 ] as const;
 export type TrayActionId = typeof TRAY_ACTION_IDS[number];
+
+/** The tray actions shown at a level, when they apply. */
+export const trayActionsFor = (level: Level): TrayActionId[] => TRAY_ACTION_IDS.filter((id) => allows(level, `tray.${id}`));
 
 export interface TrayAction {
   id: TrayActionId;
@@ -48,6 +53,7 @@ export function useTray(handlers: TrayHandlers): Tray {
   const [error, setError] = useState<unknown>(null);
   const [confirmRemoveLocation, setConfirmRemoveLocation] = useState(false);
   const placeLabel = usePlaceLabel();
+  const shown = trayActionsFor(useLevel());
 
   const geotagged = selectedPhotos.filter((photo) => photo.latitude !== null);
   const photoIds = selectedPhotos.map((photo) => photo.id);
@@ -96,7 +102,7 @@ export function useTray(handlers: TrayHandlers): Tray {
   return {
     photos: selectedPhotos,
     singlePlace: selectedPhotos.length === 1 ? placeLabel(selectedPhotos[0]) : null,
-    actions: all.filter((action) => action.when).map(({ when, ...action }) => action),
+    actions: all.filter((action) => action.when && shown.includes(action.id)).map(({ when, ...action }) => action),
     removePhoto: removePhotoFromTray,
     error,
     clearError: () => setError(null),

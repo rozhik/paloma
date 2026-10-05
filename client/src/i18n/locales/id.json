@@ -43,7 +43,9 @@
   },
   "grid": {
     "emptyTitle": "Foto tidak ditemukan",
-    "emptyHint": "Periksa folder di PALOMA_PHOTOS_DIRS dalam file .env atau ubah pencarian."
+    "emptyHint": "Periksa folder di PALOMA_PHOTOS_DIRS dalam file .env atau ubah pencarian.",
+    "chooseAlbumTitle": "Pilih album",
+    "chooseAlbumHint": "Pilih album di daftar untuk melihat fotonya."
   },
   "photo": {
     "star": "Beri bintang",
@@ -239,6 +241,12 @@
   "settings": {
     "title": "Pengaturan",
     "intro": "Pengaturan ini hanya diingat di peramban ini.",
+    "language": "Bahasa",
+    "languageHint": "Bahasa semua teks di Paloma.",
+    "level": "Tingkat",
+    "levelHint": "Berapa banyak alat yang ditampilkan Paloma. Pilih tingkat yang lebih rendah untuk pemula atau anak-anak.",
+    "changePin": "Ubah PIN",
+    "pinChanged": "PIN telah diubah.",
     "viewer": "Penampil foto",
     "navBar": "Bilah navigasi",
     "navBarHint": "Tutup, foto sebelumnya dan berikutnya, serta zoom.",
@@ -299,5 +307,53 @@
     "zoomIn": "Perbesar",
     "zoomOut": "Perkecil",
     "fit": "Paskan ke layar"
+  },
+  "levels": {
+    "child": {
+      "name": "Anak",
+      "description": "Hanya album dan tayangan slide; tidak ada yang bisa diubah. Pengaturan memerlukan PIN. Ini mencegah anak-anak mengubah sesuatu tanpa sengaja, tetapi bukan kunci keamanan."
+    },
+    "easy": {
+      "name": "Mudah",
+      "description": "Album, folder, pencarian, bintang, perbaikan sederhana, ekspor, dan cetak."
+    },
+    "normal": {
+      "name": "Normal",
+      "description": "Semua alat: orang, peta, kolase, film, plugin, dan semua perbaikan foto."
+    },
+    "pro": {
+      "name": "Profesional",
+      "description": "Semua yang ada di Normal, dan alat untuk pengguna berpengalaman saat ditambahkan."
+    },
+    "developer": {
+      "name": "Pengembang",
+      "description": "Semua yang ditawarkan Paloma dan pluginnya, termasuk alat untuk pengembang."
+    },
+    "pin": {
+      "unlockTitle": "Masukkan PIN",
+      "unlockHint": "Pengaturan terkunci. Masukkan PIN untuk membukanya.",
+      "createTitle": "Atur PIN",
+      "changeTitle": "Ubah PIN",
+      "createHint": "Pilih PIN 4 sampai 8 angka. PIN ini diperlukan untuk membuka pengaturan.",
+      "repeatHint": "Masukkan PIN yang sama sekali lagi.",
+      "wrong": "PIN salah.",
+      "invalid": "PIN harus terdiri dari 4 sampai 8 angka.",
+      "mismatch": "PIN tidak sama. Silakan mulai lagi.",
+      "wait": "Terlalu banyak PIN salah. Coba lagi dalam {{time}}.",
+      "deleteDigit": "Hapus angka terakhir",
+      "next": "Berikutnya",
+      "ok": "OK"
+    }
+  },
+  "slideshow": {
+    "start": "Tayangan slide",
+    "title": "Tayangan slide",
+    "exit": "Keluar dari tayangan slide",
+    "previous": "Foto sebelumnya",
+    "next": "Foto berikutnya",
+    "play": "Putar",
+    "pause": "Jeda",
+    "interval": "Waktu per foto",
+    "seconds": "{{seconds, number}} dtk"
   }
 }

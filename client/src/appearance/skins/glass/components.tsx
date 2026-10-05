@@ -10,6 +10,7 @@ import { LanguageSwitcher } from '../../../components/LanguageSwitcher.js';
 import { ViewerChrome, type ViewerChromeProps } from '../../../components/viewer/ViewerChrome.js';
 import { IconButton } from '../../../shell/IconButton.js';
 import { useNavigationItems } from '../../../shell/navigation.js';
+import { useAllows } from '../../../levels/controls.js';
 import { SidebarSection, useSidebarSections, type SidebarItem } from '../../../shell/sidebar.js';
 import { SquarePhotoCard } from '../../../shell/SquarePhotoCard.js';
 import { PHOTO_DRAG_TYPE, useTray } from '../../../shell/useTray.js';
@@ -28,6 +29,8 @@ const GlassToolbar: React.FC<{ showFolders: boolean; foldersOpen: boolean; onFol
   const { t } = useTranslation();
   const { searchQuery, setSearchQuery } = usePalomaStore();
   const items = useNavigationItems();
+  const showSearch = useAllows('search');
+  const showLanguage = useAllows('languageSwitcher');
   return (
     <header className="glass-toolbar glass-surface">
       {showFolders && (
@@ -42,17 +45,21 @@ const GlassToolbar: React.FC<{ showFolders: boolean; foldersOpen: boolean; onFol
           onClick={onFolders}
         />
       )}
-      <div className="glass-search">
-        <Search size={18} aria-hidden="true" />
-        <input
-          type="search"
-          className="form-control"
-          placeholder={t('nav.searchPlaceholder')}
-          aria-label={t('nav.searchPlaceholder')}
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-      </div>
+      {showSearch ? (
+        <div className="glass-search">
+          <Search size={18} aria-hidden="true" />
+          <input
+            type="search"
+            className="form-control"
+            placeholder={t('nav.searchPlaceholder')}
+            aria-label={t('nav.searchPlaceholder')}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+      ) : (
+        <div className="flex-grow-1" />
+      )}
       <nav className="glass-views" aria-label={t('nav.views')}>
         {items.map(({ view, icon: Icon, label, active, select }) => (
           // The current view shows its name; the others are icons with a tooltip
@@ -66,7 +73,7 @@ const GlassToolbar: React.FC<{ showFolders: boolean; foldersOpen: boolean; onFol
           )
         ))}
       </nav>
-      <LanguageSwitcher variant="link" className="glass-btn glass-language" iconOnly iconSize={22} />
+      {showLanguage && <LanguageSwitcher variant="link" className="glass-btn glass-language" iconOnly iconSize={22} />}
     </header>
   );
 };
@@ -195,10 +202,10 @@ const GlassShell: React.FC<AppShellProps> = ({ view, tray, children }) => {
   );
 };
 
-const GlassGrid: React.FC<PhotoGridProps> = ({ photos, onStarToggle }) => {
+const GlassGrid: React.FC<PhotoGridProps> = ({ photos, belowHeader, onStarToggle }) => {
   const trayShown = usePalomaStore((state) => state.selectedPhotos.length > 0);
-  // An album's header sits below the toolbar, and the grid below the header
-  const underToolbar = usePalomaStore((state) => state.selectedAlbumToken === null);
+  // A header sits below the toolbar, and the grid below the header
+  const underToolbar = !belowHeader;
   const renderCard = useCallback(
     (photo: Photo, open: () => void) => <SquarePhotoCard className="glass-card" iconSize={20} photo={photo} onStarToggle={onStarToggle} onOpen={open} />,
     [onStarToggle],

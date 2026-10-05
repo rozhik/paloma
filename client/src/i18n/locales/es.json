@@ -45,7 +45,9 @@
   },
   "grid": {
     "emptyTitle": "No se encontraron fotos",
-    "emptyHint": "Revisa las carpetas de PALOMA_PHOTOS_DIRS en el archivo .env o cambia la búsqueda."
+    "emptyHint": "Revisa las carpetas de PALOMA_PHOTOS_DIRS en el archivo .env o cambia la búsqueda.",
+    "chooseAlbumTitle": "Elija un álbum",
+    "chooseAlbumHint": "Elija un álbum de la lista para ver sus fotos."
   },
   "photo": {
     "star": "Destacar",
@@ -263,6 +265,12 @@
   "settings": {
     "title": "Ajustes",
     "intro": "Estos ajustes se guardan solo en este navegador.",
+    "language": "Idioma",
+    "languageHint": "El idioma de todos los textos de Paloma.",
+    "level": "Nivel",
+    "levelHint": "Cuántas herramientas muestra Paloma. Elija un nivel más bajo para un principiante o un niño.",
+    "changePin": "Cambiar el PIN",
+    "pinChanged": "El PIN se ha cambiado.",
     "viewer": "Visor de fotos",
     "navBar": "Barra de navegación",
     "navBarHint": "Cerrar, foto anterior y siguiente, y zoom.",
@@ -323,5 +331,53 @@
     "zoomIn": "Acercar",
     "zoomOut": "Alejar",
     "fit": "Ajustar a la pantalla"
+  },
+  "levels": {
+    "child": {
+      "name": "Niño",
+      "description": "Solo álbumes y presentaciones; no se puede cambiar nada. Los ajustes piden un PIN. Evita que los niños cambien cosas por accidente, pero no es un bloqueo de seguridad."
+    },
+    "easy": {
+      "name": "Fácil",
+      "description": "Álbumes, carpetas, búsqueda, estrellas, retoques sencillos, exportar e imprimir."
+    },
+    "normal": {
+      "name": "Normal",
+      "description": "Todas las herramientas: personas, mapa, collage, películas, complementos y todos los retoques de fotos."
+    },
+    "pro": {
+      "name": "Profesional",
+      "description": "Todo lo de Normal y herramientas para usuarios con experiencia a medida que se añadan."
+    },
+    "developer": {
+      "name": "Desarrollador",
+      "description": "Todo lo que ofrecen Paloma y sus complementos, incluidas las herramientas para desarrolladores."
+    },
+    "pin": {
+      "unlockTitle": "Introduzca el PIN",
+      "unlockHint": "Los ajustes están bloqueados. Introduzca el PIN para abrirlos.",
+      "createTitle": "Establezca un PIN",
+      "changeTitle": "Cambiar el PIN",
+      "createHint": "Elija un PIN de 4 a 8 dígitos. Se pedirá para abrir los ajustes.",
+      "repeatHint": "Introduzca el mismo PIN otra vez.",
+      "wrong": "PIN incorrecto.",
+      "invalid": "El PIN debe tener de 4 a 8 dígitos.",
+      "mismatch": "Los PIN no coinciden. Empiece de nuevo.",
+      "wait": "Demasiados PIN incorrectos. Inténtelo de nuevo en {{time}}.",
+      "deleteDigit": "Borrar el último dígito",
+      "next": "Siguiente",
+      "ok": "Aceptar"
+    }
+  },
+  "slideshow": {
+    "start": "Presentación",
+    "title": "Presentación",
+    "exit": "Salir de la presentación",
+    "previous": "Foto anterior",
+    "next": "Foto siguiente",
+    "play": "Reproducir",
+    "pause": "Pausa",
+    "interval": "Tiempo por foto",
+    "seconds": "{{seconds, number}} s"
   }
 }

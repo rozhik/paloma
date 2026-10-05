@@ -2,18 +2,22 @@ import React, { useEffect, useState } from 'react';
 import { Modal, Button, Alert } from 'react-bootstrap';
 import { useTranslation } from 'react-i18next';
 import { BookImage, MapPin, Pencil, Trash2 } from 'lucide-react';
-import type { Album } from '../../../shared/types.js';
+import type { Album, Photo } from '../../../shared/types.js';
 import { usePalomaStore } from '../store/usePalomaStore.js';
 import { fetchAlbums } from '../api/albums.js';
 import { apiRequest, describeError } from '../api/http.js';
 import { useFormat } from '../i18n/format.js';
 import { AlbumPropertiesModal } from './AlbumPropertiesModal.js';
+import { useAllows } from '../levels/controls.js';
+import { SlideshowButton } from './slideshow/SlideshowButton.js';
 
 interface AlbumHeaderProps {
   token: string;
+  /** The album's photos as the grid shows them, for the slideshow */
+  photos: Photo[];
 }
 
-export const AlbumHeader: React.FC<AlbumHeaderProps> = ({ token }) => {
+export const AlbumHeader: React.FC<AlbumHeaderProps> = ({ token, photos }) => {
   const { libraryVersion, bumpLibrary, setSelectedFilter } = usePalomaStore();
   const [album, setAlbum] = useState<Album | null>(null);
   const [showProperties, setShowProperties] = useState(false);
@@ -21,6 +25,8 @@ export const AlbumHeader: React.FC<AlbumHeaderProps> = ({ token }) => {
   const [error, setError] = useState<unknown>(null);
   const { t } = useTranslation();
   const { formatNumber } = useFormat();
+  const canEdit = useAllows('album.editProperties');
+  const canDelete = useAllows('album.delete');
 
   useEffect(() => {
     let cancelled = false;
@@ -65,14 +71,19 @@ export const AlbumHeader: React.FC<AlbumHeaderProps> = ({ token }) => {
           )}
         </div>
         <div className="d-flex gap-2 flex-shrink-0">
-          <button className="btn btn-outline-primary btn-lg-custom" onClick={() => setShowProperties(true)}>
-            <Pencil size={18} />
-            <span>{t('album.properties')}</span>
-          </button>
-          <button className="btn btn-outline-danger btn-lg-custom" onClick={() => setConfirmDelete(true)}>
-            <Trash2 size={18} />
-            <span>{t('album.delete')}</span>
-          </button>
+          <SlideshowButton photos={photos} />
+          {canEdit && (
+            <button className="btn btn-outline-primary btn-lg-custom" onClick={() => setShowProperties(true)}>
+              <Pencil size={18} />
+              <span>{t('album.properties')}</span>
+            </button>
+          )}
+          {canDelete && (
+            <button className="btn btn-outline-danger btn-lg-custom" onClick={() => setConfirmDelete(true)}>
+              <Trash2 size={18} />
+              <span>{t('album.delete')}</span>
+            </button>
+          )}
         </div>
       </div>
       {error != null && (

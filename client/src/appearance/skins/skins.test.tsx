@@ -5,6 +5,8 @@ import type { Photo } from '../../../../shared/types.js';
 import { i18n, initI18n } from '../../i18n/index.js';
 import { usePalomaStore, type AppView } from '../../store/usePalomaStore.js';
 import { NAV_ITEMS } from '../../shell/navigation.js';
+import { DEFAULT_UI_SETTINGS, useUiSettings, type UiSettings } from '../../settings/uiSettings.js';
+import { createPin } from '../../levels/pin.js';
 import { SIZE_TOKENS, FONT_TOKENS } from '../tokens.js';
 import { SKINS, SKIN_IDS } from './index.js';
 
@@ -26,6 +28,12 @@ function names(html: string): Set<string> {
 function setStore(patch: Partial<ReturnType<typeof usePalomaStore.getState>>) {
   usePalomaStore.setState(patch);
   Object.assign(usePalomaStore.getInitialState(), patch);
+}
+
+/** Sets UI settings for a server render, like `setStore`. */
+function setSettings(patch: Partial<UiSettings>) {
+  useUiSettings.setState(patch);
+  Object.assign(useUiSettings.getInitialState(), patch);
 }
 
 const decode = (text: string) => text.replace(/&quot;/g, '"').replace(/&#x27;/g, "'").replace(/&amp;/g, '&');
@@ -75,5 +83,45 @@ describe.each(SKIN_IDS)('%s skin', (id) => {
         expect(markup).toMatch(new RegExp(`aria-expanded="(true|false)"[^>]*>(?:(?!</button>).)*${i18n.t(title)}`, 's'));
       }
     }
+  });
+
+  describe('levels', () => {
+    const render = async (level: UiSettings['level']) => {
+      const { AppShell } = await skin.load();
+      setSettings({ level, pin: level === 'child' ? createPin('2580') : null });
+      setStore({ currentView: 'library', selectedPhotos: [], selectedAlbumToken: null });
+      try {
+        return decode(renderToStaticMarkup(
+          <AppShell view="library" tray={{ onOpenExport: () => {}, onOpenPrint: () => {}, onOpenMovie: () => {} }}>
+            <p>content</p>
+          </AppShell>,
+        ));
+      } finally {
+        setSettings({ level: DEFAULT_UI_SETTINGS.level, pin: null });
+      }
+    };
+    const searchField = () => `placeholder="${i18n.t('nav.searchPlaceholder')}"`;
+    const languageButton = () => `aria-label="${i18n.t('language.label')}"`;
+
+    it('shows Child only the library, settings and albums, without search or language', async () => {
+      const markup = await render('child');
+      const found = names(markup);
+      expect(found).toContain(i18n.t('nav.library'));
+      expect(found).toContain(i18n.t('nav.settings'));
+      for (const view of ['people', 'map', 'collage', 'plugins'] as const) expect(found, view).not.toContain(i18n.t(`nav.${view}`));
+      expect(markup).not.toContain(searchField());
+      expect(markup).not.toContain(languageButton());
+      expect(markup).not.toContain(i18n.t('sidebar.folders'));
+      expect(markup).not.toContain(i18n.t('sidebar.collections'));
+      if (id !== 'glass') expect(markup).toContain(i18n.t('sidebar.albums'));
+    });
+
+    it('shows Normal every view, search and the language switcher', async () => {
+      const markup = await render('normal');
+      const found = names(markup);
+      for (const item of NAV_ITEMS) expect(found, item.view).toContain(i18n.t(item.labelKey));
+      expect(markup).toContain(searchField());
+      expect(markup).toContain(languageButton());
+    });
   });
 });

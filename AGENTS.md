@@ -6,7 +6,7 @@ Paloma Photo Manager — monorepo: React + Vite client, Node.js/Express + SQLite
 - `client/` — React 18, Vite, React Bootstrap, Zustand, TanStack Query
 - `server/` — Express, better-sqlite3 + drizzle-orm, sharp, ffmpeg
 - `shared/types.ts` — types shared by client and server
-- `docs/` — project documentation; skins, themes and design tokens: [`docs/skins-and-themes.md`](docs/skins-and-themes.md)
+- `docs/` — project documentation; skins, themes and design tokens: [`docs/skins-and-themes.md`](docs/skins-and-themes.md); complexity levels and the Child PIN: [`docs/complexity-levels.md`](docs/complexity-levels.md)
 
 ## Setup
 ```sh

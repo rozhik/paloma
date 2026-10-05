@@ -4,6 +4,7 @@ import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeGrid as Grid, type GridChildComponentProps } from 'react-window';
 import type { Photo } from '../../../shared/types.js';
 import { usePalomaStore } from '../store/usePalomaStore.js';
+import { useNeedsAlbum } from './useLibraryPhotos.js';
 
 /** Draws one photo card; `open` opens the viewer on it. */
 export type RenderCard = (photo: Photo, open: () => void) => React.ReactNode;
@@ -49,13 +50,14 @@ interface VirtualGridProps {
 export const VirtualGrid: React.FC<VirtualGridProps> = ({ photos, insetTop = 0, insetBottom = 0, className, ...rest }) => {
   const { t, i18n } = useTranslation();
   const openViewer = usePalomaStore((state) => state.openViewer);
+  const needsAlbum = useNeedsAlbum();
 
   if (photos.length === 0) {
     return (
       <div className="d-flex flex-column align-items-center justify-content-center h-100 text-center p-5" style={{ paddingTop: insetTop }}>
-        <div className="fs-1 mb-3">🖼️</div>
-        <h4 className="fw-bold">{t('grid.emptyTitle')}</h4>
-        <p className="text-muted fs-5">{t('grid.emptyHint')}</p>
+        <div className="fs-1 mb-3">{needsAlbum ? '📚' : '🖼️'}</div>
+        <h4 className="fw-bold">{needsAlbum ? t('grid.chooseAlbumTitle') : t('grid.emptyTitle')}</h4>
+        <p className="text-muted fs-5">{needsAlbum ? t('grid.chooseAlbumHint') : t('grid.emptyHint')}</p>
       </div>
     );
   }

@@ -10,6 +10,7 @@ import { LanguageSwitcher } from '../../../components/LanguageSwitcher.js';
 import { ViewerChrome } from '../../../components/viewer/ViewerChrome.js';
 import { IconButton } from '../../../shell/IconButton.js';
 import { useNavigationItems } from '../../../shell/navigation.js';
+import { useAllows } from '../../../levels/controls.js';
 import { SidebarSection, useSidebarSections, type SidebarItem } from '../../../shell/sidebar.js';
 import { PHOTO_DRAG_TYPE, useTray } from '../../../shell/useTray.js';
 import { VirtualGrid } from '../../../shell/VirtualGrid.js';
@@ -25,22 +26,28 @@ const CompactToolbar: React.FC = () => {
   const { t } = useTranslation();
   const { searchQuery, setSearchQuery, setCurrentView } = usePalomaStore();
   const items = useNavigationItems();
+  const showSearch = useAllows('search');
+  const showLanguage = useAllows('languageSwitcher');
   return (
     <header className="compact-toolbar">
       <button type="button" className="compact-logo" onClick={() => setCurrentView('library')}>
         🕊️ <span>Paloma</span>
       </button>
-      <div className="compact-search">
-        <Search size={14} aria-hidden="true" />
-        <input
-          type="search"
-          className="form-control form-control-sm"
-          placeholder={t('nav.searchPlaceholder')}
-          aria-label={t('nav.searchPlaceholder')}
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-      </div>
+      {showSearch ? (
+        <div className="compact-search">
+          <Search size={14} aria-hidden="true" />
+          <input
+            type="search"
+            className="form-control form-control-sm"
+            placeholder={t('nav.searchPlaceholder')}
+            aria-label={t('nav.searchPlaceholder')}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+      ) : (
+        <div className="flex-grow-1" />
+      )}
       <nav className="compact-views" aria-label={t('nav.views')}>
         {items.map(({ view, icon, label, active, select }) => (
           <IconButton
@@ -54,7 +61,7 @@ const CompactToolbar: React.FC = () => {
           />
         ))}
       </nav>
-      <LanguageSwitcher variant="outline-light" className="compact-icon-btn compact-language" iconOnly iconSize={16} />
+      {showLanguage && <LanguageSwitcher variant="outline-light" className="compact-icon-btn compact-language" iconOnly iconSize={16} />}
     </header>
   );
 };

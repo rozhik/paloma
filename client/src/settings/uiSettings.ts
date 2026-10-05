@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { SKIN_IDS, type SkinId } from '../appearance/skins/ids.js';
 import { THEME_IDS, type ThemeId } from '../appearance/themes/types.js';
+import { DEFAULT_LEVEL, isLevel, type Level } from '../levels/levels.js';
+import { isPinRecord, type PinRecord } from '../levels/pin.js';
 
 /** A screen edge. Physical sides: they do not mirror in right-to-left languages. */
 export type Edge = 'top' | 'bottom' | 'left' | 'right';
@@ -14,6 +16,10 @@ export const THEME_CHOICES: readonly ThemeChoice[] = ['system', ...THEME_IDS];
 export const SIDEBAR_LISTS = ['shortcuts', 'albums', 'folders'] as const;
 export type SidebarListId = typeof SIDEBAR_LISTS[number];
 
+/** Seconds a slideshow shows each photo. */
+export const SLIDESHOW_INTERVALS = [3, 5, 10] as const;
+export type SlideshowInterval = typeof SLIDESHOW_INTERVALS[number];
+
 /** UI preferences kept in this browser only. */
 export interface UiSettings {
   /** Where the photo viewer's navigation bar sits */
@@ -26,10 +32,16 @@ export interface UiSettings {
   sidebarCollapsed: boolean;
   /** Sidebar lists the user collapsed; the same in every skin */
   collapsedSidebarLists: SidebarListId[];
+  /** How much of the UI is shown; `child` only together with a `pin` */
+  level: Level;
+  /** The PIN that unlocks Settings at the Child level; null at every other level */
+  pin: PinRecord | null;
+  slideshowInterval: SlideshowInterval;
 }
 
 export const DEFAULT_UI_SETTINGS: UiSettings = {
   navBar: 'top', editBar: 'left', skin: 'classic', theme: 'system', sidebarCollapsed: false, collapsedSidebarLists: [],
+  level: DEFAULT_LEVEL, pin: null, slideshowInterval: 5,
 };
 
 /** Key under which the settings are kept in `localStorage`, as JSON. */
@@ -41,6 +53,18 @@ const isEdge = (value: unknown): value is Edge => EDGES.includes(value as Edge);
 const isSkin = (value: unknown): value is SkinId => SKIN_IDS.includes(value as SkinId);
 const isThemeChoice = (value: unknown): value is ThemeChoice => THEME_CHOICES.includes(value as ThemeChoice);
 const isSidebarList = (value: unknown): value is SidebarListId => SIDEBAR_LISTS.includes(value as SidebarListId);
+const isSlideshowInterval = (value: unknown): value is SlideshowInterval =>
+  SLIDESHOW_INTERVALS.includes(value as SlideshowInterval);
+
+/**
+ * The level and PIN that may be kept together: Child needs a PIN, and only Child has one.
+ * Child without a usable PIN is read as the default level, so nobody is locked out of Settings.
+ */
+export function normalizeLevel(level: unknown, pin: unknown): { level: Level; pin: PinRecord | null } {
+  if (!isLevel(level)) return { level: DEFAULT_LEVEL, pin: null };
+  if (level !== 'child') return { level, pin: null };
+  return isPinRecord(pin) ? { level, pin } : { level: DEFAULT_LEVEL, pin: null };
+}
 
 /** Settings from stored JSON; each field that is missing or invalid falls back to its default on its own. */
 export function parseUiSettings(raw: string | null): UiSettings {
@@ -61,6 +85,10 @@ export function parseUiSettings(raw: string | null): UiSettings {
     collapsedSidebarLists: Array.isArray(stored.collapsedSidebarLists)
       ? [...new Set(stored.collapsedSidebarLists.filter(isSidebarList))]
       : [],
+    ...normalizeLevel(stored.level, stored.pin),
+    slideshowInterval: isSlideshowInterval(stored.slideshowInterval)
+      ? stored.slideshowInterval
+      : DEFAULT_UI_SETTINGS.slideshowInterval,
   };
 }
 
@@ -104,6 +132,8 @@ const settingsOf = (state: UiSettings): UiSettings => ({
   theme: state.theme,
   sidebarCollapsed: state.sidebarCollapsed,
   collapsedSidebarLists: state.collapsedSidebarLists,
+  ...normalizeLevel(state.level, state.pin),
+  slideshowInterval: state.slideshowInterval,
 });
 
 /** The current UI settings; changes are remembered at once, so open views follow without a reload. */
