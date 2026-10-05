@@ -78,3 +78,14 @@ export function createGeoTables(sqlite: Database.Database): void {
     );
   `);
 }
+
+/**
+ * Drops MVP edit rows: they hold the database-only `EditDAG` object, which never existed on disk.
+ * Edit rows are now the photo's edit chain from its sidecar, always a JSON array.
+ */
+export function dropMvpEdits(sqlite: Database.Database): void {
+  sqlite.exec(`
+    DELETE FROM edits
+    WHERE CASE WHEN json_valid(edit_instructions_json) THEN json_type(edit_instructions_json) <> 'array' ELSE 1 END
+  `);
+}

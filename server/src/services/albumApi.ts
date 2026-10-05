@@ -1,10 +1,11 @@
 import { eq, inArray } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { albumPhotos, folderAlbums, folders, photos } from '../db/schema.js';
+import { albumPhotos, edits, folderAlbums, folders, photos } from '../db/schema.js';
 import {
   addToAlbum, createAlbum, deleteAlbum, editAlbum, localIsoWithOffset, newAlbumToken, removeFromAlbum, type AlbumFields,
 } from './albumSidecar.js';
 import { apiError } from './apiError.js';
+import { libraryImageUrls } from './libraryImages.js';
 import { filesByFolder, loadPhotos, parsePhotoIds, saveFolderByFolder } from './folderChanges.js';
 import type { Album, ApiError, ApiErrorCode, PalomaAlbumDefinition } from '../../../shared/types.js';
 
@@ -28,6 +29,8 @@ interface Member {
   isHidden: boolean;
   dateTaken: string | null;
   fileHash: string;
+  /** The photo's edit chain from the `edits` table, if any */
+  editsJson: string | null;
 }
 
 const byPath = (a: AlbumCopy, b: AlbumCopy): number => (a.folderPath < b.folderPath ? -1 : a.folderPath > b.folderPath ? 1 : 0);
@@ -91,9 +94,11 @@ function loadMembers(tokens?: readonly string[]): Map<string, Member[]> {
     isHidden: photos.isHidden,
     dateTaken: photos.dateTaken,
     fileHash: photos.fileHash,
+    editsJson: edits.editInstructionsJson,
   })
     .from(albumPhotos)
     .innerJoin(photos, eq(albumPhotos.photoId, photos.id))
+    .leftJoin(edits, eq(photos.id, edits.photoId))
     .innerJoin(folders, eq(photos.folderId, folders.id))
     .where(tokens ? inArray(albumPhotos.token, [...tokens]) : undefined)
     .all();
@@ -139,7 +144,7 @@ function toAlbum(token: string, copies: AlbumCopy[], members: Member[]): Album {
     ...fields,
     photoCount: members.filter((m) => !m.isHidden).length,
     coverPhotoId: cover?.id ?? null,
-    coverThumbnailUrl: cover ? `/api/cache/thumbnail/${cover.fileHash}` : null,
+    coverThumbnailUrl: cover ? libraryImageUrls(cover, cover.editsJson).thumbnailUrl : null,
   };
 }
 

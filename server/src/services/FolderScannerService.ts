@@ -97,6 +97,20 @@ function setPhotoAlbums(tx: Tx | typeof db, photoId: number, fields: PhotoFields
   }
 }
 
+/** Stores the photo's edit chain from its folder files: one row with the chain, none without edits. */
+function setPhotoEdits(tx: Tx | typeof db, photoId: number, fields: PhotoFields | undefined): void {
+  if (!fields?.edits?.length) {
+    tx.delete(edits).where(eq(edits.photoId, photoId)).run();
+    return;
+  }
+  const json = JSON.stringify(fields.edits);
+  const existing = tx.select({ json: edits.editInstructionsJson }).from(edits).where(eq(edits.photoId, photoId)).get();
+  if (existing?.json === json) return;
+  const updatedAt = new Date().toISOString();
+  if (existing) tx.update(edits).set({ editInstructionsJson: json, updatedAt }).where(eq(edits.photoId, photoId)).run();
+  else tx.insert(edits).values({ photoId, editInstructionsJson: json, updatedAt }).run();
+}
+
 export class FolderScannerService {
   private static watchers: Map<string, FSWatcher> = new Map();
 
@@ -326,6 +340,7 @@ export class FolderScannerService {
           }).returning({ id: photos.id }).get().id;
         }
         setPhotoAlbums(tx, photoId, fields);
+        setPhotoEdits(tx, photoId, fields);
       });
     } catch (err) {
       console.error(`Error scanning ${filePath}:`, err);
@@ -348,6 +363,7 @@ export class FolderScannerService {
         const fields = state.photos[photo.filename];
         tx.update(photos).set(toPhotoColumns(fields, photo)).where(eq(photos.id, photo.id)).run();
         setPhotoAlbums(tx, photo.id, fields);
+        setPhotoEdits(tx, photo.id, fields);
       }
       setFolderAlbums(tx, folder.id, state.albums);
     });

@@ -20,7 +20,8 @@
     "library": "Pustaka",
     "people": "Orang",
     "map": "Peta",
-    "collage": "Kolase"
+    "collage": "Kolase",
+    "plugins": "Plugin"
   },
   "sidebar": {
     "collections": "Koleksi",
@@ -77,17 +78,36 @@
     "optional": "(opsional)"
   },
   "editor": {
-    "back": "Kembali ke pustaka",
     "holdForOriginal": "Tahan untuk melihat aslinya",
     "title": "✏️ Editor foto",
-    "fillLight": "Pencerahan: {{value, number}}",
-    "contrast": "Kontras: {{value, number}}",
-    "straighten": "Luruskan: {{value, number}}°",
-    "effects": "Efek dan gaya:",
-    "bw": "Hitam putih",
-    "sepia": "Sepia",
     "saving": "Menyimpan...",
-    "save": "Simpan perubahan"
+    "save": "Simpan perubahan",
+    "undo": "Urungkan",
+    "redo": "Ulangi",
+    "reset": "Kembalikan ke asli",
+    "rotateLeft": "Putar ke kiri",
+    "rotateRight": "Putar ke kanan",
+    "groups": {
+      "basic": "Perbaikan dasar",
+      "tuning": "Cahaya dan warna",
+      "effects": "Efek"
+    },
+    "frame": {
+      "hint": "Seret bingkai atau sudutnya untuk memilih bagian yang ingin disimpan.",
+      "ratio": "Proporsi",
+      "free": "Bebas",
+      "original": "Asli",
+      "landscape": "Lanskap",
+      "portrait": "Potret",
+      "apply": "Terapkan"
+    },
+    "steps": "Perubahan",
+    "noSteps": "Belum ada perubahan. Foto asli tidak pernah diubah.",
+    "unavailable": "tidak tersedia",
+    "unavailableHint": "Perubahan ini memerlukan plugin yang nonaktif atau belum dipasang. Perubahan tetap disimpan, tetapi tidak ditampilkan.",
+    "notApplied": "tidak diterapkan",
+    "removeStep": "Hapus perubahan {{n}}",
+    "loading": "Memuat pratinjau…"
   },
   "collage": {
     "title": "🎨 Pembuat kolase Paloma",
@@ -160,7 +180,12 @@
     "invalid_location": "Lokasi tidak valid: lintang harus antara -90 dan 90, bujur antara -180 dan 180.",
     "query_required": "Masukkan tempat atau alamat yang dicari.",
     "geocoder_disabled": "Pencarian tempat dinonaktifkan di pengaturan server.",
-    "geocoder_failed": "Layanan pencarian tempat tidak tersedia. Periksa koneksi internet lalu coba lagi."
+    "geocoder_failed": "Layanan pencarian tempat tidak tersedia. Periksa koneksi internet lalu coba lagi.",
+    "plugin_not_found": "Plugin “{{id}}” tidak ditemukan. Mulai ulang Paloma jika baru saja dipasang.",
+    "plugin_unavailable": "Plugin “{{id}}” tidak dapat diaktifkan. Lihat galatnya di Plugin.",
+    "plugin_invalid_body": "Pengaturan plugin tidak valid.",
+    "edits_invalid": "Suntingan pada langkah {{step}} tidak valid.",
+    "render_failed": "Tidak dapat memproses foto: {{message}}"
   },
   "geo": {
     "coordinates": "{{lat}}; {{lon}}",
@@ -186,5 +211,22 @@
     "clickToSelect": "Klik foto untuk menambahkannya ke pilihan.",
     "noGeotagged": "Tidak ada foto bertanda lokasi di sini.",
     "noGeotaggedHint": "Pilih foto lalu letakkan di peta dengan “Tetapkan lokasi”, atau seret ke sini dari baki."
+  },
+  "plugins": {
+    "title": "Plugin",
+    "intro": "Plugin menambahkan filter foto dan fitur lain ke Paloma. Anda dapat mengaktifkan atau menonaktifkan plugin kapan saja.",
+    "externalWarning": "Plugin eksternal memiliki akses penuh ke komputer ini. Aktifkan hanya plugin yang Anda percayai.",
+    "bundled": "Bawaan",
+    "external": "Eksternal",
+    "version": "Versi {{version}}",
+    "on": "Aktif",
+    "off": "Nonaktif",
+    "switchLabel": "Gunakan {{name}}",
+    "loadError": "Plugin ini tidak dapat digunakan:",
+    "warning": "Catatan:",
+    "filters": "Filter: {{list}}",
+    "empty": "Tidak ada plugin.",
+    "loading": "Memuat plugin…",
+    "installHint": "Untuk memasang plugin, salin atau klon foldernya ke folder plugin lalu mulai ulang Paloma."
   }
 }

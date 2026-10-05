@@ -1,16 +1,21 @@
-import { Router } from 'express';
+import { Router, type Response } from 'express';
 import path from 'node:path';
 import fs from 'node:fs';
 import { db } from '../db/index.js';
 import { folders, photos, edits, people, faceAnnotations, tags, photoTags } from '../db/schema.js';
 import { eq, inArray } from 'drizzle-orm';
 import { ThumbnailService } from '../services/ThumbnailService.js';
-import { listFolders, listPhotos, setPhotosLocation, updatePhoto } from '../services/photoApi.js';
+import { listFolders, listPhotos, saveEdits, setPhotosLocation, updatePhoto } from '../services/photoApi.js';
 import {
   addAlbumPhotos, createAlbumFromPhotos, deleteAlbumEverywhere, editAlbumProperties, listAlbums, removeAlbumPhotos,
 } from '../services/albumApi.js';
 import { getGeoSettings, listGeoPoints, listPlaces, searchPlaces } from '../services/geoApi.js';
 import { MetadataService } from '../services/MetadataService.js';
+import { listPlugins, switchPlugin } from '../services/pluginApi.js';
+import { photoImage, renderPreview, type ImageResult } from '../services/renderApi.js';
+import { RenderService } from '../services/RenderService.js';
+import { libraryLookup } from '../services/libraryImages.js';
+import { parseEditsJson } from '../services/photoImages.js';
 import { apiError } from '../services/apiError.js';
 import sharp from 'sharp';
 import ffmpeg from 'fluent-ffmpeg';
@@ -49,44 +54,40 @@ router.patch('/photos/:id/star', (req, res) => {
 });
 
 // --- Edits API ---
-router.post('/photos/:id/edit', (req, res) => {
-  const photoId = Number(req.params.id);
-  const { editInstructions } = req.body; // EditDAG object
+router.put('/photos/:id/edits', (req, res) => {
+  const result = saveEdits(Number(req.params.id), req.body);
+  res.status(result.status).json(result.body);
+});
 
-  const photo = db.select().from(photos).where(eq(photos.id, photoId)).get();
-  if (!photo) return res.status(404).json(apiError('photo_not_found', 'Photo not found'));
-
-  const existingEdit = db.select().from(edits).where(eq(edits.photoId, photoId)).get();
-
-  const jsonStr = JSON.stringify(editInstructions);
-  if (existingEdit) {
-    db.update(edits)
-      .set({ editInstructionsJson: jsonStr, updatedAt: new Date().toISOString() })
-      .where(eq(edits.photoId, photoId))
-      .run();
+function sendImage(res: Response, result: ImageResult): void {
+  if (result.status !== 200) {
+    res.status(result.status).json(result.body);
+  } else if (result.kind === 'buffer') {
+    res.setHeader('Content-Type', result.type);
+    res.setHeader('Cache-Control', 'no-store');
+    res.send(result.image);
   } else {
-    db.insert(edits).values({
-      photoId,
-      editInstructionsJson: jsonStr,
-      updatedAt: new Date().toISOString(),
-    }).run();
+    // The URL carries the render key, so a changed look always gets a new URL
+    res.setHeader('Content-Type', 'image/webp');
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    res.sendFile(result.file);
   }
+}
 
-  // Backup original to .paloma/originals/ if not already backed up
-  const folder = db.select().from(folders).where(eq(folders.id, photo.folderId)).get();
-  if (folder) {
-    const originalsDir = path.join(folder.path, '.paloma', 'originals');
-    if (!fs.existsSync(originalsDir)) {
-      fs.mkdirSync(originalsDir, { recursive: true });
-    }
-    const origBackup = path.join(originalsDir, photo.filename);
-    const srcFile = path.join(folder.path, photo.filename);
-    if (!fs.existsSync(origBackup) && fs.existsSync(srcFile)) {
-      fs.copyFileSync(srcFile, origBackup);
-    }
+router.post('/photos/:id/preview', async (req, res, next) => {
+  try {
+    sendImage(res, await renderPreview(Number(req.params.id), req.body));
+  } catch (err) {
+    next(err);
   }
+});
 
-  res.json({ success: true, edits: editInstructions });
+router.get('/photos/:id/:size(thumbnail|preview)', async (req, res, next) => {
+  try {
+    sendImage(res, await photoImage(Number(req.params.id), req.params.size === 'thumbnail' ? 'thumb' : 'preview'));
+  } catch (err) {
+    next(err);
+  }
 });
 
 // --- Cache & File Media Endpoints ---
@@ -151,26 +152,11 @@ router.post('/export', async (req, res) => {
     const srcPath = path.join(folder.path, photo.filename);
     const destPath = path.join(outputDir, `exported_${photo.filename}`);
 
-    let pipeline = sharp(srcPath, { failOnError: false }).rotate();
-
-    if (edit) {
-      const editDAG = JSON.parse(edit.editInstructionsJson);
-      if (editDAG.crop) {
-        const [x, y, w, h] = editDAG.crop;
-        pipeline = pipeline.extract({ left: Math.round(x), top: Math.round(y), width: Math.round(w), height: Math.round(h) });
-      }
-      if (editDAG.straighten) {
-        pipeline = pipeline.rotate(editDAG.straighten);
-      }
-      if (editDAG.tuning) {
-        if (editDAG.tuning.contrast) {
-          pipeline = pipeline.linear(1 + editDAG.tuning.contrast / 100, 0);
-        }
-        if (editDAG.tuning.bw) {
-          pipeline = pipeline.grayscale();
-        }
-      }
-    }
+    // Full size through the photo's edits, before any resizing chosen for the export
+    let pipeline = await RenderService.render(srcPath, parseEditsJson(edit?.editInstructionsJson) ?? [], {
+      lookup: libraryLookup,
+      label: srcPath,
+    });
 
     if (resizeWidth && Number(resizeWidth) > 0) {
       pipeline = pipeline.resize({ width: Number(resizeWidth), withoutEnlargement: true });
@@ -310,6 +296,24 @@ router.post('/albums/:token/photos', (req, res) => {
 router.delete('/albums/:token/photos', (req, res) => {
   const result = removeAlbumPhotos(req.params.token, req.body);
   res.status(result.status).json(result.body);
+});
+
+// --- Plugins API ---
+router.get('/plugins', async (req, res, next) => {
+  try {
+    res.json(await listPlugins(req.query.lang));
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.patch('/plugins/:id', async (req, res, next) => {
+  try {
+    const result = await switchPlugin(req.params.id, req.body, req.query.lang);
+    res.status(result.status).json(result.body);
+  } catch (err) {
+    next(err);
+  }
 });
 
 export default router;

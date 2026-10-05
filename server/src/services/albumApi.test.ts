@@ -23,6 +23,7 @@ beforeAll(async () => {
   vi.stubEnv('PALOMA_EXCLUDE_DIRS', '');
 
   api = await import('./albumApi.js');
+  await (await import('../plugins/index.js')).pluginRegistry.init();
   ({ FolderScannerService: Scanner } = await import('./FolderScannerService.js'));
   ({ SidecarService: Sidecar } = await import('./SidecarService.js'));
   ({ db } = await import('../db/index.js'));
@@ -119,6 +120,12 @@ describe('listAlbums', () => {
     expect(api.getAlbum('birds')).toMatchObject({
       name: 'Birds', description: 'Spring', location: 'Kyiv', photoCount: 2, coverThumbnailUrl: '/api/cache/thumbnail/a-2.jpg',
     });
+  });
+
+  it('gives the cover its rendered thumbnail when the cover photo is edited', () => {
+    db.insert(schema.edits).values({ photoId: ids['a/2.jpg'], editInstructionsJson: '[{"filter":"bw"}]', updatedAt: '' }).run();
+    expect(api.getAlbum('birds')?.coverThumbnailUrl).toMatch(new RegExp(`^/api/photos/${ids['a/2.jpg']}/thumbnail\\?r=[0-9a-f]{12}$`));
+    db.delete(schema.edits).run();
   });
 
   it('uses the first non-hidden photo in list order as the default cover', () => {

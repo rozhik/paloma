@@ -4,7 +4,7 @@
   "main": "src/index.ts",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "tsc && tsc -p ../plugins/tsconfig.json",
     "db:generate": "drizzle-kit generate:sqlite",
     "test": "vitest run"
   },

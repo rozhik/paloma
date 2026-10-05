@@ -6,22 +6,60 @@ export interface Folder {
   photoCount?: number;
 }
 
-export interface PhotoTuning {
-  fillLight?: number; // 0..100
-  contrast?: number; // -100..100
-  temperature?: number; // 2000..10000
-  straighten?: number; // -45..45 degrees
-  sharpness?: number; // 0..100
-  vignette?: number; // 0..100
-  sepia?: boolean;
-  bw?: boolean;
+/**
+ * One step of a photo's non-destructive edit chain, as stored in `.paloma.json` `edits`:
+ * the filter name, `enabled: false` for a step that is kept but not applied, and the filter's parameters.
+ */
+export interface EditStep {
+  filter: string;
+  enabled?: false;
+  [param: string]: unknown;
 }
 
-export interface EditDAG {
-  crop?: [number, number, number, number]; // [x, y, width, height]
-  straighten?: number;
-  tuning?: PhotoTuning;
-  updatedAt?: string;
+/** A text in several languages (language tag to text, with `en`), or one text for all languages. */
+export type LocalizedText = string | Record<string, string>;
+
+/** A rectangle as fractions 0..1 of the image's width and height, from its top left corner. */
+export interface RelativeRect {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
+
+export type FilterGroup = 'basic' | 'tuning' | 'effects';
+
+/** A filter parameter as listed by `GET /api/plugins`, with its label in the requested language. */
+export type FilterParamInfo =
+  | { name: string; label: string; type: 'number'; min: number; max: number; step: number; default: number }
+  | { name: string; label: string; type: 'boolean'; default: boolean }
+  | { name: string; label: string; type: 'choice'; options: { value: string | number; label: string }[]; default: string | number }
+  | { name: string; label: string; type: 'rect'; default: RelativeRect };
+
+export interface FilterInfo {
+  name: string;
+  label: string;
+  group: FilterGroup;
+  params: FilterParamInfo[];
+}
+
+export type PluginSource = 'bundled' | 'external';
+export type PluginStatus = 'active' | 'off' | 'error';
+
+/** `GET /api/plugins`: one plugin, with texts in the requested language. */
+export interface PluginInfo {
+  /** The manifest id, or the folder name when the manifest has none */
+  id: string;
+  name: string;
+  description: string;
+  version: string | null;
+  source: PluginSource;
+  enabled: boolean;
+  status: PluginStatus;
+  error: string | null;
+  warnings: string[];
+  /** Filters the plugin provides; empty unless it is active */
+  filters: FilterInfo[];
 }
 
 export interface Photo {
@@ -44,7 +82,8 @@ export interface Photo {
   place?: string | null;
   dateTaken: string | null;
   createdAt: string;
-  edits?: EditDAG | null;
+  /** The photo's edit chain; null without edits */
+  edits?: EditStep[] | null;
   caption: string | null;
   keywords: string[];
   isHidden: boolean;
@@ -124,6 +163,8 @@ export interface PalomaPhotoEntry {
   albums?: string[];
   /** Location set in Paloma or imported from Picasa; null means the location was removed */
   geotag?: Geotag | null;
+  /** Non-destructive edit chain, applied from first to last */
+  edits?: EditStep[];
   /** UTC ISO 8601 time of the last change made in Paloma; absent for entries only imported from .picasa.ini */
   modified?: string;
   [key: string]: unknown;
@@ -161,6 +202,11 @@ export type ApiErrorCode =
   | 'query_required'
   | 'geocoder_disabled'
   | 'geocoder_failed'
+  | 'plugin_not_found'
+  | 'plugin_unavailable'
+  | 'plugin_invalid_body'
+  | 'edits_invalid'
+  | 'render_failed'
   | 'internal';
 
 /** Body of every API error response. `error` is English text for clients that do not know the code. */

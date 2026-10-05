@@ -20,7 +20,8 @@
     "library": "Library",
     "people": "People",
     "map": "Map",
-    "collage": "Collage"
+    "collage": "Collage",
+    "plugins": "Plugins"
   },
   "sidebar": {
     "collections": "Collections",
@@ -78,17 +79,36 @@
     "optional": "(optional)"
   },
   "editor": {
-    "back": "Back to library",
     "holdForOriginal": "Hold to see the original",
     "title": "✏️ Photo editor",
-    "fillLight": "Fill light: {{value, number}}",
-    "contrast": "Contrast: {{value, number}}",
-    "straighten": "Straighten: {{value, number}}°",
-    "effects": "Effects and styles:",
-    "bw": "Black and white",
-    "sepia": "Sepia",
     "saving": "Saving...",
-    "save": "Save changes"
+    "save": "Save changes",
+    "undo": "Undo",
+    "redo": "Redo",
+    "reset": "Reset to original",
+    "rotateLeft": "Rotate left",
+    "rotateRight": "Rotate right",
+    "groups": {
+      "basic": "Basic fixes",
+      "tuning": "Light and colour",
+      "effects": "Effects"
+    },
+    "frame": {
+      "hint": "Drag the frame or its corners to choose the part to keep.",
+      "ratio": "Proportions",
+      "free": "Free",
+      "original": "Original",
+      "landscape": "Landscape",
+      "portrait": "Portrait",
+      "apply": "Apply"
+    },
+    "steps": "Changes",
+    "noSteps": "No changes yet. The original photo is never modified.",
+    "unavailable": "unavailable",
+    "unavailableHint": "This change needs a plugin that is off or not installed. It is kept, but not shown.",
+    "notApplied": "not applied",
+    "removeStep": "Remove change {{n}}",
+    "loading": "Loading preview…"
   },
   "collage": {
     "title": "🎨 Paloma collage builder",
@@ -166,7 +186,12 @@
     "invalid_location": "Invalid location: latitude must be from -90 to 90 and longitude from -180 to 180.",
     "query_required": "Enter a place or address to search for.",
     "geocoder_disabled": "Place search is turned off in the server settings.",
-    "geocoder_failed": "The place search service is not available. Check the internet connection and try again."
+    "geocoder_failed": "The place search service is not available. Check the internet connection and try again.",
+    "plugin_not_found": "The plugin “{{id}}” was not found. Restart Paloma if it was just installed.",
+    "plugin_unavailable": "The plugin “{{id}}” cannot be switched on. See its error in Plugins.",
+    "plugin_invalid_body": "The plugin setting is invalid.",
+    "edits_invalid": "The edit in step {{step}} is invalid.",
+    "render_failed": "Could not render the photo: {{message}}"
   },
   "geo": {
     "coordinates": "{{lat}}, {{lon}}",
@@ -197,5 +222,22 @@
     "clickToSelect": "Click a photo to add it to the selection.",
     "noGeotagged": "No geotagged photos here.",
     "noGeotaggedHint": "Select photos and place them on the map with “Set location”, or drag them here from the tray."
+  },
+  "plugins": {
+    "title": "Plugins",
+    "intro": "Plugins add photo filters and other features to Paloma. Switch a plugin on or off at any time.",
+    "externalWarning": "External plugins run with full access to this computer. Switch on only plugins you trust.",
+    "bundled": "Built in",
+    "external": "External",
+    "version": "Version {{version}}",
+    "on": "On",
+    "off": "Off",
+    "switchLabel": "Use {{name}}",
+    "loadError": "This plugin cannot be used:",
+    "warning": "Note:",
+    "filters": "Filters: {{list}}",
+    "empty": "No plugins found.",
+    "loading": "Loading plugins…",
+    "installHint": "To install a plugin, copy or clone its folder into the plugins folder and restart Paloma."
   }
 }

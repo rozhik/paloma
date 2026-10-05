@@ -20,7 +20,8 @@
     "library": "图库",
     "people": "人物",
     "map": "地图",
-    "collage": "拼贴"
+    "collage": "拼贴",
+    "plugins": "插件"
   },
   "sidebar": {
     "collections": "收藏",
@@ -77,17 +78,36 @@
     "optional": "（可选）"
   },
   "editor": {
-    "back": "返回图库",
     "holdForOriginal": "按住查看原图",
     "title": "✏️ 照片编辑器",
-    "fillLight": "补光：{{value, number}}",
-    "contrast": "对比度：{{value, number}}",
-    "straighten": "校正水平：{{value, number}}°",
-    "effects": "效果和风格：",
-    "bw": "黑白",
-    "sepia": "怀旧",
     "saving": "正在保存...",
-    "save": "保存更改"
+    "save": "保存更改",
+    "undo": "撤销",
+    "redo": "重做",
+    "reset": "恢复原图",
+    "rotateLeft": "向左旋转",
+    "rotateRight": "向右旋转",
+    "groups": {
+      "basic": "基本修正",
+      "tuning": "光线和颜色",
+      "effects": "效果"
+    },
+    "frame": {
+      "hint": "拖动框或其四角，选择要保留的部分。",
+      "ratio": "比例",
+      "free": "自由",
+      "original": "原始比例",
+      "landscape": "横向",
+      "portrait": "纵向",
+      "apply": "应用"
+    },
+    "steps": "更改",
+    "noSteps": "还没有更改。原始照片永远不会被修改。",
+    "unavailable": "不可用",
+    "unavailableHint": "此更改需要一个已停用或未安装的插件。更改会保留，但不会显示。",
+    "notApplied": "未应用",
+    "removeStep": "删除更改 {{n}}",
+    "loading": "正在加载预览…"
   },
   "collage": {
     "title": "🎨 Paloma 拼贴制作",
@@ -160,7 +180,12 @@
     "invalid_location": "位置无效：纬度必须在 -90 到 90 之间，经度必须在 -180 到 180 之间。",
     "query_required": "请输入要搜索的地点或地址。",
     "geocoder_disabled": "服务器设置中已关闭地点搜索。",
-    "geocoder_failed": "地点搜索服务不可用。请检查网络连接后重试。"
+    "geocoder_failed": "地点搜索服务不可用。请检查网络连接后重试。",
+    "plugin_not_found": "找不到插件“{{id}}”。如果刚安装，请重新启动 Paloma。",
+    "plugin_unavailable": "无法启用插件“{{id}}”。请在“插件”中查看其错误。",
+    "plugin_invalid_body": "插件设置无效。",
+    "edits_invalid": "第 {{step}} 步的编辑无效。",
+    "render_failed": "无法处理照片：{{message}}"
   },
   "geo": {
     "coordinates": "{{lat}}，{{lon}}",
@@ -186,5 +211,22 @@
     "clickToSelect": "点击照片即可将其添加到所选。",
     "noGeotagged": "这里没有带位置信息的照片。",
     "noGeotaggedHint": "选择照片后用“设置位置”放到地图上，或从托盘拖到这里。"
+  },
+  "plugins": {
+    "title": "插件",
+    "intro": "插件为 Paloma 添加照片滤镜和其他功能。您可以随时启用或停用插件。",
+    "externalWarning": "外部插件可以完全访问这台计算机。请只启用您信任的插件。",
+    "bundled": "内置",
+    "external": "外部",
+    "version": "版本 {{version}}",
+    "on": "开",
+    "off": "关",
+    "switchLabel": "使用 {{name}}",
+    "loadError": "无法使用此插件：",
+    "warning": "注意：",
+    "filters": "滤镜：{{list}}",
+    "empty": "未找到插件。",
+    "loading": "正在加载插件…",
+    "installHint": "要安装插件，请将其文件夹复制或克隆到插件文件夹中，然后重新启动 Paloma。"
   }
 }

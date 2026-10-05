@@ -4,7 +4,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { config } from '../config.js';
 import * as schema from './schema.js';
-import { addMissingPhotoColumns, createGeoTables, migrateAlbumTables } from './columns.js';
+import { addMissingPhotoColumns, createGeoTables, dropMvpEdits, migrateAlbumTables } from './columns.js';
 
 if (!fs.existsSync(config.dataDir)) {
   fs.mkdirSync(config.dataDir, { recursive: true });
@@ -86,3 +86,4 @@ sqlite.exec(`
 addMissingPhotoColumns(sqlite);
 migrateAlbumTables(sqlite);
 createGeoTables(sqlite);
+dropMvpEdits(sqlite);

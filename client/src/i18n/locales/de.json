@@ -21,7 +21,8 @@
     "library": "Bibliothek",
     "people": "Personen",
     "map": "Karte",
-    "collage": "Collage"
+    "collage": "Collage",
+    "plugins": "Plugins"
   },
   "sidebar": {
     "collections": "Sammlungen",
@@ -79,17 +80,36 @@
     "optional": "(optional)"
   },
   "editor": {
-    "back": "Zurück zur Bibliothek",
     "holdForOriginal": "Gedrückt halten für das Original",
     "title": "✏️ Fotoeditor",
-    "fillLight": "Aufhellen: {{value, number}}",
-    "contrast": "Kontrast: {{value, number}}",
-    "straighten": "Ausrichten: {{value, number}}°",
-    "effects": "Effekte und Stile:",
-    "bw": "Schwarzweiß",
-    "sepia": "Sepia",
     "saving": "Wird gespeichert...",
-    "save": "Änderungen speichern"
+    "save": "Änderungen speichern",
+    "undo": "Rückgängig",
+    "redo": "Wiederholen",
+    "reset": "Original wiederherstellen",
+    "rotateLeft": "Nach links drehen",
+    "rotateRight": "Nach rechts drehen",
+    "groups": {
+      "basic": "Grundkorrekturen",
+      "tuning": "Licht und Farbe",
+      "effects": "Effekte"
+    },
+    "frame": {
+      "hint": "Ziehen Sie den Rahmen oder seine Ecken, um den Bildausschnitt zu wählen.",
+      "ratio": "Seitenverhältnis",
+      "free": "Frei",
+      "original": "Original",
+      "landscape": "Querformat",
+      "portrait": "Hochformat",
+      "apply": "Anwenden"
+    },
+    "steps": "Änderungen",
+    "noSteps": "Noch keine Änderungen. Das Originalfoto wird nie verändert.",
+    "unavailable": "nicht verfügbar",
+    "unavailableHint": "Diese Änderung braucht ein Plugin, das ausgeschaltet oder nicht installiert ist. Sie bleibt erhalten, wird aber nicht angezeigt.",
+    "notApplied": "nicht angewendet",
+    "removeStep": "Änderung {{n}} entfernen",
+    "loading": "Vorschau wird geladen…"
   },
   "collage": {
     "title": "🎨 Paloma-Collage-Editor",
@@ -167,7 +187,12 @@
     "invalid_location": "Ungültiger Ort: Der Breitengrad muss zwischen -90 und 90 und der Längengrad zwischen -180 und 180 liegen.",
     "query_required": "Geben Sie einen Ort oder eine Adresse ein.",
     "geocoder_disabled": "Die Ortssuche ist in den Servereinstellungen deaktiviert.",
-    "geocoder_failed": "Der Ortssuchdienst ist nicht erreichbar. Prüfen Sie die Internetverbindung und versuchen Sie es erneut."
+    "geocoder_failed": "Der Ortssuchdienst ist nicht erreichbar. Prüfen Sie die Internetverbindung und versuchen Sie es erneut.",
+    "plugin_not_found": "Das Plugin „{{id}}“ wurde nicht gefunden. Starten Sie Paloma neu, wenn es gerade installiert wurde.",
+    "plugin_unavailable": "Das Plugin „{{id}}“ kann nicht eingeschaltet werden. Den Fehler finden Sie unter Plugins.",
+    "plugin_invalid_body": "Die Plugin-Einstellung ist ungültig.",
+    "edits_invalid": "Die Bearbeitung in Schritt {{step}} ist ungültig.",
+    "render_failed": "Das Foto konnte nicht berechnet werden: {{message}}"
   },
   "geo": {
     "coordinates": "{{lat}}; {{lon}}",
@@ -198,5 +223,22 @@
     "clickToSelect": "Klicken Sie auf ein Foto, um es zur Auswahl hinzuzufügen.",
     "noGeotagged": "Hier gibt es keine Fotos mit Ortsangabe.",
     "noGeotaggedHint": "Wählen Sie Fotos aus und platzieren Sie sie mit „Ort festlegen“ auf der Karte, oder ziehen Sie sie aus der Leiste hierher."
+  },
+  "plugins": {
+    "title": "Plugins",
+    "intro": "Plugins erweitern Paloma um Fotofilter und andere Funktionen. Sie können ein Plugin jederzeit ein- oder ausschalten.",
+    "externalWarning": "Externe Plugins haben vollen Zugriff auf diesen Computer. Schalten Sie nur Plugins ein, denen Sie vertrauen.",
+    "bundled": "Integriert",
+    "external": "Extern",
+    "version": "Version {{version}}",
+    "on": "Ein",
+    "off": "Aus",
+    "switchLabel": "{{name}} verwenden",
+    "loadError": "Dieses Plugin kann nicht verwendet werden:",
+    "warning": "Hinweis:",
+    "filters": "Filter: {{list}}",
+    "empty": "Keine Plugins gefunden.",
+    "loading": "Plugins werden geladen…",
+    "installHint": "Um ein Plugin zu installieren, kopieren oder klonen Sie seinen Ordner in den Plugin-Ordner und starten Sie Paloma neu."
   }
 }

@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import type { Geotag } from '../../../shared/types.js';
+import type { EditStep, Geotag } from '../../../shared/types.js';
 import { isGeotag, roundGeotag } from './location.js';
 
 /** Photo fields Paloma takes from a Picasa .ini file section (and stores in .paloma.json). */
@@ -14,6 +14,8 @@ export interface PhotoFields {
   albums?: string[];
   /** Location in decimal degrees; null (sidecar only) means the location was removed */
   geotag?: Geotag | null;
+  /** Edit chain (sidecar only; Picasa `filters=` is not imported) */
+  edits?: EditStep[];
 }
 
 /** The keys of a Picasa `[.album:<token>]` section that Paloma maps; values are kept verbatim. */

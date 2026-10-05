@@ -20,7 +20,8 @@
     "library": "ライブラリ",
     "people": "人物",
     "map": "地図",
-    "collage": "コラージュ"
+    "collage": "コラージュ",
+    "plugins": "プラグイン"
   },
   "sidebar": {
     "collections": "コレクション",
@@ -77,17 +78,36 @@
     "optional": "（任意）"
   },
   "editor": {
-    "back": "ライブラリに戻る",
     "holdForOriginal": "押している間オリジナルを表示",
     "title": "✏️ 写真エディタ",
-    "fillLight": "明るさ補正: {{value, number}}",
-    "contrast": "コントラスト: {{value, number}}",
-    "straighten": "傾き補正: {{value, number}}°",
-    "effects": "エフェクトとスタイル:",
-    "bw": "白黒",
-    "sepia": "セピア",
     "saving": "保存中...",
-    "save": "変更を保存"
+    "save": "変更を保存",
+    "undo": "元に戻す",
+    "redo": "やり直す",
+    "reset": "元の写真に戻す",
+    "rotateLeft": "左に回転",
+    "rotateRight": "右に回転",
+    "groups": {
+      "basic": "基本の補正",
+      "tuning": "明るさと色",
+      "effects": "エフェクト"
+    },
+    "frame": {
+      "hint": "枠またはその角をドラッグして、残す部分を選んでください。",
+      "ratio": "縦横比",
+      "free": "自由",
+      "original": "元の比率",
+      "landscape": "横向き",
+      "portrait": "縦向き",
+      "apply": "適用"
+    },
+    "steps": "変更",
+    "noSteps": "まだ変更はありません。元の写真が変更されることはありません。",
+    "unavailable": "使用不可",
+    "unavailableHint": "この変更には、オフになっているかインストールされていないプラグインが必要です。変更は保持されますが、表示されません。",
+    "notApplied": "未適用",
+    "removeStep": "変更 {{n}} を削除",
+    "loading": "プレビューを読み込んでいます…"
   },
   "collage": {
     "title": "🎨 Paloma コラージュ作成",
@@ -160,7 +180,12 @@
     "invalid_location": "位置が無効です。緯度は -90～90、経度は -180～180 の範囲で指定してください。",
     "query_required": "検索する場所または住所を入力してください。",
     "geocoder_disabled": "場所の検索はサーバー設定で無効になっています。",
-    "geocoder_failed": "場所の検索サービスを利用できません。インターネット接続を確認して、もう一度お試しください。"
+    "geocoder_failed": "場所の検索サービスを利用できません。インターネット接続を確認して、もう一度お試しください。",
+    "plugin_not_found": "プラグイン「{{id}}」が見つかりません。インストールしたばかりの場合は Paloma を再起動してください。",
+    "plugin_unavailable": "プラグイン「{{id}}」をオンにできません。「プラグイン」でエラーを確認してください。",
+    "plugin_invalid_body": "プラグインの設定が正しくありません。",
+    "edits_invalid": "ステップ {{step}} の編集が正しくありません。",
+    "render_failed": "写真を処理できませんでした: {{message}}"
   },
   "geo": {
     "coordinates": "{{lat}}、{{lon}}",
@@ -186,5 +211,22 @@
     "clickToSelect": "写真をクリックすると選択に追加されます。",
     "noGeotagged": "ここには位置情報付きの写真がありません。",
     "noGeotaggedHint": "写真を選択して「場所を設定」で地図上に配置するか、トレイからここへドラッグしてください。"
+  },
+  "plugins": {
+    "title": "プラグイン",
+    "intro": "プラグインは Paloma に写真フィルターなどの機能を追加します。プラグインはいつでもオン・オフできます。",
+    "externalWarning": "外部プラグインはこのコンピューターに完全にアクセスできます。信頼できるプラグインだけをオンにしてください。",
+    "bundled": "組み込み",
+    "external": "外部",
+    "version": "バージョン {{version}}",
+    "on": "オン",
+    "off": "オフ",
+    "switchLabel": "{{name}} を使う",
+    "loadError": "このプラグインは使用できません:",
+    "warning": "注意:",
+    "filters": "フィルター: {{list}}",
+    "empty": "プラグインが見つかりません。",
+    "loading": "プラグインを読み込んでいます…",
+    "installHint": "プラグインをインストールするには、そのフォルダーをプラグイン フォルダーにコピーまたはクローンし、Paloma を再起動してください。"
   }
 }

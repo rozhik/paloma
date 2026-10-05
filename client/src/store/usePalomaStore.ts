@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { Photo, Folder } from '../../../shared/types.js';
 
-export type AppView = 'library' | 'editor' | 'collage' | 'map' | 'people';
+export type AppView = 'library' | 'editor' | 'collage' | 'map' | 'people' | 'plugins';
 export type FilterType = 'all' | 'starred' | 'recent' | 'geotagged';
 
 interface PalomaStore {

@@ -12,6 +12,7 @@ import { MovieMakerModal } from './components/MovieMakerModal.js';
 import { CollageBuilder } from './components/CollageBuilder.js';
 import { PlacesMap } from './components/PlacesMap.js';
 import { PeopleView } from './components/PeopleView.js';
+import { PluginsView } from './components/PluginsView.js';
 import { AlbumHeader } from './components/AlbumHeader.js';
 import { libraryQueryParams } from './api/library.js';
 import { currentLanguage } from './i18n/index.js';
@@ -78,7 +79,14 @@ export const App: React.FC = () => {
   // The tray stays under the map, so selected photos can be dragged onto it
   const content = currentView === 'map'
     ? <PlacesMap />
-    : (
+    : currentView === 'plugins'
+      ? (
+        <>
+          <Navbar />
+          <PluginsView />
+        </>
+      )
+      : (
       <>
         <Navbar />
 

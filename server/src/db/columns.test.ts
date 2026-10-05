@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import Database from 'better-sqlite3';
-import { addMissingPhotoColumns, migrateAlbumTables } from './columns.js';
+import { addMissingPhotoColumns, dropMvpEdits, migrateAlbumTables } from './columns.js';
 
 describe('addMissingPhotoColumns', () => {
   it('adds caption, keywords and is_hidden to an old photos table and keeps its rows', () => {
@@ -69,5 +69,21 @@ describe('migrateAlbumTables', () => {
     expect(sqlite.prepare('SELECT token, name FROM folder_albums').all()).toEqual([{ token: 'c9ea', name: 'Birds' }]);
     expect(sqlite.prepare('SELECT photo_id, token FROM album_photos').all()).toEqual([{ photo_id: 1, token: 'c9ea' }]);
     expect(sqlite.prepare('SELECT filename FROM photos').all()).toEqual([{ filename: 'a.jpg' }]);
+  });
+});
+
+describe('dropMvpEdits', () => {
+  it('deletes MVP edit objects and invalid JSON, keeping edit chains', () => {
+    const sqlite = new Database(':memory:');
+    sqlite.exec(`
+      CREATE TABLE edits (id INTEGER PRIMARY KEY AUTOINCREMENT, photo_id INTEGER NOT NULL UNIQUE, edit_instructions_json TEXT NOT NULL, updated_at TEXT NOT NULL);
+      INSERT INTO edits (photo_id, edit_instructions_json, updated_at) VALUES
+        (1, '{"crop":[0,0,10,10],"straighten":2}', 't'),
+        (2, '[{"filter":"bw"}]', 't'),
+        (3, 'not json', 't');
+    `);
+    dropMvpEdits(sqlite);
+    dropMvpEdits(sqlite); // idempotent
+    expect(sqlite.prepare('SELECT photo_id FROM edits').all()).toEqual([{ photo_id: 2 }]);
   });
 });

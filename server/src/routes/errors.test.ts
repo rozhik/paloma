@@ -50,7 +50,9 @@ const send = async (method: string, url: string, body?: unknown) => {
 
 describe('API error responses', () => {
   it.each([
-    ['POST', '/photos/999999/edit', { editInstructions: {} }, 404, 'photo_not_found'],
+    ['PUT', '/photos/999999/edits', { edits: [] }, 404, 'photo_not_found'],
+    ['POST', '/photos/999999/preview', { edits: [] }, 404, 'photo_not_found'],
+    ['GET', '/photos/999999/thumbnail', undefined, 404, 'photo_not_found'],
     ['GET', '/raw/999999', undefined, 404, 'photo_not_found'],
     ['GET', '/cache/thumbnail/nope', undefined, 404, 'file_not_found'],
     ['GET', '/cache/preview/nope', undefined, 404, 'file_not_found'],

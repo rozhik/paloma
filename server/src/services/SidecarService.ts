@@ -1,9 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import type { Geotag, PalomaAlbumDefinition, PalomaFolderFile, PalomaPhotoEntry } from '../../../shared/types.js';
+import type { EditStep, Geotag, PalomaAlbumDefinition, PalomaFolderFile, PalomaPhotoEntry } from '../../../shared/types.js';
 import { ALBUM_KEYS, readPicasaIni, type IniAlbum, type PhotoFields, type PicasaIniRead } from './picasaIni.js';
 import { isGeotag, roundGeotag } from './location.js';
+import { isEditChain } from './editChain.js';
 
 export type { PhotoFields } from './picasaIni.js';
 
@@ -30,6 +31,8 @@ export interface FieldPatch {
   keywords?: string[];
   /** An object sets the location, `null` stores that it was removed, `false` deletes the key */
   geotag?: Geotag | null | false;
+  /** The whole edit chain; `[]` removes the edits */
+  edits?: EditStep[];
 }
 
 export class SidecarUnreadableError extends Error {
@@ -39,6 +42,7 @@ export class SidecarUnreadableError extends Error {
   }
 }
 
+/** Fields mapped from the Picasa .ini, which a re-import replaces in unmodified entries. `edits` is not one of them. */
 const SUPPORTED_FIELDS = ['star', 'hidden', 'caption', 'keywords', 'albums', 'geotag'] as const;
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -134,6 +138,7 @@ export class SidecarService {
     if (albums) fields.albums = albums;
     if (entry.geotag === null) fields.geotag = null;
     else if (isGeotag(entry.geotag)) fields.geotag = { lat: entry.geotag.lat, lon: entry.geotag.lon };
+    if (isEditChain(entry.edits) && entry.edits.length > 0) fields.edits = structuredClone(entry.edits);
     return fields;
   }
 
@@ -366,5 +371,8 @@ function applyPatch(entry: PalomaPhotoEntry, patch: FieldPatch): void {
   if (patch.geotag !== undefined) {
     if (patch.geotag === false) delete entry.geotag;
     else entry.geotag = patch.geotag && roundGeotag(patch.geotag);
+  }
+  if (patch.edits !== undefined) {
+    if (patch.edits.length > 0) entry.edits = structuredClone(patch.edits); else delete entry.edits;
   }
 }

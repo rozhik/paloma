@@ -10,6 +10,9 @@ import { placeResolver } from './geocoding.js';
 import { normalizeLang } from './placeCache.js';
 import { loadPhotos, parsePhotoIds, saveFolderByFolder } from './folderChanges.js';
 import { isGeotag } from './location.js';
+import { libraryImageUrls, libraryLookup } from './libraryImages.js';
+import { describeProblem, validateChain, type ChainProblem } from './editChain.js';
+import { parseEditsJson } from './photoImages.js';
 import type { ApiError, Geotag, Photo } from '../../../shared/types.js';
 
 type PhotoRow = typeof photos.$inferSelect;
@@ -29,9 +32,8 @@ export function toApiPhoto(
     albums,
     folderPath: folder.path,
     filePath: path.join(folder.path, photo.filename),
-    edits: edit ? JSON.parse(edit.editInstructionsJson) : null,
-    thumbnailUrl: `/api/cache/thumbnail/${photo.fileHash}`,
-    previewUrl: `/api/cache/preview/${photo.fileHash}`,
+    edits: parseEditsJson(edit?.editInstructionsJson),
+    ...libraryImageUrls(photo, edit?.editInstructionsJson),
   };
 }
 
@@ -139,7 +141,7 @@ export function parsePhotoPatch(body: unknown): FieldPatch | ApiError {
   return patch;
 }
 
-function getApiPhoto(photoId: number): Photo | undefined {
+export function getApiPhoto(photoId: number): Photo | undefined {
   const row = db.select({ photo: photos, folder: folders, edit: edits })
     .from(photos)
     .innerJoin(folders, eq(photos.folderId, folders.id))
@@ -149,19 +151,12 @@ function getApiPhoto(photoId: number): Photo | undefined {
   return row && toApiPhoto(row.photo, row.folder, row.edit, albumsOf([photoId]).get(photoId));
 }
 
-/** Saves a change to a photo's fields in its folder's sidecar first, then updates the library from disk. */
-export function updatePhoto(photoId: number, body: unknown): ApiResult<Photo> {
-  const patch = parsePhotoPatch(body);
-  if ('code' in patch) return { status: 400, body: patch };
-
-  const photo = getApiPhoto(photoId);
-  if (!photo?.folderPath) return { status: 404, body: apiError('photo_not_found', 'Photo not found') };
-  const dir = photo.folderPath;
-  if (patch.geotag !== undefined && patch.geotag !== false) {
-    const exif = db.select({ exifLatitude: photos.exifLatitude }).from(photos).where(eq(photos.id, photoId)).get()!;
-    patch.geotag = geotagPatch(patch.geotag, exif);
-  }
-
+/**
+ * Writes a field change to the photo's folder sidecar, then updates the library from disk.
+ * Returns the error result when the sidecar is unreadable or cannot be written, leaving the library unchanged.
+ */
+function savePhotoPatch(photo: Photo, patch: FieldPatch): ApiResult<never> | null {
+  const dir = photo.folderPath!;
   try {
     SidecarService.updatePhotoFields(dir, photo.filename, patch);
   } catch (err) {
@@ -174,9 +169,48 @@ export function updatePhoto(photoId: number, body: unknown): ApiResult<Photo> {
       }
       : { status: 500, body: apiError('sidecar_write_failed', `Could not write .paloma.json in ${dir}`, { folders: dir }) };
   }
-
   // The whole folder, since saving may also have re-imported a changed Picasa .ini
   FolderScannerService.applyFolderState(dir, SidecarService.getFolderState(dir));
+  return null;
+}
+
+/**
+ * `PUT /api/photos/:id/edits`: replaces the photo's edit chain (`[]` removes it). Steps of available filters
+ * are validated and get their defaults; steps of other filters are saved as sent.
+ */
+export function saveEdits(photoId: number, body: unknown): ApiResult<Photo> {
+  const value = (typeof body === 'object' && body !== null && !Array.isArray(body) ? body : {}) as Record<string, unknown>;
+  const check = validateChain(value.edits, libraryLookup);
+  if (!check.ok) return { status: 400, body: editsInvalid(check.problem) };
+
+  const photo = getApiPhoto(photoId);
+  if (!photo?.folderPath) return { status: 404, body: apiError('photo_not_found', 'Photo not found') };
+  const failed = savePhotoPatch(photo, { edits: check.steps });
+  return failed ?? { status: 200, body: getApiPhoto(photoId)! };
+}
+
+/** The 400 body for an invalid edit chain, naming the step, filter and parameter. */
+export function editsInvalid(problem: ChainProblem): ApiError {
+  const params: Record<string, string | number> = { step: problem.index + 1 };
+  if (problem.filter) params.filter = problem.filter;
+  if (problem.param) params.param = problem.param;
+  return apiError('edits_invalid', `Invalid edits: ${describeProblem(problem)}`, params);
+}
+
+/** Saves a change to a photo's fields in its folder's sidecar first, then updates the library from disk. */
+export function updatePhoto(photoId: number, body: unknown): ApiResult<Photo> {
+  const patch = parsePhotoPatch(body);
+  if ('code' in patch) return { status: 400, body: patch };
+
+  const photo = getApiPhoto(photoId);
+  if (!photo?.folderPath) return { status: 404, body: apiError('photo_not_found', 'Photo not found') };
+  if (patch.geotag !== undefined && patch.geotag !== false) {
+    const exif = db.select({ exifLatitude: photos.exifLatitude }).from(photos).where(eq(photos.id, photoId)).get()!;
+    patch.geotag = geotagPatch(patch.geotag, exif);
+  }
+
+  const failed = savePhotoPatch(photo, patch);
+  if (failed) return failed;
   if (patch.geotag !== undefined) placeResolver.wake();
   return { status: 200, body: getApiPhoto(photoId)! };
 }

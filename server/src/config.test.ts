@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { DEFAULT_GEOCODER_URL, DEFAULT_TILE_ATTRIBUTION, DEFAULT_TILE_URL, geoConfig } from './config.js';
+import path from 'node:path';
+import { DEFAULT_GEOCODER_URL, DEFAULT_TILE_ATTRIBUTION, DEFAULT_TILE_URL, config, geoConfig, pluginsDirOf } from './config.js';
 
 describe('geoConfig', () => {
   it('uses the public Nominatim and OpenStreetMap tiles when nothing is set', () => {
@@ -28,5 +29,26 @@ describe('geoConfig', () => {
       tileUrl: 'http://tiles.local/{z}/{x}/{y}.png',
       tileAttribution: 'Local tiles',
     });
+  });
+});
+
+describe('pluginsDirOf', () => {
+  it('defaults to plugins in the data directory', () => {
+    expect(pluginsDirOf({}, '/data/paloma')).toBe(path.join('/data/paloma', 'plugins'));
+    expect(pluginsDirOf({ PALOMA_PLUGINS_DIR: ' ' }, '/data/paloma')).toBe(path.join('/data/paloma', 'plugins'));
+  });
+
+  it('resolves a relative folder from the working directory', () => {
+    expect(pluginsDirOf({ PALOMA_PLUGINS_DIR: 'my-plugins' }, '/data')).toBe(path.resolve(process.cwd(), 'my-plugins'));
+  });
+
+  it('keeps an absolute folder', () => {
+    expect(pluginsDirOf({ PALOMA_PLUGINS_DIR: '/opt/paloma-plugins' }, '/data')).toBe('/opt/paloma-plugins');
+  });
+});
+
+describe('bundledPluginsDir', () => {
+  it('is the repo plugins folder, whatever the working directory', () => {
+    expect(config.bundledPluginsDir).toBe(path.resolve(__dirname, '..', '..', 'plugins'));
   });
 });

@@ -1,9 +1,10 @@
 import { and, count, desc, eq, inArray, isNotNull, max, min, notInArray } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { geoPlaces, photos } from '../db/schema.js';
+import { edits, geoPlaces, photos } from '../db/schema.js';
 import { config } from '../config.js';
 import { photoFilters, type PhotoFilterQuery } from './photoFilters.js';
 import { apiError } from './apiError.js';
+import { libraryImageUrls } from './libraryImages.js';
 import { GeocoderError } from './GeocoderService.js';
 import { getGeocoder, placeResolver } from './geocoding.js';
 import { getCachedSearch, normalizeLang, saveSearch } from './placeCache.js';
@@ -25,12 +26,17 @@ export function getGeoSettings(): GeoSettings {
 
 /** `GET /api/geo/points`: every geotagged photo of a library selection, without paging, for the map. */
 export function listGeoPoints(query: PhotoFilterQuery): GeoPoint[] {
-  return db.select({ id: photos.id, lat: photos.latitude, lon: photos.longitude, fileHash: photos.fileHash })
+  return db.select({
+    id: photos.id, lat: photos.latitude, lon: photos.longitude, fileHash: photos.fileHash, editsJson: edits.editInstructionsJson,
+  })
     .from(photos)
+    .leftJoin(edits, eq(photos.id, edits.photoId))
     .where(and(photoFilters(query), isNotNull(photos.latitude), isNotNull(photos.longitude)))
     .orderBy(desc(photos.dateTaken), photos.id)
     .all()
-    .map(({ id, lat, lon, fileHash }) => ({ id, lat: lat!, lon: lon!, thumbnailUrl: `/api/cache/thumbnail/${fileHash}` }));
+    .map(({ id, lat, lon, fileHash, editsJson }) => ({
+      id, lat: lat!, lon: lon!, thumbnailUrl: libraryImageUrls({ id, fileHash }, editsJson).thumbnailUrl,
+    }));
 }
 
 /** `GET /api/geo/search`: addresses and places matching `q`, from the cache or the geocoder. */

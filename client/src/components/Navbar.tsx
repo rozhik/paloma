@@ -1,7 +1,7 @@
 import React from 'react';
 import { usePalomaStore, AppView } from '../store/usePalomaStore.js';
 import { useTranslation } from 'react-i18next';
-import { Search, Image, Users, MapPin, LayoutGrid } from 'lucide-react';
+import { Search, Image, Users, MapPin, LayoutGrid, Puzzle } from 'lucide-react';
 import { LanguageSwitcher } from './LanguageSwitcher.js';
 
 export const Navbar: React.FC = () => {
@@ -63,6 +63,14 @@ export const Navbar: React.FC = () => {
         >
           <LayoutGrid size={22} />
           <span>{t('nav.collage')}</span>
+        </button>
+
+        <button
+          className={`btn btn-lg-custom ${currentView === 'plugins' ? 'btn-primary' : 'btn-outline-light'}`}
+          onClick={() => setCurrentView('plugins')}
+        >
+          <Puzzle size={22} />
+          <span>{t('nav.plugins')}</span>
         </button>
 
         <LanguageSwitcher />

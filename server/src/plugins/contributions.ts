@@ -1,0 +1,115 @@
+import type { FilterGroup, RelativeRect } from '../../../shared/types.js';
+import type { FilterDefinition, ParamDefinition, PluginContributions } from './api.js';
+import { isLocalizedText } from './manifest.js';
+
+const FILTER_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+const GROUPS: readonly FilterGroup[] = ['basic', 'tuning', 'effects'];
+const KNOWN_KEYS = new Set(['filters']);
+/** Keys of an edit step that are not parameters */
+const RESERVED_PARAMS = new Set(['filter', 'enabled']);
+
+export interface CheckedContributions {
+  filters: FilterDefinition[];
+  warnings: string[];
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+export function isRelativeRect(value: unknown): value is RelativeRect {
+  if (!isPlainObject(value)) return false;
+  const { left, top, right, bottom } = value;
+  const inRange = (n: unknown): n is number => typeof n === 'number' && Number.isFinite(n) && n >= 0 && n <= 1;
+  return inRange(left) && inRange(top) && inRange(right) && inRange(bottom) && left < right && top < bottom;
+}
+
+/** Why a parameter definition is unusable, or null when it is fine. */
+function paramProblem(param: unknown, seen: Set<string>): string | null {
+  if (!isPlainObject(param)) return 'a parameter is not an object';
+  const { name } = param;
+  if (typeof name !== 'string' || !/^[A-Za-z][A-Za-z0-9_]*$/.test(name)) return `parameter name ${JSON.stringify(name)} is invalid`;
+  if (RESERVED_PARAMS.has(name)) return `parameter name "${name}" is reserved`;
+  if (seen.has(name)) return `parameter "${name}" is declared twice`;
+  seen.add(name);
+  if (!isLocalizedText(param.label)) return `parameter "${name}" has no valid label`;
+
+  const isNumber = (n: unknown): n is number => typeof n === 'number' && Number.isFinite(n);
+  switch (param.type) {
+    case 'number': {
+      const { min, max, step } = param;
+      if (!isNumber(min) || !isNumber(max) || !isNumber(step) || min > max || step <= 0) {
+        return `parameter "${name}" needs numbers min <= max and step > 0`;
+      }
+      if (!isNumber(param.default) || param.default < min || param.default > max) return `parameter "${name}" has a default outside its range`;
+      return null;
+    }
+    case 'boolean':
+      return typeof param.default === 'boolean' ? null : `parameter "${name}" needs a boolean default`;
+    case 'choice': {
+      const { options } = param;
+      if (!Array.isArray(options) || options.length === 0) return `parameter "${name}" needs options`;
+      const values = new Set<unknown>();
+      for (const option of options) {
+        if (!isPlainObject(option) || !(typeof option.value === 'string' || isNumber(option.value)) || !isLocalizedText(option.label)) {
+          return `parameter "${name}" has an option without a value or label`;
+        }
+        values.add(option.value);
+      }
+      return values.has(param.default) ? null : `parameter "${name}" has a default that is not one of its options`;
+    }
+    case 'rect':
+      return isRelativeRect(param.default) ? null : `parameter "${name}" needs a default rectangle within 0..1`;
+    default:
+      return `parameter "${name}" has unknown type ${JSON.stringify(param.type)}`;
+  }
+}
+
+/** Why a filter definition is unusable, or null when it is fine. */
+function filterProblem(filter: unknown): string | null {
+  if (!isPlainObject(filter)) return 'a filter is not an object';
+  const { name } = filter;
+  if (typeof name !== 'string' || !FILTER_NAME.test(name)) return `filter name ${JSON.stringify(name)} is invalid`;
+  if (!isLocalizedText(filter.label)) return `filter "${name}" has no valid label`;
+  if (!GROUPS.includes(filter.group as FilterGroup)) return `filter "${name}" has unknown group ${JSON.stringify(filter.group)}`;
+  if (typeof filter.render !== 'function') return `filter "${name}" has no render function`;
+  if (filter.params !== undefined && !Array.isArray(filter.params)) return `filter "${name}" has params that are not a list`;
+  const seen = new Set<string>();
+  for (const param of (filter.params as unknown[] | undefined) ?? []) {
+    const problem = paramProblem(param, seen);
+    if (problem) return `filter "${name}": ${problem}`;
+  }
+  return null;
+}
+
+/**
+ * Checks what a plugin's `activate` returned against plugin API v1. Throws when it is not an object.
+ * Unusable filters and unknown keys are dropped with a warning, so the rest of the plugin still works.
+ */
+export function checkContributions(value: unknown): CheckedContributions {
+  if (!isPlainObject(value)) throw new Error('activate() must return an object of contributions');
+  const contributions = value as PluginContributions & Record<string, unknown>;
+  const warnings: string[] = [];
+  for (const key of Object.keys(contributions)) {
+    if (!KNOWN_KEYS.has(key)) warnings.push(`"${key}" is not supported by plugin API 1 and is ignored`);
+  }
+
+  const filters: FilterDefinition[] = [];
+  if (contributions.filters !== undefined && !Array.isArray(contributions.filters)) {
+    warnings.push('"filters" is not a list and is ignored');
+  } else {
+    const names = new Set<string>();
+    for (const filter of contributions.filters ?? []) {
+      const problem = filterProblem(filter);
+      if (problem) {
+        warnings.push(`${problem}; the filter is ignored`);
+      } else if (names.has(filter.name)) {
+        warnings.push(`filter "${filter.name}" is declared twice; the second one is ignored`);
+      } else {
+        names.add(filter.name);
+        filters.push({ ...filter, params: (filter.params ?? []) as ParamDefinition[] });
+      }
+    }
+  }
+  return { filters, warnings };
+}

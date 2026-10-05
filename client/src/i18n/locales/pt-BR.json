@@ -22,7 +22,8 @@
     "library": "Biblioteca",
     "people": "Pessoas",
     "map": "Mapa",
-    "collage": "Colagem"
+    "collage": "Colagem",
+    "plugins": "Plugins"
   },
   "sidebar": {
     "collections": "Coleções",
@@ -81,17 +82,36 @@
     "optional": "(opcional)"
   },
   "editor": {
-    "back": "Voltar à biblioteca",
     "holdForOriginal": "Mantenha pressionado para ver o original",
     "title": "✏️ Editor de fotos",
-    "fillLight": "Luz de preenchimento: {{value, number}}",
-    "contrast": "Contraste: {{value, number}}",
-    "straighten": "Endireitar: {{value, number}}°",
-    "effects": "Efeitos e estilos:",
-    "bw": "Preto e branco",
-    "sepia": "Sépia",
     "saving": "Salvando...",
-    "save": "Salvar alterações"
+    "save": "Salvar alterações",
+    "undo": "Desfazer",
+    "redo": "Refazer",
+    "reset": "Voltar ao original",
+    "rotateLeft": "Girar para a esquerda",
+    "rotateRight": "Girar para a direita",
+    "groups": {
+      "basic": "Correções básicas",
+      "tuning": "Luz e cor",
+      "effects": "Efeitos"
+    },
+    "frame": {
+      "hint": "Arraste a moldura ou os cantos dela para escolher a parte que deseja manter.",
+      "ratio": "Proporções",
+      "free": "Livre",
+      "original": "Original",
+      "landscape": "Paisagem",
+      "portrait": "Retrato",
+      "apply": "Aplicar"
+    },
+    "steps": "Alterações",
+    "noSteps": "Ainda não há alterações. A foto original nunca é modificada.",
+    "unavailable": "indisponível",
+    "unavailableHint": "Esta alteração precisa de um plugin desativado ou não instalado. Ela é mantida, mas não é exibida.",
+    "notApplied": "não aplicada",
+    "removeStep": "Remover a alteração {{n}}",
+    "loading": "Carregando a prévia…"
   },
   "collage": {
     "title": "🎨 Criador de colagens do Paloma",
@@ -174,7 +194,12 @@
     "invalid_location": "Local inválido: a latitude deve estar entre -90 e 90 e a longitude entre -180 e 180.",
     "query_required": "Digite um lugar ou endereço para pesquisar.",
     "geocoder_disabled": "A busca de lugares está desativada nas configurações do servidor.",
-    "geocoder_failed": "O serviço de busca de lugares não está disponível. Verifique a conexão com a internet e tente novamente."
+    "geocoder_failed": "O serviço de busca de lugares não está disponível. Verifique a conexão com a internet e tente novamente.",
+    "plugin_not_found": "O plugin “{{id}}” não foi encontrado. Reinicie o Paloma se ele acabou de ser instalado.",
+    "plugin_unavailable": "Não é possível ativar o plugin “{{id}}”. Veja o erro dele em Plugins.",
+    "plugin_invalid_body": "A configuração do plugin é inválida.",
+    "edits_invalid": "A edição da etapa {{step}} é inválida.",
+    "render_failed": "Não foi possível processar a foto: {{message}}"
   },
   "geo": {
     "coordinates": "{{lat}}; {{lon}}",
@@ -210,5 +235,22 @@
     "clickToSelect": "Clique em uma foto para adicioná-la à seleção.",
     "noGeotagged": "Não há fotos com localização aqui.",
     "noGeotaggedHint": "Selecione fotos e coloque-as no mapa com “Definir local”, ou arraste-as para cá a partir da bandeja."
+  },
+  "plugins": {
+    "title": "Plugins",
+    "intro": "Os plugins adicionam ao Paloma filtros de fotos e outros recursos. Você pode ativar ou desativar um plugin a qualquer momento.",
+    "externalWarning": "Plugins externos têm acesso total a este computador. Ative apenas plugins em que você confia.",
+    "bundled": "Integrado",
+    "external": "Externo",
+    "version": "Versão {{version}}",
+    "on": "Ativado",
+    "off": "Desativado",
+    "switchLabel": "Usar {{name}}",
+    "loadError": "Este plugin não pode ser usado:",
+    "warning": "Observação:",
+    "filters": "Filtros: {{list}}",
+    "empty": "Nenhum plugin encontrado.",
+    "loading": "Carregando plugins…",
+    "installHint": "Para instalar um plugin, copie ou clone a pasta dele na pasta de plugins e reinicie o Paloma."
   }
 }

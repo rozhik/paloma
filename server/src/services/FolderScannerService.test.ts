@@ -96,6 +96,16 @@ function writeIni(dir: string, ...lines: string[]): void {
   fs.writeFileSync(path.join(dir, '.picasa.ini'), lines.map((line) => `${line}\r\n`).join(''));
 }
 
+/** The edit chain stored in the library for a photo, or null without edits. */
+function editsOf(filename: string) {
+  const row = db.select({ json: schema.edits.editInstructionsJson })
+    .from(schema.edits)
+    .innerJoin(schema.photos, eq(schema.edits.photoId, schema.photos.id))
+    .where(eq(schema.photos.filename, filename))
+    .get();
+  return row ? JSON.parse(row.json) : null;
+}
+
 function fieldsOf(filename: string) {
   const photo = db.select().from(schema.photos).where(eq(schema.photos.filename, filename)).get();
   if (!photo) throw new Error(`${filename} is not indexed`);
@@ -322,9 +332,8 @@ describe('FolderScannerService', () => {
     await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
 
     const before = db.select().from(schema.photos).where(eq(schema.photos.filename, 'rotate.jpg')).get()!;
-    writeSidecar(photosRoot, { 'rotate.jpg': { star: true } });
+    writeSidecar(photosRoot, { 'rotate.jpg': { star: true, edits: [{ filter: 'bw' }] } });
     await vi.waitFor(() => expect(fieldsOf('rotate.jpg').isStarred).toBe(true), WAIT);
-    db.insert(schema.edits).values({ photoId: before.id, editInstructionsJson: '{"tuning":{"bw":true}}', updatedAt: '' }).run();
 
     // Rewrite the same file in place, as an editor saving a rotated image would
     const rotated = await sharp({ create: { width: 30, height: 40, channels: 3, background: '#00f' } }).jpeg().toBuffer();
@@ -338,7 +347,7 @@ describe('FolderScannerService', () => {
     const after = db.select().from(schema.photos).where(eq(schema.photos.id, before.id)).get()!;
     expect(after.isStarred).toBe(true);
     expect(db.select().from(schema.edits).where(eq(schema.edits.photoId, before.id)).get()?.editInstructionsJson)
-      .toBe('{"tuning":{"bw":true}}');
+      .toBe('[{"filter":"bw"}]');
     expect(indexedPaths()).toEqual([file]);
     expect(fs.existsSync(path.join(tmpDir, 'cache', `${after.fileHash}_thumb.webp`))).toBe(true);
   });
@@ -416,6 +425,29 @@ describe('FolderScannerService', () => {
       expect(fs.readFileSync(path.join(photosRoot, '.paloma.json'), 'utf-8')).toBe(v1);
       expect(errors).toHaveBeenCalledWith(expect.stringContaining('.paloma.json'));
       errors.mockRestore();
+    });
+
+    it('rebuilds edits from .paloma.json', async () => {
+      await makeImage(path.join(photosRoot, 'a.jpg'));
+      await makeImage(path.join(photosRoot, 'b.jpg'));
+      writeSidecar(photosRoot, { 'a.jpg': { edits: [{ filter: 'bw' }] }, 'b.jpg': { edits: 'sepia' } });
+
+      await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
+
+      expect(editsOf('a.jpg')).toEqual([{ filter: 'bw' }]);
+      expect(editsOf('b.jpg')).toBeNull();
+    });
+
+    it('applies outside changes of edits in .paloma.json without a restart', async () => {
+      await makeImage(path.join(photosRoot, 'a.jpg'));
+      writeSidecar(photosRoot, { 'a.jpg': { edits: [{ filter: 'bw' }] } });
+      await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
+
+      writeSidecar(photosRoot, { 'a.jpg': { edits: [{ filter: 'sepia' }, { filter: 'rotate', angle: 90 }] } });
+      await vi.waitFor(() => expect(editsOf('a.jpg')).toEqual([{ filter: 'sepia' }, { filter: 'rotate', angle: 90 }]), WAIT);
+
+      writeSidecar(photosRoot, { 'a.jpg': { star: true } });
+      await vi.waitFor(() => expect(editsOf('a.jpg')).toBeNull(), WAIT);
     });
 
     it('applies an outside edit of .paloma.json without a restart', async () => {

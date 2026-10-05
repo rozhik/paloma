@@ -22,7 +22,8 @@
     "library": "Bibliothèque",
     "people": "Personnes",
     "map": "Carte",
-    "collage": "Collage"
+    "collage": "Collage",
+    "plugins": "Modules"
   },
   "sidebar": {
     "collections": "Collections",
@@ -81,17 +82,36 @@
     "optional": "(facultatif)"
   },
   "editor": {
-    "back": "Retour à la bibliothèque",
     "holdForOriginal": "Maintenir pour voir l’original",
     "title": "✏️ Éditeur de photos",
-    "fillLight": "Éclaircir : {{value, number}}",
-    "contrast": "Contraste : {{value, number}}",
-    "straighten": "Redresser : {{value, number}}°",
-    "effects": "Effets et styles :",
-    "bw": "Noir et blanc",
-    "sepia": "Sépia",
     "saving": "Enregistrement...",
-    "save": "Enregistrer les modifications"
+    "save": "Enregistrer les modifications",
+    "undo": "Annuler",
+    "redo": "Rétablir",
+    "reset": "Revenir à l’original",
+    "rotateLeft": "Pivoter à gauche",
+    "rotateRight": "Pivoter à droite",
+    "groups": {
+      "basic": "Corrections de base",
+      "tuning": "Lumière et couleur",
+      "effects": "Effets"
+    },
+    "frame": {
+      "hint": "Faites glisser le cadre ou ses coins pour choisir la partie à garder.",
+      "ratio": "Proportions",
+      "free": "Libre",
+      "original": "Originale",
+      "landscape": "Paysage",
+      "portrait": "Portrait",
+      "apply": "Appliquer"
+    },
+    "steps": "Modifications",
+    "noSteps": "Aucune modification pour l’instant. La photo originale n’est jamais modifiée.",
+    "unavailable": "indisponible",
+    "unavailableHint": "Cette modification nécessite un module désactivé ou non installé. Elle est conservée, mais pas affichée.",
+    "notApplied": "non appliquée",
+    "removeStep": "Supprimer la modification {{n}}",
+    "loading": "Chargement de l’aperçu…"
   },
   "collage": {
     "title": "🎨 Créateur de collages Paloma",
@@ -174,7 +194,12 @@
     "invalid_location": "Lieu non valide : la latitude doit être comprise entre -90 et 90 et la longitude entre -180 et 180.",
     "query_required": "Saisissez un lieu ou une adresse à rechercher.",
     "geocoder_disabled": "La recherche de lieux est désactivée dans les paramètres du serveur.",
-    "geocoder_failed": "Le service de recherche de lieux n’est pas disponible. Vérifiez la connexion Internet et réessayez."
+    "geocoder_failed": "Le service de recherche de lieux n’est pas disponible. Vérifiez la connexion Internet et réessayez.",
+    "plugin_not_found": "Le module « {{id}} » est introuvable. Redémarrez Paloma s’il vient d’être installé.",
+    "plugin_unavailable": "Le module « {{id}} » ne peut pas être activé. Consultez son erreur dans Modules.",
+    "plugin_invalid_body": "Le réglage du module n’est pas valide.",
+    "edits_invalid": "La retouche de l’étape {{step}} n’est pas valide.",
+    "render_failed": "Impossible de générer la photo : {{message}}"
   },
   "geo": {
     "coordinates": "{{lat}} ; {{lon}}",
@@ -210,5 +235,22 @@
     "clickToSelect": "Cliquez sur une photo pour l’ajouter à la sélection.",
     "noGeotagged": "Aucune photo géolocalisée ici.",
     "noGeotaggedHint": "Sélectionnez des photos et placez-les sur la carte avec « Définir le lieu », ou faites-les glisser ici depuis le bac."
+  },
+  "plugins": {
+    "title": "Modules",
+    "intro": "Les modules ajoutent à Paloma des filtres photo et d’autres fonctions. Vous pouvez activer ou désactiver un module à tout moment.",
+    "externalWarning": "Les modules externes ont un accès complet à cet ordinateur. N’activez que les modules en lesquels vous avez confiance.",
+    "bundled": "Intégré",
+    "external": "Externe",
+    "version": "Version {{version}}",
+    "on": "Activé",
+    "off": "Désactivé",
+    "switchLabel": "Utiliser {{name}}",
+    "loadError": "Ce module ne peut pas être utilisé :",
+    "warning": "Remarque :",
+    "filters": "Filtres : {{list}}",
+    "empty": "Aucun module trouvé.",
+    "loading": "Chargement des modules…",
+    "installHint": "Pour installer un module, copiez ou clonez son dossier dans le dossier des modules et redémarrez Paloma."
   }
 }

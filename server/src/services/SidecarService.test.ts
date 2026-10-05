@@ -436,3 +436,55 @@ describe('geotag', () => {
     expect(SidecarService.getFolderState(dir).photos).toEqual({ 'a.jpg': { geotag: null } });
   });
 });
+
+describe('edits', () => {
+  const CHAIN = [{ filter: 'rotate', angle: 90 }, { filter: 'sepia' }];
+
+  it('stores the chain with modified and removes it with an empty list', () => {
+    SidecarService.updatePhotoFields(dir, 'a.jpg', { edits: CHAIN });
+    expect(readJson().photos['a.jpg']).toEqual({ edits: CHAIN, modified: expect.any(String) });
+    expect(SidecarService.fieldsOf(readJson().photos['a.jpg'])).toEqual({ edits: CHAIN });
+
+    SidecarService.updatePhotoFields(dir, 'a.jpg', { star: true });
+    SidecarService.updatePhotoFields(dir, 'a.jpg', { edits: [] });
+    expect(readJson().photos['a.jpg']).toEqual({ star: true, modified: expect.any(String) });
+  });
+
+  it('keeps steps of unknown filters and their unknown keys exactly', () => {
+    const chain = [{ filter: 'grain', amount: 30, nested: { x: [1] }, enabled: false as const }];
+    SidecarService.updatePhotoFields(dir, 'a.jpg', { edits: chain });
+    expect(readJson().photos['a.jpg'].edits).toEqual(chain);
+  });
+
+  it('reads edits of the wrong type as absent and keeps them in the file until edits are saved', () => {
+    writeJson({
+      format: 'paloma-folder',
+      version: 2,
+      photos: { 'a.jpg': { edits: 'sepia' }, 'b.jpg': { edits: [{ filter: 'bw' }, { name: 'x' }] } },
+    });
+    expect(SidecarService.fieldsOf(readJson().photos['a.jpg'])).toEqual({});
+    expect(SidecarService.fieldsOf(readJson().photos['b.jpg'])).toEqual({});
+
+    SidecarService.updatePhotoFields(dir, 'a.jpg', { star: true });
+    expect(readJson().photos['a.jpg'].edits).toBe('sepia');
+    expect(readJson().photos['b.jpg'].edits).toEqual([{ filter: 'bw' }, { name: 'x' }]);
+
+    SidecarService.updatePhotoFields(dir, 'a.jpg', { edits: [{ filter: 'bw' }] });
+    expect(readJson().photos['a.jpg'].edits).toEqual([{ filter: 'bw' }]);
+  });
+
+  it('survives a Picasa re-import of an unmodified entry', () => {
+    const result = SidecarService.reimport(
+      { format: 'paloma-folder', version: 2, iniHash: 'old', photos: { 'a.jpg': { star: true, edits: [{ filter: 'bw' }] } } },
+      { 'a.jpg': { caption: 'From Picasa' } },
+      'new',
+    );
+    expect(result.photos['a.jpg']).toEqual({ caption: 'From Picasa', edits: [{ filter: 'bw' }] });
+  });
+
+  it('is part of the folder state', () => {
+    touch('a.jpg');
+    SidecarService.updatePhotoFields(dir, 'a.jpg', { edits: [{ filter: 'bw' }] });
+    expect(SidecarService.getFolderState(dir).photos['a.jpg']).toEqual({ edits: [{ filter: 'bw' }] });
+  });
+});

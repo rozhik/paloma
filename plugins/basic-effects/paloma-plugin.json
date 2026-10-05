@@ -1,0 +1,32 @@
+{
+  "id": "basic-effects",
+  "name": {
+    "en": "Basic effects",
+    "zh-Hans": "基本效果",
+    "es": "Efectos básicos",
+    "ar": "تأثيرات أساسية",
+    "pt-BR": "Efeitos básicos",
+    "fr": "Effets de base",
+    "de": "Grundlegende Effekte",
+    "ja": "基本エフェクト",
+    "ru": "Базовые эффекты",
+    "id": "Efek dasar",
+    "uk": "Базові ефекти"
+  },
+  "description": {
+    "en": "Brightness, contrast, black & white and sepia.",
+    "zh-Hans": "亮度、对比度、黑白和棕褐色。",
+    "es": "Brillo, contraste, blanco y negro y sepia.",
+    "ar": "السطوع والتباين والأبيض والأسود والبني الداكن.",
+    "pt-BR": "Brilho, contraste, preto e branco e sépia.",
+    "fr": "Luminosité, contraste, noir et blanc et sépia.",
+    "de": "Helligkeit, Kontrast, Schwarzweiß und Sepia.",
+    "ja": "明るさ、コントラスト、白黒、セピア。",
+    "ru": "Яркость, контраст, чёрно-белое и сепия.",
+    "id": "Kecerahan, kontras, hitam putih, dan sepia.",
+    "uk": "Яскравість, контраст, чорно-біле та сепія."
+  },
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "server": "index.js"
+}

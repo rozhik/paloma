@@ -51,6 +51,24 @@ export function geoConfig(env: NodeJS.ProcessEnv): GeoConfig {
   };
 }
 
+/**
+ * The repo's `plugins/` folder of bundled plugins: the first ancestor of this module that holds both
+ * `plugins/` and `shared/types.ts`, so it is found from the sources (tsx, vitest) and from `dist/`.
+ */
+function findBundledPluginsDir(start: string): string {
+  for (let dir = start; ; dir = path.dirname(dir)) {
+    if (fs.existsSync(path.join(dir, 'plugins')) && fs.existsSync(path.join(dir, 'shared', 'types.ts'))) {
+      return path.join(dir, 'plugins');
+    }
+    if (path.dirname(dir) === dir) return path.resolve(start, '..', '..', 'plugins');
+  }
+}
+
+/** External plugins folder from the environment, defaulting to `plugins` in the data directory. */
+export function pluginsDirOf(env: NodeJS.ProcessEnv, dataDir: string): string {
+  return resolveDir(env.PALOMA_PLUGINS_DIR?.trim(), path.join(dataDir, 'plugins'));
+}
+
 const dataDir = resolveDir(
   process.env.PALOMA_DATA_DIR,
   path.join(process.cwd(), '.paloma_data'),
@@ -63,4 +81,6 @@ export const config = {
   photosDirs: resolveDirList(process.env.PALOMA_PHOTOS_DIRS),
   excludeDirs: resolveDirList(process.env.PALOMA_EXCLUDE_DIRS),
   geo: geoConfig(process.env),
+  pluginsDir: pluginsDirOf(process.env, dataDir),
+  bundledPluginsDir: findBundledPluginsDir(__dirname),
 } as const;

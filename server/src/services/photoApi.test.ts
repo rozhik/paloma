@@ -20,6 +20,7 @@ beforeAll(async () => {
   vi.stubEnv('PALOMA_EXCLUDE_DIRS', '');
 
   api = await import('./photoApi.js');
+  await (await import('../plugins/index.js')).pluginRegistry.init();
   ({ db } = await import('../db/index.js'));
   schema = await import('../db/schema.js');
 });
@@ -253,6 +254,28 @@ describe('setPhotosLocation', () => {
     expect(result).toMatchObject({ status: 500, body: { code: 'sidecar_write_failed', failedFolders: [dirB] } });
     expect(row('a.jpg').latitude).toBe(1);
     expect(db.select().from(schema.photos).where(eq(schema.photos.id, idB)).get()!.latitude).toBeNull();
+  });
+});
+
+describe('photo edits and image URLs', () => {
+  const setEdits = (filename: string, json: string) =>
+    db.insert(schema.edits).values({ photoId: ids[filename], editInstructionsJson: json, updatedAt: '' }).run();
+
+  it('returns the edit chain and rendered image URLs for a photo with effective edits', () => {
+    setEdits('a.jpg', '[{"filter":"bw"}]');
+    const a = api.listPhotos({}).find((p) => p.filename === 'a.jpg')!;
+    expect(a.edits).toEqual([{ filter: 'bw' }]);
+    expect(a.thumbnailUrl).toMatch(new RegExp(`^/api/photos/${ids['a.jpg']}/thumbnail\\?r=[0-9a-f]{12}$`));
+    expect(a.previewUrl).toMatch(new RegExp(`^/api/photos/${ids['a.jpg']}/preview\\?r=[0-9a-f]{12}$`));
+  });
+
+  it('keeps the scanner image URLs without edits or when no plugin renders them', () => {
+    setEdits('b.jpg', '[{"filter":"grain"}]');
+    const photos = api.listPhotos({});
+    expect(photos.find((p) => p.filename === 'b.jpg')).toMatchObject({
+      edits: [{ filter: 'grain' }], thumbnailUrl: '/api/cache/thumbnail/b.jpg', previewUrl: '/api/cache/preview/b.jpg',
+    });
+    expect(photos.find((p) => p.filename === 'c.jpg')).toMatchObject({ edits: null, thumbnailUrl: '/api/cache/thumbnail/c.jpg' });
   });
 });
 

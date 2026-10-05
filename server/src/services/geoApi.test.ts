@@ -29,6 +29,7 @@ beforeAll(async () => {
   geocoding = await import('./geocoding.js');
   ({ GeocoderService } = await import('./GeocoderService.js'));
   photoApi = await import('./photoApi.js');
+  await (await import('../plugins/index.js')).pluginRegistry.init();
   location = await import('./location.js');
   ({ db } = await import('../db/index.js'));
   schema = await import('../db/schema.js');
@@ -90,6 +91,12 @@ describe('listGeoPoints', () => {
     addPhoto('b.jpg');
 
     expect(geo.listGeoPoints({})).toEqual([{ id: a, lat: 49.84, lon: 24.03, thumbnailUrl: '/api/cache/thumbnail/hash-a.jpg' }]);
+  });
+
+  it('gives an edited photo its rendered thumbnail', () => {
+    const a = addPhoto('a.jpg', { lat: 49.84, lon: 24.03 });
+    db.insert(schema.edits).values({ photoId: a, editInstructionsJson: '[{"filter":"sepia"}]', updatedAt: '' }).run();
+    expect(geo.listGeoPoints({})[0].thumbnailUrl).toMatch(new RegExp(`^/api/photos/${a}/thumbnail\\?r=[0-9a-f]{12}$`));
   });
 
   it('is not limited to one page of the photo list', () => {
