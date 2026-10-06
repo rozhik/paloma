@@ -1,5 +1,7 @@
 {
-  "_meta": { "reviewed": false },
+  "_meta": {
+    "reviewed": false
+  },
   "app": {
     "title": "Paloma — un gestor de fotos moderno (sucesor de Google Picasa)"
   },
@@ -34,6 +36,8 @@
     "recentImport": "📥 Última importación",
     "albums": "Álbumes",
     "noAlbums": "Aún no hay álbumes. Selecciona fotos y pulsa «Al álbum».",
+    "tags": "Etiquetas",
+    "noTags": "Aún no hay etiquetas. Selecciona fotos y pulsa «Añadir etiquetas».",
     "folders": "Carpetas vigiladas",
     "noFolders": "No hay carpetas. Indica tus carpetas de fotos en PALOMA_PHOTOS_DIRS en el archivo .env y reinicia el servidor.",
     "geotagged": "📍 Con ubicación",
@@ -60,6 +64,8 @@
     "selected": "🖼️ Seleccionadas:",
     "removeFromTray": "Quitar de la bandeja",
     "addToAlbum": "Al álbum",
+    "addTags": "Añadir etiquetas",
+    "removeTag": "Quitar etiqueta",
     "removeFromAlbum": "Quitar del álbum",
     "makeCover": "Usar como portada",
     "clear": "Vaciar",
@@ -330,7 +336,56 @@
     "saving": "Guardando el cambio…",
     "zoomIn": "Acercar",
     "zoomOut": "Alejar",
-    "fit": "Ajustar a la pantalla"
+    "fit": "Ajustar a la pantalla",
+    "info": "Información"
+  },
+  "tags": {
+    "placeholder": "Escribe una etiqueta y pulsa Intro",
+    "addChip": "Añadir una etiqueta",
+    "removeChip": "Quitar la etiqueta «{{name}}»",
+    "addTitle_one": "Añadir etiquetas a {{count, number}} foto",
+    "addTitle_many": "Añadir etiquetas a {{count, number}} de fotos",
+    "addTitle_other": "Añadir etiquetas a {{count, number}} fotos",
+    "addConfirm": "Añadir etiquetas"
+  },
+  "info": {
+    "title": "Información",
+    "close": "Cerrar la información",
+    "loading": "Cargando…",
+    "file": "Archivo",
+    "path": "En el disco",
+    "size": "Tamaño",
+    "dimensions": "Dimensiones",
+    "dimensionsValue": "{{width, number}} × {{height, number}}",
+    "dateTaken": "Tomada",
+    "modified": "Archivo modificado",
+    "description": "Descripción",
+    "descriptionPlaceholder": "Añade una descripción",
+    "tags": "Etiquetas",
+    "albums": "Álbumes",
+    "noAlbums": "No está en ningún álbum",
+    "people": "Personas",
+    "noPeople": "No hay personas nombradas en esta foto",
+    "unknownPerson": "Persona desconocida",
+    "location": "Ubicación",
+    "noLocation": "Esta foto no tiene ubicación",
+    "fromCamera": "De la cámara",
+    "setByUser": "Establecida por ti",
+    "exif": "EXIF",
+    "noExif": "Sin datos EXIF",
+    "binary": "{{size}} de datos binarios",
+    "json": "JSON",
+    "jsonIni": "Leído del .ini de Picasa; aún no guardado en .paloma.json.",
+    "jsonNone": "Esta foto no tiene entrada en .paloma.json.",
+    "jsonUnreadable": "No se puede leer el .paloma.json de la carpeta.",
+    "other": "Otros",
+    "starred": "Con estrella",
+    "notStarred": "Sin estrella",
+    "hidden": "Oculta",
+    "notHidden": "No oculta",
+    "edits_one": "{{count, number}} edición",
+    "edits_many": "{{count, number}} de ediciones",
+    "edits_other": "{{count, number}} ediciones"
   },
   "levels": {
     "child": {

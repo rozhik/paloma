@@ -70,3 +70,24 @@ export function barInsets(layout: ViewerBarLayout, size: number): Record<Edge, n
 export function inwardSide(edge: Edge): Edge {
   return ({ top: 'bottom', bottom: 'top', left: 'right', right: 'left' } as const)[edge];
 }
+
+/**
+ * Where the Info panel sits: along the right screen edge, inside any bar on that edge and clear of row bars at
+ * the top and bottom. Distances are in bar thicknesses, from the top, right and bottom edges.
+ */
+export function infoPanelInsets(layout: ViewerBarLayout): { top: number; right: number; bottom: number } {
+  const insets = { top: 0, right: 0, bottom: 0 };
+  for (const bar of [layout.navBar, layout.editBar]) {
+    if (bar.edge === 'right') insets.right = Math.max(insets.right, bar.offset + 1);
+    if (bar.edge === 'top') insets.top = Math.max(insets.top, bar.offset + 1);
+    if (bar.edge === 'bottom') insets.bottom = Math.max(insets.bottom, bar.offset + 1);
+  }
+  return insets;
+}
+
+/** Absolute-position style of the Info panel inside the viewer. */
+export function infoPanelStyle(layout: ViewerBarLayout): CSSProperties {
+  const size = (n: number) => (n === 0 ? '0px' : `calc(var(--viewer-bar-size) * ${n})`);
+  const { top, right, bottom } = infoPanelInsets(layout);
+  return { position: 'absolute', top: size(top), right: size(right), bottom: size(bottom) };
+}

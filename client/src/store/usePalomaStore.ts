@@ -29,6 +29,8 @@ interface PalomaStore {
   selectedFolderId: number | null;
   selectedFilter: FilterType;
   selectedAlbumToken: string | null;
+  /** Tag whose photos the library shows; null when no tag is chosen */
+  selectedTag: string | null;
   /** Bumped after a change so the sidebar and the photo grid refetch without waiting for the poll */
   libraryVersion: number;
 
@@ -47,6 +49,8 @@ interface PalomaStore {
   setSelectedFolderId: (folderId: number | null) => void;
   setSelectedFilter: (filter: FilterType) => void;
   setSelectedAlbum: (token: string | null) => void;
+  /** Shows the photos of a tag, replacing a chosen folder, album or collection */
+  setSelectedTag: (tag: string | null) => void;
   bumpLibrary: () => void;
 
   toggleSelectPhoto: (photo: Photo) => void;
@@ -57,7 +61,7 @@ interface PalomaStore {
   removePhotoFromTray: (photoId: number) => void;
   clearTray: () => void;
   /**
-   * What switching to the Child level resets: the selection, search, folder and shortcut, which Child cannot
+   * What switching to the Child level resets: the selection, search, folder, tag and shortcut, which Child cannot
    * see or change. An open album stays.
    */
   enterChildMode: () => void;
@@ -73,6 +77,7 @@ export const usePalomaStore = create<PalomaStore>((set, get) => ({
   selectedFolderId: null,
   selectedFilter: 'all',
   selectedAlbumToken: null,
+  selectedTag: null,
   libraryVersion: 0,
 
   setCurrentView: (view) => set({ currentView: view }),
@@ -102,9 +107,10 @@ export const usePalomaStore = create<PalomaStore>((set, get) => ({
   },
   stopSlideshow: () => set({ slideshow: null }),
   setSearchQuery: (searchQuery) => set({ searchQuery }),
-  setSelectedFolderId: (selectedFolderId) => set({ selectedFolderId, selectedFilter: 'all', selectedAlbumToken: null }),
-  setSelectedFilter: (selectedFilter) => set({ selectedFilter, selectedFolderId: null, selectedAlbumToken: null }),
-  setSelectedAlbum: (selectedAlbumToken) => set({ selectedAlbumToken, selectedFolderId: null, selectedFilter: 'all' }),
+  setSelectedFolderId: (selectedFolderId) => set({ selectedFolderId, selectedFilter: 'all', selectedAlbumToken: null, selectedTag: null }),
+  setSelectedFilter: (selectedFilter) => set({ selectedFilter, selectedFolderId: null, selectedAlbumToken: null, selectedTag: null }),
+  setSelectedAlbum: (selectedAlbumToken) => set({ selectedAlbumToken, selectedFolderId: null, selectedFilter: 'all', selectedTag: null }),
+  setSelectedTag: (selectedTag) => set({ selectedTag, selectedFolderId: null, selectedAlbumToken: null, selectedFilter: 'all' }),
   bumpLibrary: () => set({ libraryVersion: get().libraryVersion + 1 }),
 
   toggleSelectPhoto: (photo) => {
@@ -134,7 +140,7 @@ export const usePalomaStore = create<PalomaStore>((set, get) => ({
 
   clearTray: () => set({ selectedPhotos: [] }),
 
-  enterChildMode: () => set({ selectedPhotos: [], searchQuery: '', selectedFolderId: null, selectedFilter: 'all' }),
+  enterChildMode: () => set({ selectedPhotos: [], searchQuery: '', selectedFolderId: null, selectedFilter: 'all', selectedTag: null }),
 
   isPhotoSelected: (photoId) => {
     return get().selectedPhotos.some((p) => p.id === photoId);

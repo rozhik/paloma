@@ -7,8 +7,8 @@ Paloma shows each user only the tools that fit them. The level is chosen in **Se
 | Child | `child` | A child looking at the family albums. Nothing can be changed. |
 | Easy | `easy` | A beginner: browsing, stars, albums, simple fixes, export and print. |
 | Normal | `normal` | Everyone else. The default; everything Paloma had before levels existed. |
-| Professional | `pro` | Experienced users. Nothing extra yet. |
-| Developer | `developer` | Everything, including tools for developers. Nothing extra yet. |
+| Professional | `pro` | Experienced users: also the camera's EXIF data. |
+| Developer | `developer` | Everything, including tools for developers: also the raw `.paloma.json` entry of a photo. |
 
 Levels are ordered. A control or plugin filter tagged with a level is shown at that level and at every higher one, and is **hidden** (not just disabled) below it.
 
@@ -19,10 +19,12 @@ The levels of the controls are kept in one table, `CONTROL_LEVELS` in [`client/s
 | Lowest level | Controls |
 | :--- | :--- |
 | Child | Library view; the Albums list in the sidebar; opening a photo in the viewer, with its previous/next and zoom; the slideshow; the Settings view (behind the PIN) |
-| Easy | The shortcuts and Folders lists in the sidebar; search; selecting photos; starring; the tray's Add to album, Remove from album, Make cover, Clear, Export and Print; the language switcher in the top bar; the viewer's edit bar |
+| Easy | The shortcuts, Tags and Folders lists in the sidebar; search; selecting photos; starring; the tray's Add to album, Add tags, Remove tag (only while a tag is open), Remove from album, Make cover, Clear, Export and Print; the language switcher in the top bar; the viewer's edit bar; the viewer's Info button and panel, with editing the description and tags |
 | Normal | The People, Map, Collage and Plugins views; the tray's Remove location, Collage and Movie; album properties and Delete; placing photos on the map and removing their location |
+| Professional | The EXIF section of the Info panel |
+| Developer | The JSON section of the Info panel |
 
-At Child the library shows only the photos of the chosen album, and asks for an album until one is chosen. Photo cards only open the viewer. Switching to Child clears the selection, the search, the folder and the shortcut; an open album stays.
+At Child the library shows only the photos of the chosen album, and asks for an album until one is chosen. Photo cards only open the viewer. Switching to Child clears the selection, the search, the folder, the tag and the shortcut; an open album stays.
 
 The edit bar offers a plugin's filter only when the level reaches both the plugin's level and the filter's own level. The bundled `basic-effects` plugin (brightness, contrast, black & white, sepia) is `easy`; `basic-transforms` (crop, rotate, flip, straighten) is `normal`. Steps of filters the level hides are still rendered everywhere and are kept when other steps are edited. Plugin authors set levels as described in [Writing Paloma plugins](plugins.md#levels).
 

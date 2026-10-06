@@ -48,6 +48,7 @@ type PhotoSeed = { lat?: number; lon?: number; hidden?: boolean; starred?: boole
 function addPhoto(filename: string, { lat, lon, hidden = false, starred = false, folder = folderA }: PhotoSeed = {}): number {
   return db.insert(schema.photos).values({
     folderId: folder, filename, fileHash: `hash-${filename}`, createdAt: '', isHidden: hidden, isStarred: starred,
+    searchText: filename.toLowerCase(), // as the scanner indexes it
     latitude: lat ?? null, longitude: lon ?? null, locationSource: lat === undefined ? null : 'user',
     geoCell: lat === undefined || lon === undefined ? null : location.geoCell(lat, lon),
   }).returning({ id: schema.photos.id }).get().id;

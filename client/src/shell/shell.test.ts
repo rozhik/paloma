@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { NAV_ITEMS, navItemsFor } from './navigation.js';
-import { TRAY_ACTION_IDS, trayActionsFor } from './useTray.js';
+import { TRAY_ACTION_IDS, trayActionApplies, trayActionsFor } from './useTray.js';
 import { sidebarListsFor, toggleSidebarList } from './sidebar.js';
 import { DEFAULT_UI_SETTINGS, useUiSettings } from '../settings/uiSettings.js';
 import { usePalomaStore } from '../store/usePalomaStore.js';
@@ -13,7 +13,8 @@ describe('shared shell lists', () => {
 
   it('knows every tray action', () => {
     expect([...TRAY_ACTION_IDS]).toEqual([
-      'addToAlbum', 'removeFromAlbum', 'makeCover', 'removeLocation', 'clear', 'export', 'print', 'collage', 'movie',
+      'addToAlbum', 'addTags', 'removeTag', 'removeFromAlbum', 'makeCover', 'removeLocation', 'clear', 'export', 'print', 'collage',
+      'movie',
     ]);
   });
 });
@@ -27,8 +28,8 @@ describe('shell lists by level', () => {
 
   it('shows Easy the album, export and print actions but not the advanced ones', () => {
     expect(navItemsFor('easy').map((item) => item.view)).toEqual(['library', 'settings']);
-    expect(sidebarListsFor('easy')).toEqual(['shortcuts', 'albums', 'folders']);
-    expect(trayActionsFor('easy')).toEqual(['addToAlbum', 'removeFromAlbum', 'makeCover', 'clear', 'export', 'print']);
+    expect(sidebarListsFor('easy')).toEqual(['shortcuts', 'albums', 'tags', 'folders']);
+    expect(trayActionsFor('easy')).toEqual(['addToAlbum', 'addTags', 'removeTag', 'removeFromAlbum', 'makeCover', 'clear', 'export', 'print']);
   });
 
   it('shows Normal and above everything', () => {
@@ -81,5 +82,35 @@ describe('entering Child mode', () => {
     usePalomaStore.setState({ selectedPhotos: [photo], selectedFolderId: null, selectedAlbumToken: 'birds' });
     usePalomaStore.getState().enterChildMode();
     expect(usePalomaStore.getState()).toMatchObject({ selectedPhotos: [], selectedAlbumToken: 'birds' });
+  });
+});
+
+describe('tray actions by view', () => {
+  const base = { selectedCount: 2, geotaggedCount: 0, inAlbum: false, inTag: false };
+
+  it('offers Remove tag only while a tag is open', () => {
+    expect(trayActionApplies({ ...base, inTag: true }).removeTag).toBe(true);
+    expect(trayActionApplies(base).removeTag).toBe(false);
+    expect(trayActionApplies({ ...base, inAlbum: true }).removeTag).toBe(false);
+  });
+
+  it('offers Add tags in every view', () => {
+    expect(trayActionApplies(base).addTags).toBe(true);
+    expect(trayActionApplies({ ...base, inTag: true }).addTags).toBe(true);
+  });
+
+  it('never offers either at Child', () => {
+    expect(trayActionsFor('child')).not.toContain('removeTag');
+    expect(trayActionsFor('child')).not.toContain('addTags');
+  });
+});
+
+describe('tag selection in the sidebar', () => {
+  it('replaces a chosen album and is cleared by choosing a folder', () => {
+    usePalomaStore.getState().setSelectedAlbum('c9ea');
+    usePalomaStore.getState().setSelectedTag('dawn');
+    expect(usePalomaStore.getState()).toMatchObject({ selectedTag: 'dawn', selectedAlbumToken: null });
+    usePalomaStore.getState().setSelectedFolderId(1);
+    expect(usePalomaStore.getState().selectedTag).toBeNull();
   });
 });

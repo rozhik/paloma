@@ -13,7 +13,7 @@ export type ThemeChoice = 'system' | ThemeId;
 export const THEME_CHOICES: readonly ThemeChoice[] = ['system', ...THEME_IDS];
 
 /** The lists in the sidebar that can be collapsed. */
-export const SIDEBAR_LISTS = ['shortcuts', 'albums', 'folders'] as const;
+export const SIDEBAR_LISTS = ['shortcuts', 'albums', 'tags', 'folders'] as const;
 export type SidebarListId = typeof SIDEBAR_LISTS[number];
 
 /** Seconds a slideshow shows each photo. */

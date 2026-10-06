@@ -62,8 +62,8 @@ beforeAll(async () => {
 beforeEach(() => {
   photosRoot = fs.mkdtempSync(path.join(tmpDir, 'photos_'));
   for (const table of [
-    schema.edits, schema.faceAnnotations, schema.photoTags, schema.albumPhotos,
-    schema.folderAlbums, schema.photos, schema.folders,
+    schema.edits, schema.faceAnnotations, schema.photoKeywords, schema.photoPeople, schema.albumPhotos,
+    schema.folderAlbums, schema.folderPeople, schema.photos, schema.folders,
   ]) {
     db.delete(table).run();
   }
@@ -241,13 +241,13 @@ describe('FolderScannerService', () => {
     db.insert(schema.edits).values({ photoId: photo.id, editInstructionsJson: '{}', updatedAt: now }).run();
     db.insert(schema.albumPhotos).values({ photoId: photo.id, token: 'c9ea' }).run();
     db.insert(schema.faceAnnotations).values({ photoId: photo.id, boundingBox: '[0,0,1,1]' }).run();
-    const tag = db.insert(schema.tags).values({ name: `t${photo.id}` }).returning().get();
-    db.insert(schema.photoTags).values({ photoId: photo.id, tagId: tag.id }).run();
+    db.insert(schema.photoKeywords).values({ photoId: photo.id, keyword: 'Old', key: 'old' }).run();
+    db.insert(schema.photoPeople).values({ photoId: photo.id, contactId: 'b8e4117cf1d6615b', position: 0 }).run();
 
     fs.rmSync(file);
 
     await vi.waitFor(() => expect(indexedPaths()).toEqual([path.join(photosRoot, 'stays.jpg')]), WAIT);
-    for (const table of [schema.edits, schema.albumPhotos, schema.faceAnnotations, schema.photoTags]) {
+    for (const table of [schema.edits, schema.albumPhotos, schema.faceAnnotations, schema.photoKeywords, schema.photoPeople]) {
       expect(db.select().from(table).where(eq(table.photoId, photo.id)).all()).toEqual([]);
     }
   });
@@ -726,5 +726,81 @@ describe('FolderScannerService', () => {
       expect(fs.statSync(thumb).mtimeMs).toBe(thumbTime);
       expect(indexedPaths()).toEqual([file]);
     });
+  });
+});
+
+describe('description, tags and people in the library', () => {
+  const tagsOf = (filename: string) => db.select({ keyword: schema.photoKeywords.keyword, key: schema.photoKeywords.key })
+    .from(schema.photoKeywords)
+    .innerJoin(schema.photos, eq(schema.photoKeywords.photoId, schema.photos.id))
+    .where(eq(schema.photos.filename, filename))
+    .all();
+  const peopleOf = (filename: string) => db.select({ contactId: schema.photoPeople.contactId })
+    .from(schema.photoPeople)
+    .innerJoin(schema.photos, eq(schema.photoPeople.photoId, schema.photos.id))
+    .where(eq(schema.photos.filename, filename))
+    .all().map((row) => row.contactId);
+  const photoRow = (filename: string) => db.select().from(schema.photos).where(eq(schema.photos.filename, filename)).get()!;
+
+  let text: typeof import('./embeddedText.fixtures.js');
+  beforeAll(async () => { text = await import('./embeddedText.fixtures.js'); });
+
+  it('shows the embedded IPTC caption and tags of a photo without an entry', async () => {
+    await text.writeJpegWithText(path.join(photosRoot, 'a.jpg'), {
+      iptc: text.iim([[2, 120, 'Market day'], [2, 25, 'Old'], [2, 25, 'old']]),
+      exif: { Make: 'Canon', Model: 'Canon EOS 80D' },
+    });
+
+    await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
+
+    expect(fieldsOf('a.jpg')).toMatchObject({ caption: 'Market day', keywords: ['Old'] });
+    expect(tagsOf('a.jpg')).toEqual([{ keyword: 'Old', key: 'old' }]);
+    const row = photoRow('a.jpg');
+    expect(row.searchText).toBe(['a.jpg', photosRoot, 'Market day', 'Old', 'Canon', 'Canon EOS 80D'].join('\n').toLowerCase());
+    expect(fs.readdirSync(photosRoot)).toEqual(['a.jpg']);
+  });
+
+  it('lets the sidecar caption win and "keywords": [] hide embedded tags after a rebuild', async () => {
+    await text.writeJpegWithText(path.join(photosRoot, 'a.jpg'), { iptc: text.iim([[2, 120, 'Market day'], [2, 25, 'old']]) });
+    writeSidecar(photosRoot, { 'a.jpg': { caption: 'Lviv market', keywords: [] } });
+
+    await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
+
+    expect(fieldsOf('a.jpg')).toMatchObject({ caption: 'Lviv market', keywords: null });
+    expect(tagsOf('a.jpg')).toEqual([]);
+    expect(photoRow('a.jpg')).toMatchObject({ embeddedCaption: 'Market day', embeddedKeywords: '["old"]' });
+  });
+
+  it('treats "caption": "" as a removed embedded description', async () => {
+    await text.writeJpegWithText(path.join(photosRoot, 'a.jpg'), { iptc: text.iim([[2, 120, 'Market day']]) });
+    writeSidecar(photosRoot, { 'a.jpg': { caption: '' } });
+
+    await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
+
+    expect(fieldsOf('a.jpg').caption).toBeNull();
+    expect(photoRow('a.jpg').searchText).not.toContain('market');
+  });
+
+  it('updates the tag index when the sidecar is edited while running', async () => {
+    await makeImage(path.join(photosRoot, 'a.jpg'));
+    await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
+    expect(tagsOf('a.jpg')).toEqual([]);
+
+    writeSidecar(photosRoot, { 'a.jpg': { keywords: ['Dawn', 'hills'] } });
+
+    await vi.waitFor(() => expect(tagsOf('a.jpg').map((t) => t.key).sort()).toEqual(['dawn', 'hills']), WAIT);
+  });
+
+  it('shows the people of a Picasa-only folder live', async () => {
+    await makeImage(path.join(photosRoot, 'a.jpg'));
+    writeIni(photosRoot, '[Contacts2]', 'b8e4117cf1d6615b=Roy Avery;;', '[a.jpg]',
+      'faces=rect64(579922efa1cce2aa),b8e4117cf1d6615b;rect64(1),b8e4117cf1d6615b;rect64(2),ffffffffffffffff');
+
+    await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
+
+    expect(peopleOf('a.jpg')).toEqual(['b8e4117cf1d6615b']);
+    expect(db.select().from(schema.folderPeople).all())
+      .toEqual([expect.objectContaining({ contactId: 'b8e4117cf1d6615b', name: 'Roy Avery', email: null })]);
+    expect(fs.readdirSync(photosRoot).sort()).toEqual(['.picasa.ini', 'a.jpg']);
   });
 });

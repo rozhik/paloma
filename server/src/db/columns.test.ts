@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import Database from 'better-sqlite3';
-import { addMissingPhotoColumns, dropMvpEdits, migrateAlbumTables } from './columns.js';
+import { addMissingPhotoColumns, createTextTables, dropMvpEdits, migrateAlbumTables } from './columns.js';
 
 describe('addMissingPhotoColumns', () => {
   it('adds caption, keywords and is_hidden to an old photos table and keeps its rows', () => {
@@ -85,5 +85,38 @@ describe('dropMvpEdits', () => {
     dropMvpEdits(sqlite);
     dropMvpEdits(sqlite); // idempotent
     expect(sqlite.prepare('SELECT photo_id FROM edits').all()).toEqual([{ photo_id: 2 }]);
+  });
+});
+
+describe('createTextTables', () => {
+  it('adds the text columns and tables, drops the MVP tag tables and keeps photos', () => {
+    const sqlite = new Database(':memory:');
+    sqlite.exec(`
+      CREATE TABLE photos (id INTEGER PRIMARY KEY AUTOINCREMENT, filename TEXT NOT NULL, caption TEXT);
+      INSERT INTO photos (filename, caption) VALUES ('a.jpg', 'Sunrise');
+      CREATE TABLE tags (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE);
+      CREATE TABLE photo_tags (photo_id INTEGER NOT NULL, tag_id INTEGER NOT NULL);
+      INSERT INTO tags (name) VALUES ('old');
+      INSERT INTO photo_tags VALUES (1, 1);
+    `);
+
+    for (let i = 0; i < 2; i++) { // idempotent
+      addMissingPhotoColumns(sqlite);
+      createTextTables(sqlite);
+    }
+
+    const tables = (sqlite.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all() as Array<{ name: string }>)
+      .map((t) => t.name);
+    expect(tables).toEqual(expect.arrayContaining(['photo_keywords', 'folder_people', 'photo_people']));
+    expect(tables).not.toContain('tags');
+    expect(tables).not.toContain('photo_tags');
+    expect(sqlite.prepare(
+      'SELECT filename, caption, embedded_caption, embedded_keywords, camera_make, camera_model, search_text FROM photos',
+    ).all()).toEqual([{
+      filename: 'a.jpg', caption: 'Sunrise', embedded_caption: null, embedded_keywords: null,
+      camera_make: null, camera_model: null, search_text: null,
+    }]);
+    const indexes = (sqlite.pragma('index_list(photo_keywords)') as Array<{ name: string }>).map((i) => i.name);
+    expect(indexes).toContain('photo_keywords_key');
   });
 });

@@ -1,5 +1,7 @@
 {
-  "_meta": { "reviewed": false },
+  "_meta": {
+    "reviewed": false
+  },
   "app": {
     "title": "Paloma — сучасний фотоменеджер (спадкоємець Google Picasa)"
   },
@@ -35,6 +37,8 @@
     "recentImport": "📥 Останній імпорт",
     "albums": "Альбоми",
     "noAlbums": "Альбомів ще немає. Виберіть світлини й натисніть «До альбому».",
+    "tags": "Теги",
+    "noTags": "Тегів ще немає. Виділіть світлини й натисніть «Додати теги».",
     "folders": "Відстежувані папки",
     "noFolders": "Немає папок. Вкажіть папки з фотографіями в PALOMA_PHOTOS_DIRS у файлі .env і перезапустіть сервер.",
     "geotagged": "📍 З геомітками",
@@ -61,6 +65,8 @@
     "selected": "🖼️ Обрано:",
     "removeFromTray": "Видалити з буфера",
     "addToAlbum": "До альбому",
+    "addTags": "Додати теги",
+    "removeTag": "Видалити тег",
     "removeFromAlbum": "Прибрати з альбому",
     "makeCover": "Зробити обкладинкою",
     "clear": "Очистити",
@@ -342,7 +348,58 @@
     "saving": "Зберігаємо зміну…",
     "zoomIn": "Збільшити",
     "zoomOut": "Зменшити",
-    "fit": "Вписати в екран"
+    "fit": "Вписати в екран",
+    "info": "Інформація"
+  },
+  "tags": {
+    "placeholder": "Введіть тег і натисніть Enter",
+    "addChip": "Додати тег",
+    "removeChip": "Видалити тег «{{name}}»",
+    "addTitle_one": "Додати теги до {{count, number}} світлини",
+    "addTitle_few": "Додати теги до {{count, number}} світлин",
+    "addTitle_many": "Додати теги до {{count, number}} світлин",
+    "addTitle_other": "Додати теги до {{count, number}} світлини",
+    "addConfirm": "Додати теги"
+  },
+  "info": {
+    "title": "Інформація",
+    "close": "Закрити інформацію",
+    "loading": "Завантаження…",
+    "file": "Файл",
+    "path": "На диску",
+    "size": "Розмір",
+    "dimensions": "Розміри",
+    "dimensionsValue": "{{width, number}} × {{height, number}}",
+    "dateTaken": "Знято",
+    "modified": "Файл змінено",
+    "description": "Опис",
+    "descriptionPlaceholder": "Додайте опис",
+    "tags": "Теги",
+    "albums": "Альбоми",
+    "noAlbums": "Не входить до жодного альбому",
+    "people": "Люди",
+    "noPeople": "На цій світлині не названо людей",
+    "unknownPerson": "Невідома особа",
+    "location": "Місце",
+    "noLocation": "У цієї світлини немає місця",
+    "fromCamera": "З камери",
+    "setByUser": "Задано вами",
+    "exif": "EXIF",
+    "noExif": "Немає даних EXIF",
+    "binary": "{{size}} двійкових даних",
+    "json": "JSON",
+    "jsonIni": "Прочитано з Picasa .ini; ще не збережено в .paloma.json.",
+    "jsonNone": "Ця світлина не має запису в .paloma.json.",
+    "jsonUnreadable": "Файл .paloma.json цієї папки неможливо прочитати.",
+    "other": "Інше",
+    "starred": "Позначено зірочкою",
+    "notStarred": "Без зірочки",
+    "hidden": "Приховано",
+    "notHidden": "Не приховано",
+    "edits_one": "{{count, number}} зміна",
+    "edits_few": "{{count, number}} зміни",
+    "edits_many": "{{count, number}} змін",
+    "edits_other": "{{count, number}} зміни"
   },
   "levels": {
     "child": {

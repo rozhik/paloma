@@ -1,13 +1,14 @@
 import React, { useId } from 'react';
 import { useTranslation } from 'react-i18next';
-import { BookImage, ChevronDown, Clock, Folder, Image, MapPin, Star, type LucideIcon } from 'lucide-react';
+import { BookImage, ChevronDown, Clock, Folder, Image, MapPin, Star, Tag, type LucideIcon } from 'lucide-react';
 import { usePalomaStore, type FilterType } from '../store/usePalomaStore.js';
 import { SIDEBAR_LISTS, useUiSettings, type SidebarListId } from '../settings/uiSettings.js';
 import { allows, useLevel } from '../levels/controls.js';
 import type { Level } from '../levels/levels.js';
 import { useFolderTree } from './useFolderTree.js';
+import { useTags } from './useTags.js';
 
-/** One entry of a sidebar list: a shortcut, an album or a folder. */
+/** One entry of a sidebar list: a shortcut, an album, a tag or a folder. */
 export interface SidebarItem {
   key: string;
   label: string;
@@ -62,10 +63,12 @@ export function useSidebarSections(): SidebarSectionData[] {
   const shown = sidebarListsFor(useLevel());
   const {
     selectedFolderId, setSelectedFolderId, selectedFilter, setSelectedFilter, selectedAlbumToken, setSelectedAlbum,
+    selectedTag, setSelectedTag,
   } = usePalomaStore();
   const collapsed = useUiSettings((state) => state.collapsedSidebarLists);
   const { folders, albums } = useFolderTree();
-  const nothingSelected = selectedFolderId === null && selectedAlbumToken === null;
+  const tags = useTags();
+  const nothingSelected = selectedFolderId === null && selectedAlbumToken === null && selectedTag === null;
 
   const section = (id: SidebarListId, data: Omit<SidebarSectionData, 'id' | 'collapsed' | 'toggle'>): SidebarSectionData => ({
     id, collapsed: collapsed.includes(id), toggle: () => toggleSidebarList(id), ...data,
@@ -99,6 +102,20 @@ export function useSidebarSections(): SidebarSectionData[] {
         title: album.description ?? undefined,
         active: selectedAlbumToken === album.token,
         select: () => setSelectedAlbum(album.token),
+      })),
+    }),
+    section('tags', {
+      title: t('sidebar.tags'),
+      count: tags.length,
+      emptyText: t('sidebar.noTags'),
+      items: tags.map((tag) => ({
+        key: tag.name,
+        label: tag.name,
+        icon: Tag,
+        iconClass: 'text-info',
+        count: tag.photoCount,
+        active: selectedTag !== null && selectedTag.toLowerCase() === tag.name.toLowerCase(),
+        select: () => setSelectedTag(tag.name),
       })),
     }),
     section('folders', {

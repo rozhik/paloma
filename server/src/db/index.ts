@@ -4,7 +4,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { config } from '../config.js';
 import * as schema from './schema.js';
-import { addMissingPhotoColumns, createGeoTables, dropMvpEdits, migrateAlbumTables } from './columns.js';
+import { addMissingPhotoColumns, createGeoTables, createTextTables, dropMvpEdits, migrateAlbumTables } from './columns.js';
 
 if (!fs.existsSync(config.dataDir)) {
   fs.mkdirSync(config.dataDir, { recursive: true });
@@ -70,20 +70,10 @@ sqlite.exec(`
     descriptor_vector TEXT,
     is_confirmed INTEGER NOT NULL DEFAULT 0
   );
-
-  CREATE TABLE IF NOT EXISTS tags (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL UNIQUE
-  );
-
-  CREATE TABLE IF NOT EXISTS photo_tags (
-    photo_id INTEGER NOT NULL REFERENCES photos(id) ON DELETE CASCADE,
-    tag_id INTEGER NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
-    PRIMARY KEY (photo_id, tag_id)
-  );
 `);
 
 addMissingPhotoColumns(sqlite);
 migrateAlbumTables(sqlite);
 createGeoTables(sqlite);
 dropMvpEdits(sqlite);
+createTextTables(sqlite);

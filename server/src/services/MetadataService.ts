@@ -2,9 +2,10 @@ import fs from 'node:fs';
 import sharp from 'sharp';
 import exifReader from 'exif-reader';
 import XXH from 'xxhashjs';
+import { cameraText, combineEmbeddedText, readExifText, readIptcText, readXmpText, type TextFields } from './embeddedText.js';
 
 /** Bumped when parsing improves; photos read by an older version are read again on the next scan. */
-export const METADATA_VERSION = 1;
+export const METADATA_VERSION = 2;
 
 export interface PhotoMetadata {
   fileHash: string;
@@ -15,6 +16,12 @@ export interface PhotoMetadata {
   /** Camera location from EXIF GPS */
   latitude: number | null;
   longitude: number | null;
+  /** Description embedded in the file (XMP, IPTC, EXIF); null without one */
+  caption: string | null;
+  /** Tags embedded in the file; empty without them */
+  keywords: string[];
+  cameraMake: string | null;
+  cameraModel: string | null;
 }
 
 type GpsInfo = ReturnType<typeof exifReader>['GPSInfo'];
@@ -59,6 +66,11 @@ export class MetadataService {
     let dateTaken: string | null = null;
     let latitude: number | null = null;
     let longitude: number | null = null;
+    let exifText: TextFields = {};
+    let cameraMake: string | null = null;
+    let cameraModel: string | null = null;
+    let xmpText: TextFields = {};
+    let iptcText: TextFields = {};
 
     try {
       const image = sharp(filePath, { failOnError: false });
@@ -72,6 +84,10 @@ export class MetadataService {
           // Before the date: an invalid date throws and must not cost the photo its location
           const location = gpsLocation(parsedExif.GPSInfo);
           if (location) ({ latitude, longitude } = location);
+          const image = parsedExif.Image as Record<string, unknown> | undefined;
+          exifText = readExifText(image);
+          cameraMake = cameraText(image?.Make);
+          cameraModel = cameraText(image?.Model);
 
           if (parsedExif.Photo?.DateTimeOriginal) {
             dateTaken = new Date(parsedExif.Photo.DateTimeOriginal).toISOString();
@@ -82,6 +98,9 @@ export class MetadataService {
           // EXIF parsing fallback
         }
       }
+      // Each block on its own: a broken one must not hide the others
+      try { xmpText = readXmpText(metadata.xmp); } catch { /* no XMP text */ }
+      try { iptcText = readIptcText(metadata.iptc); } catch { /* no IPTC text */ }
     } catch {
       // Fallback
     }
@@ -98,6 +117,9 @@ export class MetadataService {
       dateTaken,
       latitude,
       longitude,
+      ...combineEmbeddedText([xmpText, iptcText, exifText]),
+      cameraMake,
+      cameraModel,
     };
   }
 }

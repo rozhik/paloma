@@ -21,6 +21,18 @@ describe('control levels', () => {
     expect(CONTROL_LEVELS.slideshow).toBe('child');
     expect(CONTROL_LEVELS['viewer.editBar']).toBe('easy');
     expect(CONTROL_LEVELS['album.delete']).toBe('normal');
+    expect(CONTROL_LEVELS['viewer.info']).toBe('easy');
+    expect(CONTROL_LEVELS['sidebar.tags']).toBe('easy');
+    expect(CONTROL_LEVELS['tray.addTags']).toBe('easy');
+    expect(CONTROL_LEVELS['tray.removeTag']).toBe('easy');
+  });
+
+  it('show the Info panel at Easy, its EXIF from Professional and its JSON only at Developer', () => {
+    expect(['child', 'easy', 'normal', 'pro', 'developer'].map((level) => [
+      allows(level as never, 'viewer.info'), allows(level as never, 'info.exif'), allows(level as never, 'info.json'),
+    ])).toEqual([
+      [false, false, false], [true, false, false], [true, false, false], [true, true, false], [true, true, true],
+    ]);
   });
 
   it('show Child only the library, albums, viewing, slideshow and settings', () => {

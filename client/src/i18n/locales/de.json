@@ -1,5 +1,7 @@
 {
-  "_meta": { "reviewed": false },
+  "_meta": {
+    "reviewed": false
+  },
   "app": {
     "title": "Paloma — ein moderner Fotomanager (Nachfolger von Google Picasa)"
   },
@@ -33,6 +35,8 @@
     "recentImport": "📥 Letzter Import",
     "albums": "Alben",
     "noAlbums": "Noch keine Alben. Wählen Sie Fotos aus und klicken Sie auf „Zum Album“.",
+    "tags": "Tags",
+    "noTags": "Noch keine Tags. Wählen Sie Fotos aus und klicken Sie auf „Tags hinzufügen“.",
     "folders": "Überwachte Ordner",
     "noFolders": "Keine Ordner. Tragen Sie Ihre Fotoordner in PALOMA_PHOTOS_DIRS in der Datei .env ein und starten Sie den Server neu.",
     "geotagged": "📍 Mit Ortsangabe",
@@ -59,6 +63,8 @@
     "selected": "🖼️ Ausgewählt:",
     "removeFromTray": "Aus der Ablage entfernen",
     "addToAlbum": "Zum Album",
+    "addTags": "Tags hinzufügen",
+    "removeTag": "Tag entfernen",
     "removeFromAlbum": "Aus Album entfernen",
     "makeCover": "Als Titelbild",
     "clear": "Leeren",
@@ -318,7 +324,54 @@
     "saving": "Änderung wird gespeichert…",
     "zoomIn": "Vergrößern",
     "zoomOut": "Verkleinern",
-    "fit": "An Bildschirm anpassen"
+    "fit": "An Bildschirm anpassen",
+    "info": "Info"
+  },
+  "tags": {
+    "placeholder": "Tag eingeben und Enter drücken",
+    "addChip": "Tag hinzufügen",
+    "removeChip": "Tag „{{name}}“ entfernen",
+    "addTitle_one": "Tags zu {{count, number}} Foto hinzufügen",
+    "addTitle_other": "Tags zu {{count, number}} Fotos hinzufügen",
+    "addConfirm": "Tags hinzufügen"
+  },
+  "info": {
+    "title": "Info",
+    "close": "Info schließen",
+    "loading": "Wird geladen…",
+    "file": "Datei",
+    "path": "Auf dem Datenträger",
+    "size": "Größe",
+    "dimensions": "Abmessungen",
+    "dimensionsValue": "{{width, number}} × {{height, number}}",
+    "dateTaken": "Aufgenommen",
+    "modified": "Datei geändert",
+    "description": "Beschreibung",
+    "descriptionPlaceholder": "Beschreibung hinzufügen",
+    "tags": "Tags",
+    "albums": "Alben",
+    "noAlbums": "In keinem Album",
+    "people": "Personen",
+    "noPeople": "Auf diesem Foto sind keine Personen benannt",
+    "unknownPerson": "Unbekannte Person",
+    "location": "Ort",
+    "noLocation": "Dieses Foto hat keinen Ort",
+    "fromCamera": "Von der Kamera",
+    "setByUser": "Von Ihnen festgelegt",
+    "exif": "EXIF",
+    "noExif": "Keine EXIF-Daten",
+    "binary": "{{size}} Binärdaten",
+    "json": "JSON",
+    "jsonIni": "Aus der Picasa-.ini gelesen; noch nicht in .paloma.json gespeichert.",
+    "jsonNone": "Dieses Foto hat keinen Eintrag in .paloma.json.",
+    "jsonUnreadable": "Die .paloma.json des Ordners kann nicht gelesen werden.",
+    "other": "Sonstiges",
+    "starred": "Mit Stern",
+    "notStarred": "Ohne Stern",
+    "hidden": "Ausgeblendet",
+    "notHidden": "Nicht ausgeblendet",
+    "edits_one": "{{count, number}} Bearbeitung",
+    "edits_other": "{{count, number}} Bearbeitungen"
   },
   "levels": {
     "child": {

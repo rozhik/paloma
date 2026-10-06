@@ -1,5 +1,7 @@
 {
-  "_meta": { "reviewed": false },
+  "_meta": {
+    "reviewed": false
+  },
   "app": {
     "title": "Paloma — pengelola foto modern (penerus Google Picasa)"
   },
@@ -32,6 +34,8 @@
     "recentImport": "📥 Impor terakhir",
     "albums": "Album",
     "noAlbums": "Belum ada album. Pilih foto lalu klik “Ke album”.",
+    "tags": "Tag",
+    "noTags": "Belum ada tag. Pilih foto lalu klik “Tambah tag”.",
     "folders": "Folder yang dipantau",
     "noFolders": "Tidak ada folder. Tulis folder foto Anda di PALOMA_PHOTOS_DIRS dalam file .env lalu mulai ulang server.",
     "geotagged": "📍 Bertanda lokasi",
@@ -58,6 +62,8 @@
     "selected": "🖼️ Dipilih:",
     "removeFromTray": "Hapus dari baki",
     "addToAlbum": "Ke album",
+    "addTags": "Tambah tag",
+    "removeTag": "Hapus tag",
     "removeFromAlbum": "Hapus dari album",
     "makeCover": "Jadikan sampul",
     "clear": "Kosongkan",
@@ -306,7 +312,52 @@
     "saving": "Menyimpan perubahan…",
     "zoomIn": "Perbesar",
     "zoomOut": "Perkecil",
-    "fit": "Paskan ke layar"
+    "fit": "Paskan ke layar",
+    "info": "Info"
+  },
+  "tags": {
+    "placeholder": "Ketik tag lalu tekan Enter",
+    "addChip": "Tambah tag",
+    "removeChip": "Hapus tag “{{name}}”",
+    "addTitle_other": "Tambahkan tag ke {{count, number}} foto",
+    "addConfirm": "Tambah tag"
+  },
+  "info": {
+    "title": "Info",
+    "close": "Tutup info",
+    "loading": "Memuat…",
+    "file": "Berkas",
+    "path": "Di disk",
+    "size": "Ukuran",
+    "dimensions": "Dimensi",
+    "dimensionsValue": "{{width, number}} × {{height, number}}",
+    "dateTaken": "Diambil",
+    "modified": "Berkas diubah",
+    "description": "Deskripsi",
+    "descriptionPlaceholder": "Tambahkan deskripsi",
+    "tags": "Tag",
+    "albums": "Album",
+    "noAlbums": "Tidak ada di album mana pun",
+    "people": "Orang",
+    "noPeople": "Tidak ada orang yang dinamai di foto ini",
+    "unknownPerson": "Orang tak dikenal",
+    "location": "Lokasi",
+    "noLocation": "Foto ini tidak punya lokasi",
+    "fromCamera": "Dari kamera",
+    "setByUser": "Ditetapkan oleh Anda",
+    "exif": "EXIF",
+    "noExif": "Tidak ada data EXIF",
+    "binary": "{{size}} data biner",
+    "json": "JSON",
+    "jsonIni": "Dibaca dari .ini Picasa; belum disimpan ke .paloma.json.",
+    "jsonNone": "Foto ini tidak punya entri di .paloma.json.",
+    "jsonUnreadable": ".paloma.json folder ini tidak dapat dibaca.",
+    "other": "Lainnya",
+    "starred": "Berbintang",
+    "notStarred": "Tanpa bintang",
+    "hidden": "Disembunyikan",
+    "notHidden": "Tidak disembunyikan",
+    "edits_other": "{{count, number}} suntingan"
   },
   "levels": {
     "child": {

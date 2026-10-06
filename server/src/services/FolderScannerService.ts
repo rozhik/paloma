@@ -2,13 +2,14 @@ import chokidar, { FSWatcher } from 'chokidar';
 import path from 'node:path';
 import fs from 'node:fs';
 import { db } from '../db/index.js';
-import { folders, photos, edits, faceAnnotations, photoTags, albumPhotos, folderAlbums } from '../db/schema.js';
+import { folders, photos, edits, faceAnnotations, photoKeywords, photoPeople, albumPhotos, folderAlbums, folderPeople } from '../db/schema.js';
 import { eq, and, inArray } from 'drizzle-orm';
 import { METADATA_VERSION, MetadataService } from './MetadataService.js';
 import { effectiveLocation } from './location.js';
 import { ThumbnailService } from './ThumbnailService.js';
 import { SidecarService, type FolderState, type PhotoFields } from './SidecarService.js';
-import type { PalomaAlbumDefinition } from '../../../shared/types.js';
+import type { PalomaAlbumDefinition, PalomaPerson } from '../../../shared/types.js';
+import { effectiveText, parseKeywords, peopleOfFaces, textKey, type FileText } from './libraryText.js';
 import { config } from '../config.js';
 import { isIgnoredName, isExcluded, isPathCovered, collapseRoots, isFolderMetaFile } from './scanPaths.js';
 
@@ -55,13 +56,18 @@ async function waitUntilStable(filePath: string): Promise<boolean> {
 
 type ExifLocation = { latitude: number | null; longitude: number | null };
 
-/** Library columns that come from the folder files, with the location resolved against the camera's. */
-function toPhotoColumns(fields: PhotoFields | undefined, exif: ExifLocation) {
+/**
+ * Library columns that come from the folder files, with the location resolved against the camera's and the
+ * description and tags against the text embedded in the file.
+ */
+function toPhotoColumns(fields: PhotoFields | undefined, exif: ExifLocation, file: FileText) {
+  const { caption, keywords, searchText } = effectiveText(fields, file);
   return {
     isStarred: fields?.star === true,
     isHidden: fields?.hidden === true,
-    caption: fields?.caption ?? null,
-    keywords: fields?.keywords ? JSON.stringify(fields.keywords) : null,
+    caption,
+    keywords: keywords.length > 0 ? JSON.stringify(keywords) : null,
+    searchText,
     ...effectiveLocation(fields?.geotag, exif),
   };
 }
@@ -94,6 +100,28 @@ function setPhotoAlbums(tx: Tx | typeof db, photoId: number, fields: PhotoFields
   tx.delete(albumPhotos).where(eq(albumPhotos.photoId, photoId)).run();
   for (const token of fields?.albums ?? []) {
     tx.insert(albumPhotos).values({ photoId, token }).run();
+  }
+}
+
+/** Indexes the photo's tags by their lowercased spelling; the columns hold the effective tags as JSON. */
+function setPhotoKeywords(tx: Tx | typeof db, photoId: number, keywordsJson: string | null): void {
+  tx.delete(photoKeywords).where(eq(photoKeywords.photoId, photoId)).run();
+  for (const keyword of parseKeywords(keywordsJson)) {
+    tx.insert(photoKeywords).values({ photoId, keyword, key: textKey(keyword) }).onConflictDoNothing().run();
+  }
+}
+
+function setPhotoPeople(tx: Tx | typeof db, photoId: number, fields: PhotoFields | undefined): void {
+  tx.delete(photoPeople).where(eq(photoPeople.photoId, photoId)).run();
+  peopleOfFaces(fields?.faces).forEach((contactId, position) => {
+    tx.insert(photoPeople).values({ photoId, contactId, position }).run();
+  });
+}
+
+function setFolderPeople(tx: Tx | typeof db, folderId: number, people: Record<string, PalomaPerson>): void {
+  tx.delete(folderPeople).where(eq(folderPeople.folderId, folderId)).run();
+  for (const [contactId, person] of Object.entries(people)) {
+    tx.insert(folderPeople).values({ folderId, contactId, ...person }).run();
   }
 }
 
@@ -159,7 +187,10 @@ export class FolderScannerService {
         folderStates.set(dir, state);
         // The folder's album definitions enter the library with the first look at its files
         const folderId = folderIds.get(dir);
-        if (folderId !== undefined) setFolderAlbums(db, folderId, state.albums);
+        if (folderId !== undefined) {
+          setFolderAlbums(db, folderId, state.albums);
+          setFolderPeople(db, folderId, state.people);
+        }
       }
       return state;
     };
@@ -249,6 +280,7 @@ export class FolderScannerService {
       const folderPhotos = db.select({ id: photos.id }).from(photos).where(eq(photos.folderId, folder.id)).all();
       this.removePhotos(folderPhotos.map((p) => p.id));
       db.delete(folderAlbums).where(eq(folderAlbums.folderId, folder.id)).run();
+      db.delete(folderPeople).where(eq(folderPeople.folderId, folder.id)).run();
       db.delete(folders).where(eq(folders.id, folder.id)).run();
       console.log(`Removed folder from library (not in PALOMA_PHOTOS_DIRS or excluded): ${folder.path}`);
     }
@@ -261,7 +293,8 @@ export class FolderScannerService {
     db.transaction((tx) => {
       tx.delete(edits).where(inArray(edits.photoId, photoIds)).run();
       tx.delete(faceAnnotations).where(inArray(faceAnnotations.photoId, photoIds)).run();
-      tx.delete(photoTags).where(inArray(photoTags.photoId, photoIds)).run();
+      tx.delete(photoKeywords).where(inArray(photoKeywords.photoId, photoIds)).run();
+      tx.delete(photoPeople).where(inArray(photoPeople.photoId, photoIds)).run();
       tx.delete(albumPhotos).where(inArray(albumPhotos.photoId, photoIds)).run();
       tx.delete(photos).where(inArray(photos.id, photoIds)).run();
     });
@@ -319,11 +352,18 @@ export class FolderScannerService {
         exifLatitude: meta.latitude,
         exifLongitude: meta.longitude,
         dateTaken: meta.dateTaken,
+        embeddedCaption: meta.caption,
+        embeddedKeywords: meta.keywords.length > 0 ? JSON.stringify(meta.keywords) : null,
+        cameraMake: meta.cameraMake,
+        cameraModel: meta.cameraModel,
         metadataVersion: METADATA_VERSION,
       };
       // User fields come from the folder's sidecar (or Picasa .ini), so they survive a content change
       const fields = getFolderState(dir).photos[filename];
-      const fromSidecar = toPhotoColumns(fields, exif);
+      const fromSidecar = toPhotoColumns(fields, exif, {
+        filename, folderPath: dir, embeddedCaption: meta.caption, embeddedKeywords: meta.keywords,
+        cameraMake: meta.cameraMake, cameraModel: meta.cameraModel,
+      });
 
       db.transaction((tx) => {
         let photoId: number;
@@ -341,6 +381,8 @@ export class FolderScannerService {
         }
         setPhotoAlbums(tx, photoId, fields);
         setPhotoEdits(tx, photoId, fields);
+        setPhotoKeywords(tx, photoId, fromSidecar.keywords);
+        setPhotoPeople(tx, photoId, fields);
       });
     } catch (err) {
       console.error(`Error scanning ${filePath}:`, err);
@@ -354,6 +396,8 @@ export class FolderScannerService {
 
     const folderPhotos = db.select({
       id: photos.id, filename: photos.filename, latitude: photos.exifLatitude, longitude: photos.exifLongitude,
+      embeddedCaption: photos.embeddedCaption, embeddedKeywords: photos.embeddedKeywords,
+      cameraMake: photos.cameraMake, cameraModel: photos.cameraModel,
     })
       .from(photos)
       .where(eq(photos.folderId, folder.id))
@@ -361,11 +405,17 @@ export class FolderScannerService {
     db.transaction((tx) => {
       for (const photo of folderPhotos) {
         const fields = state.photos[photo.filename];
-        tx.update(photos).set(toPhotoColumns(fields, photo)).where(eq(photos.id, photo.id)).run();
+        const columns = toPhotoColumns(fields, photo, {
+          ...photo, folderPath: dir, embeddedKeywords: parseKeywords(photo.embeddedKeywords),
+        });
+        tx.update(photos).set(columns).where(eq(photos.id, photo.id)).run();
         setPhotoAlbums(tx, photo.id, fields);
         setPhotoEdits(tx, photo.id, fields);
+        setPhotoKeywords(tx, photo.id, columns.keywords);
+        setPhotoPeople(tx, photo.id, fields);
       }
       setFolderAlbums(tx, folder.id, state.albums);
+      setFolderPeople(tx, folder.id, state.people);
     });
   }
 

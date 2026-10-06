@@ -113,7 +113,13 @@ describe.each(SKIN_IDS)('%s skin', (id) => {
       expect(markup).not.toContain(languageButton());
       expect(markup).not.toContain(i18n.t('sidebar.folders'));
       expect(markup).not.toContain(i18n.t('sidebar.collections'));
+      expect(markup).not.toContain(i18n.t('sidebar.tags'));
       if (id !== 'glass') expect(markup).toContain(i18n.t('sidebar.albums'));
+    });
+
+    it('shows Easy the Tags list', async () => {
+      const markup = await render('easy');
+      if (id !== 'glass') expect(markup).toContain(i18n.t('sidebar.tags'));
     });
 
     it('shows Normal every view, search and the language switcher', async () => {

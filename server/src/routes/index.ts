@@ -2,10 +2,10 @@ import { Router, type Response } from 'express';
 import path from 'node:path';
 import fs from 'node:fs';
 import { db } from '../db/index.js';
-import { folders, photos, edits, people, faceAnnotations, tags, photoTags } from '../db/schema.js';
+import { folders, photos, edits, people, faceAnnotations } from '../db/schema.js';
 import { eq, inArray } from 'drizzle-orm';
 import { ThumbnailService } from '../services/ThumbnailService.js';
-import { listFolders, listPhotos, saveEdits, setPhotosLocation, updatePhoto } from '../services/photoApi.js';
+import { changePhotosKeywords, listFolders, listPhotos, saveEdits, setPhotosLocation, updatePhoto } from '../services/photoApi.js';
 import {
   addAlbumPhotos, createAlbumFromPhotos, deleteAlbumEverywhere, editAlbumProperties, listAlbums, removeAlbumPhotos,
 } from '../services/albumApi.js';
@@ -17,6 +17,8 @@ import { RenderService } from '../services/RenderService.js';
 import { libraryLookup } from '../services/libraryImages.js';
 import { parseEditsJson } from '../services/photoImages.js';
 import { apiError } from '../services/apiError.js';
+import { listTags } from '../services/tagApi.js';
+import { getPhotoInfo } from '../services/photoInfo.js';
 import sharp from 'sharp';
 import ffmpeg from 'fluent-ffmpeg';
 import ffmpegStatic from 'ffmpeg-static';
@@ -40,6 +42,25 @@ router.get('/photos', (req, res) => {
 router.post('/photos/location', (req, res) => {
   const result = setPhotosLocation(req.body);
   res.status(result.status).json(result.body);
+});
+
+router.post('/photos/keywords', (req, res) => {
+  const result = changePhotosKeywords(req.body);
+  res.status(result.status).json(result.body);
+});
+
+router.get('/photos/:id/info', async (req, res, next) => {
+  try {
+    const result = await getPhotoInfo(Number(req.params.id), req.query.lang);
+    res.status(result.status).json(result.body);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// --- Tags API ---
+router.get('/tags', (req, res) => {
+  res.json(listTags());
 });
 
 router.patch('/photos/:id', (req, res) => {

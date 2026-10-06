@@ -13,6 +13,8 @@ import { isGeotag } from './location.js';
 import { libraryImageUrls, libraryLookup } from './libraryImages.js';
 import { describeProblem, validateChain, type ChainProblem } from './editChain.js';
 import { parseEditsJson } from './photoImages.js';
+import { uniqueKeywords } from './embeddedText.js';
+import { parseKeywords, textKey } from './libraryText.js';
 import type { ApiError, Geotag, Photo } from '../../../shared/types.js';
 
 type PhotoRow = typeof photos.$inferSelect;
@@ -24,7 +26,10 @@ export type ApiResult<T> = { status: 200; body: T } | { status: 400 | 404 | 409 
 export function toApiPhoto(
   photo: PhotoRow, folder: FolderRow, edit: EditRow | null, albums: string[] = [], place: string | null = null,
 ): Photo {
-  const { exifLatitude, exifLongitude, geoCell, metadataVersion, ...columns } = photo;
+  const {
+    exifLatitude, exifLongitude, geoCell, metadataVersion, embeddedCaption, embeddedKeywords, cameraMake, cameraModel, searchText,
+    ...columns
+  } = photo;
   return {
     ...columns,
     place,
@@ -103,6 +108,11 @@ function geotagPatch(location: Geotag | null, exif: { exifLatitude: number | nul
   return exif.exifLatitude !== null ? null : false;
 }
 
+/** Whether the photo file has embedded text, so clearing the field stores `""` or `[]` instead of removing it. */
+function embeddedState(file: { embeddedCaption: string | null; embeddedKeywords: string | null }): Pick<FieldPatch, 'captionEmbedded' | 'keywordsEmbedded'> {
+  return { captionEmbedded: file.embeddedCaption !== null, keywordsEmbedded: parseKeywords(file.embeddedKeywords).length > 0 };
+}
+
 /** Validates a PATCH body into a field patch; returns an error body for an invalid one. */
 export function parsePhotoPatch(body: unknown): FieldPatch | ApiError {
   if (typeof body !== 'object' || body === null || Array.isArray(body)) {
@@ -127,7 +137,7 @@ export function parsePhotoPatch(body: unknown): FieldPatch | ApiError {
     if (!Array.isArray(keywords) || !keywords.every((k) => typeof k === 'string')) {
       return invalidField('keywords', 'an array of strings');
     }
-    patch.keywords = [...new Set(keywords.filter((k) => k !== ''))];
+    patch.keywords = uniqueKeywords(keywords);
   }
   if (location !== undefined) {
     const parsed = parseLocation(location);
@@ -204,10 +214,10 @@ export function updatePhoto(photoId: number, body: unknown): ApiResult<Photo> {
 
   const photo = getApiPhoto(photoId);
   if (!photo?.folderPath) return { status: 404, body: apiError('photo_not_found', 'Photo not found') };
-  if (patch.geotag !== undefined && patch.geotag !== false) {
-    const exif = db.select({ exifLatitude: photos.exifLatitude }).from(photos).where(eq(photos.id, photoId)).get()!;
-    patch.geotag = geotagPatch(patch.geotag, exif);
-  }
+  const file = db.select({ exifLatitude: photos.exifLatitude, embeddedCaption: photos.embeddedCaption, embeddedKeywords: photos.embeddedKeywords })
+    .from(photos).where(eq(photos.id, photoId)).get()!;
+  if (patch.geotag !== undefined && patch.geotag !== false) patch.geotag = geotagPatch(patch.geotag, file);
+  Object.assign(patch, embeddedState(file));
 
   const failed = savePhotoPatch(photo, patch);
   if (failed) return failed;
@@ -243,6 +253,54 @@ export function setPhotosLocation(body: unknown): ApiResult<Photo[]> {
   const error = saveFolderByFolder('photo location', [...patches.keys()], (dir, data) =>
     SidecarService.patchPhotos(data, patches.get(dir)!, modified));
   placeResolver.wake();
+  if (error) return error;
+  return { status: 200, body: ids.map((id) => getApiPhoto(id)!) };
+}
+
+/** Distinct non-empty strings of an optional array; null for anything that is not an array of strings. */
+function tagList(value: unknown): string[] | null {
+  if (value === undefined) return [];
+  if (!Array.isArray(value) || !value.every((item) => typeof item === 'string')) return null;
+  return uniqueKeywords(value);
+}
+
+/**
+ * `POST /api/photos/keywords`: adds the `add` tags a photo does not have yet (ignoring case) to the end of its
+ * tags and removes the `remove` tags, for several photos, possibly in several folders, saving folder by folder.
+ * Starts from each photo's current tags, embedded ones included. Responds with the updated photos.
+ */
+export function changePhotosKeywords(body: unknown): ApiResult<Photo[]> {
+  const value = (typeof body === 'object' && body !== null && !Array.isArray(body) ? body : {}) as Record<string, unknown>;
+  const ids = parsePhotoIds(value.photoIds);
+  if (!ids) return { status: 400, body: apiError('photo_ids_required', 'photoIds must be a non-empty array of photo ids') };
+  const add = tagList(value.add);
+  const remove = tagList(value.remove);
+  if (add === null) return { status: 400, body: invalidField('add', 'an array of strings') };
+  if (remove === null) return { status: 400, body: invalidField('remove', 'an array of strings') };
+  if (add.length === 0 && remove.length === 0) {
+    return { status: 400, body: apiError('no_photo_fields', 'Expected a non-empty add or remove list') };
+  }
+  const refs = loadPhotos(ids);
+  if (!refs) return { status: 404, body: apiError('photo_not_found', 'Photo not found') };
+
+  const rows = new Map(db.select({
+    id: photos.id, keywords: photos.keywords, embeddedCaption: photos.embeddedCaption, embeddedKeywords: photos.embeddedKeywords,
+  }).from(photos).where(inArray(photos.id, ids)).all().map((row) => [row.id, row]));
+  const removed = new Set(remove.map(textKey));
+  const patches = new Map<string, Record<string, FieldPatch>>();
+  for (const ref of refs) {
+    const row = rows.get(ref.id)!;
+    const current = parseKeywords(row.keywords);
+    const keywords = uniqueKeywords([...current, ...add]).filter((keyword) => !removed.has(textKey(keyword)));
+    if (JSON.stringify(keywords) === JSON.stringify(current)) continue;
+    const folderPatches = patches.get(ref.folderPath) ?? {};
+    folderPatches[ref.filename] = { keywords, ...embeddedState(row) };
+    patches.set(ref.folderPath, folderPatches);
+  }
+
+  const modified = new Date().toISOString();
+  const error = saveFolderByFolder('photo tags', [...patches.keys()], (dir, data) =>
+    SidecarService.patchPhotos(data, patches.get(dir)!, modified));
   if (error) return error;
   return { status: 200, body: ids.map((id) => getApiPhoto(id)!) };
 }

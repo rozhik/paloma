@@ -41,6 +41,18 @@ function valuesOf(filter: FilterInfo, step: EditStep | undefined): Record<string
 const isTyping = (target: EventTarget | null) => target instanceof HTMLElement
   && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
 
+/** What Esc closes first: the frame, then a floating panel, then the Info panel, else the viewer. */
+export function escapeTarget(open: { frame: boolean; panel: boolean; info: boolean }): 'frame' | 'panel' | 'info' | 'viewer' {
+  if (open.frame) return 'frame';
+  if (open.panel) return 'panel';
+  if (open.info) return 'info';
+  return 'viewer';
+}
+
+/** Whether a key toggles the Info panel: `i` without modifiers, outside text fields, when the level offers it. */
+export const isInfoKey = (event: Pick<KeyboardEvent, 'key' | 'ctrlKey' | 'metaKey' | 'altKey'>, typing: boolean, allowed: boolean) =>
+  allowed && !typing && !event.ctrlKey && !event.metaKey && !event.altKey && event.key.toLowerCase() === 'i';
+
 /**
  * Everything the viewer knows and can do for the photo on screen: navigation, zoom, the edit chain, the open
  * panel and frame, and saving. Shared by every skin; a skin's viewer chrome only renders it.
@@ -53,6 +65,11 @@ export function usePhotoViewer(viewer: ViewerState) {
   const { chain, dispatch } = edits;
   /** Whether the edit bar is offered at the active level; without it the viewer only shows */
   const canEdit = useAllows('viewer.editBar');
+  /** Whether the Info button and panel are offered at the active level */
+  const canInfo = useAllows('viewer.info');
+  /** The Info panel starts closed each time the viewer opens, and stays open from photo to photo */
+  const [infoOpen, setInfoOpen] = useState(false);
+  const showInfo = canInfo && infoOpen;
 
   const barSize = useSkin().skin.viewerBarSize;
   const navEdge = useUiSettings((state) => state.navBar);
@@ -211,8 +228,10 @@ export function usePhotoViewer(viewer: ViewerState) {
       const typing = isTyping(event.target);
       if (event.key === 'Escape') {
         event.preventDefault();
-        if (frame) cancelFrame();
-        else if (panel) setPanel(null);
+        const target = escapeTarget({ frame: !!frame, panel: !!panel, info: showInfo });
+        if (target === 'frame') cancelFrame();
+        else if (target === 'panel') setPanel(null);
+        else if (target === 'info') setInfoOpen(false);
         else close();
         return;
       }
@@ -239,6 +258,8 @@ export function usePhotoViewer(viewer: ViewerState) {
         zoomBy(1 / ZOOM_STEP);
       } else if (event.key === '0' && !frame) {
         setZoomChoice('fit');
+      } else if (isInfoKey(event, typing, canInfo)) {
+        setInfoOpen((open) => !open);
       }
     };
     window.addEventListener('keydown', onKey);
@@ -254,7 +275,8 @@ export function usePhotoViewer(viewer: ViewerState) {
     panelFilter, panelSide, frame, setFrame, frameRatio, imageAspect, showOriginal, setShowOriginal, showGrid,
     setShowGrid, stage, full, zoom, preview, setZoom, onStageResize, zoomBy, fit: () => setZoomChoice('fit'),
     canPrev, canNext, prev, next, close, openFrame, applyFrame, cancelFrame, setFrameRatio, chooseFilter, lastStep,
-    paletteValues, blocked, setBlocked, saveMessage,
+    paletteValues, blocked, setBlocked, saveMessage, canInfo, showInfo, toggleInfo: () => setInfoOpen((open) => !open),
+    closeInfo: () => setInfoOpen(false),
   };
 }
 

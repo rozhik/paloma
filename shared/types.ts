@@ -101,7 +101,6 @@ export interface Photo {
   isHidden: boolean;
   /** Tokens of the albums this photo is in */
   albums: string[];
-  tags?: string[];
   facesCount?: number;
   thumbnailUrl?: string;
   previewUrl?: string;
@@ -124,9 +123,38 @@ export interface FaceAnnotation {
   isConfirmed: boolean;
 }
 
-export interface Tag {
-  id: number;
+/** `GET /api/tags`: a tag of at least one photo that is not hidden, under its most used spelling. */
+export interface TagSummary {
   name: string;
+  /** Photos that are not hidden and have the tag, compared ignoring case */
+  photoCount: number;
+}
+
+/** A person named on a photo; `name` is null when no folder names the contact. */
+export interface PhotoPerson {
+  /** Contact id: 16 lowercase hex digits */
+  id: string;
+  name: string | null;
+}
+
+/** An EXIF value as text, or the size of a binary value (maker note, thumbnail). */
+export type ExifValue = string | { binary: number };
+
+/** Where the photo's sidecar entry shown in the Info panel comes from. */
+export type PhotoEntrySource = 'paloma' | 'ini' | 'none' | 'unreadable';
+
+/** `GET /api/photos/:id/info`: everything the Info panel shows about a photo. */
+export interface PhotoInfo {
+  photo: Photo;
+  file: { path: string; size: number; modifiedAt: string | null };
+  albums: { token: string; name: string | null }[];
+  people: PhotoPerson[];
+  /** Place name in the requested language; null when unknown */
+  place: string | null;
+  /** EXIF fields by group (`Image`, `Photo`, `GPSInfo`, `Iop`, ...); null without EXIF */
+  exif: Record<string, Record<string, ExifValue>> | null;
+  /** The photo's entry as stored in `.paloma.json`, or the fields read from the Picasa .ini */
+  entry: { source: PhotoEntrySource; json?: Record<string, unknown> };
 }
 
 /** A library album, resolved from the definition copies in folder sidecars (or Picasa .ini files). */
@@ -173,6 +201,8 @@ export interface PalomaPhotoEntry {
   keywords?: string[];
   /** Tokens of the albums this photo is in */
   albums?: string[];
+  /** People's faces, read from Picasa; read-only in Paloma */
+  faces?: PalomaFace[];
   /** Location set in Paloma or imported from Picasa; null means the location was removed */
   geotag?: Geotag | null;
   /** Non-destructive edit chain, applied from first to last */
@@ -182,6 +212,21 @@ export interface PalomaPhotoEntry {
   [key: string]: unknown;
 }
 
+/** A face on a photo in `.paloma.json` `faces`: a contact's, or one marked as ignored. */
+export interface PalomaFace {
+  rect: RelativeRect;
+  /** Contact id: 16 lowercase hex digits, a key of `people` */
+  person?: string;
+  ignored?: true;
+}
+
+/** A person in `.paloma.json` `people`, keyed by contact id; from Picasa `[Contacts2]`. */
+export interface PalomaPerson {
+  name: string | null;
+  email: string | null;
+  googleId: string | null;
+}
+
 /** `.paloma.json`, the per-folder sidecar (format v2). Unknown top-level sections are preserved. */
 export interface PalomaFolderFile {
   format: 'paloma-folder';
@@ -189,6 +234,7 @@ export interface PalomaFolderFile {
   /** Lowercase hex SHA-256 of the Picasa .ini the entries were last imported from */
   iniHash?: string;
   albums?: Record<string, PalomaAlbumDefinition>;
+  people?: Record<string, PalomaPerson>;
   photos: Record<string, PalomaPhotoEntry>;
   [key: string]: unknown;
 }

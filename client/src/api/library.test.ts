@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { libraryQueryParams } from './library.js';
 
-const NONE = { selectedFolderId: null, selectedAlbumToken: null, selectedFilter: 'all' as const, searchQuery: '' };
+const NONE = { selectedFolderId: null, selectedAlbumToken: null, selectedTag: null, selectedFilter: 'all' as const, searchQuery: '' };
 
 describe('libraryQueryParams', () => {
   it('sends only the language for the whole library', () => {
@@ -14,5 +14,6 @@ describe('libraryQueryParams', () => {
     expect(Object.fromEntries(libraryQueryParams({ ...NONE, selectedAlbumToken: 'c9ea' }, 'en'))).toEqual({ album: 'c9ea', lang: 'en' });
     expect(libraryQueryParams({ ...NONE, selectedFilter: 'starred' }, 'en').get('starred')).toBe('true');
     expect(libraryQueryParams({ ...NONE, selectedFilter: 'geotagged' }, 'en').get('geotagged')).toBe('true');
+    expect(Object.fromEntries(libraryQueryParams({ ...NONE, selectedTag: 'Dawn' }, 'en'))).toEqual({ tag: 'Dawn', lang: 'en' });
   });
 });

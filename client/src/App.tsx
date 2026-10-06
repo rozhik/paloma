@@ -11,6 +11,7 @@ import { PluginsView } from './components/PluginsView.js';
 import { SettingsView } from './components/SettingsView.js';
 import { AlbumHeader } from './components/AlbumHeader.js';
 import { LibraryHeader } from './components/LibraryHeader.js';
+import { TagHeader } from './components/TagHeader.js';
 import { Slideshow } from './components/slideshow/Slideshow.js';
 import { useLibraryPhotos } from './shell/useLibraryPhotos.js';
 import { useAppearanceSync, useSkin } from './appearance/runtime.js';
@@ -18,13 +19,15 @@ import { allows, useLevel } from './levels/controls.js';
 import { usePinGate } from './levels/pinGate.js';
 import { SettingsPinDialog } from './levels/PinDialog.js';
 
-/** The library: the album's header if one is open, else a header with the slideshow, over the skin's photo grid. */
+/** The library: the album's or tag's header if one is open, else a header with the slideshow, over the skin's photo grid. */
 const Library: React.FC = () => {
   const selectedAlbumToken = usePalomaStore((state) => state.selectedAlbumToken);
+  const selectedTag = usePalomaStore((state) => state.selectedTag);
   const { components: { PhotoGrid } } = useSkin();
   const { photos, toggleStar } = useLibraryPhotos();
   const header = selectedAlbumToken !== null
     ? <AlbumHeader token={selectedAlbumToken} photos={photos} />
+    : selectedTag !== null ? <TagHeader tag={selectedTag} photos={photos} />
     : photos.length > 0 ? <LibraryHeader photos={photos} /> : null;
   return (
     <>

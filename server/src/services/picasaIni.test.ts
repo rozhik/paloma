@@ -166,11 +166,49 @@ describe('readPicasaIni', () => {
       sha256: crypto.createHash('sha256').update(bytes).digest('hex'),
       sections: { 'a.jpg': { star: true } },
       albums: {},
+      people: {},
     });
   });
 
   it('reads an empty file as present with no sections', () => {
     fs.writeFileSync(path.join(dir, '.picasa.ini'), '');
     expect(readPicasaIni(dir)).toMatchObject({ kind: 'ok', fileName: '.picasa.ini', sections: {} });
+  });
+});
+
+describe('Picasa faces and contacts', () => {
+  const ini = (text: string) => parsePicasaIni(Buffer.from(text.replace(/\n/g, '\r\n')));
+
+  it('reads a named face, an ignored face and the contact', () => {
+    const data = ini([
+      '[Contacts2]',
+      'b8e4117cf1d6615b=Roy Avery;;',
+      '[a.jpg]',
+      'faces=rect64(579922efa1cce2aa),b8e4117cf1d6615b;rect64(502f02655e191250),ffffffffffffffff',
+    ].join('\n'));
+
+    expect(data.people).toEqual({ b8e4117cf1d6615b: { name: 'Roy Avery', email: null, googleId: null } });
+    expect(data.sections['a.jpg'].faces).toEqual([
+      { rect: { left: 0.342184, top: 0.136461, right: 0.632029, bottom: 0.88542 }, person: 'b8e4117cf1d6615b' },
+      { rect: expect.any(Object), ignored: true },
+    ]);
+    expect(data.sections.Contacts2).toBeUndefined();
+  });
+
+  it('pads a short contact id to 16 digits', () => {
+    const data = ini('[Contacts2]\n8E4117cf1d6615b=Ann;ann@example.com;123\n[a.jpg]\nfaces=rect64(1),8E4117cf1d6615b');
+    expect(data.people).toEqual({ '08e4117cf1d6615b': { name: 'Ann', email: 'ann@example.com', googleId: '123' } });
+    expect(data.sections['a.jpg'].faces?.[0].person).toBe('08e4117cf1d6615b');
+  });
+
+  it('drops a contact without exactly three parts', () => {
+    expect(ini('[Contacts2]\n0123456789abcdef=Ann;ann@example.com').people).toEqual({});
+  });
+
+  it('drops faces that cannot be read', () => {
+    const data = ini('[a.jpg]\nfaces=rect64(zz),b8e4117cf1d6615b;rect64(1),;oops;rect64(10001),b8e4117cf1d6615b');
+    expect(data.sections['a.jpg'].faces).toEqual([
+      { rect: { left: 0, top: 0, right: 0.000015, bottom: 0.000015 }, person: 'b8e4117cf1d6615b' },
+    ]);
   });
 });

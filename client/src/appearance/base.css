@@ -563,6 +563,38 @@ body {
   text-align: center;
 }
 
+/* The Info panel: along the right edge, inside the bars (placed inline from the bar layout) */
+.viewer-info {
+  z-index: 2;
+  width: min(380px, calc(100vw - 16px));
+  overflow: auto;
+  padding: 14px 16px;
+  background: color-mix(in srgb, var(--pal-viewer-bg) 88%, var(--pal-viewer-text));
+  color: var(--pal-viewer-text);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 10px 30px var(--pal-overlay);
+}
+
+.viewer-info .info-json {
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: inherit;
+}
+
+.viewer-info .info-exif dt,
+.viewer-info .info-exif dd {
+  margin-bottom: 0;
+}
+
+.viewer-info .info-exif dd {
+  margin-bottom: 4px;
+}
+
+.tag-chip-remove {
+  color: inherit;
+  line-height: 1;
+}
+
 .viewer-panel {
   position: fixed;
   z-index: 3;

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { EDGES, DEFAULT_UI_SETTINGS } from '../../settings/uiSettings.js';
-import { barInsets, barLayout, barStyle, type BarPlacement } from './barLayout.js';
+import { barInsets, barLayout, barStyle, infoPanelInsets, type BarPlacement } from './barLayout.js';
 
 /** The rectangle a bar covers in a 1000×800 viewer with 64px bars. */
 function rect(p: BarPlacement) {
@@ -60,5 +60,19 @@ describe('barLayout', () => {
   it('measures insets with the skin\'s bar thickness', () => {
     expect(barInsets(barLayout(DEFAULT_UI_SETTINGS), 44)).toEqual({ top: 44, right: 0, bottom: 0, left: 44 });
     expect(barInsets(barLayout({ navBar: 'right', editBar: 'right' }), 44)).toEqual({ top: 0, right: 88, bottom: 0, left: 0 });
+  });
+});
+
+describe('infoPanelInsets', () => {
+  it('sits below a top navigation bar, with the edit bar on the left', () => {
+    expect(infoPanelInsets(barLayout(DEFAULT_UI_SETTINGS))).toEqual({ top: 1, right: 0, bottom: 0 });
+  });
+
+  it('stays inside both bars on the right', () => {
+    expect(infoPanelInsets(barLayout({ navBar: 'right', editBar: 'right' }))).toEqual({ top: 0, right: 2, bottom: 0 });
+  });
+
+  it('clears row bars at the top and the bottom', () => {
+    expect(infoPanelInsets(barLayout({ navBar: 'bottom', editBar: 'top' }))).toEqual({ top: 1, right: 0, bottom: 1 });
   });
 });

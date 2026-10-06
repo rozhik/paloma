@@ -136,6 +136,17 @@ function loadCopies(tokens: readonly string[]): Map<string, AlbumCopy[]> {
   return copies;
 }
 
+/** The shown name and description of every album some folder defines, by token. */
+export function shownAlbumTexts(): Map<string, { name: string | null; description: string | null }> {
+  const tokens = db.selectDistinct({ token: folderAlbums.token }).from(folderAlbums).all().map((row) => row.token);
+  const texts = new Map<string, { name: string | null; description: string | null }>();
+  for (const [token, copies] of loadCopies(tokens)) {
+    const { name, description } = shownFields(resolveAlbum(copies));
+    texts.set(token, { name, description });
+  }
+  return texts;
+}
+
 function toAlbum(token: string, copies: AlbumCopy[], members: Member[]): Album {
   const fields = shownFields(resolveAlbum(copies));
   const cover = pickCover(copies, members);

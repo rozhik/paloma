@@ -10,6 +10,11 @@ const PHOTO_COLUMNS: Array<[name: string, definition: string]> = [
   ['location_source', 'TEXT'],
   ['geo_cell', 'TEXT'],
   ['metadata_version', 'INTEGER NOT NULL DEFAULT 0'],
+  ['embedded_caption', 'TEXT'],
+  ['embedded_keywords', 'TEXT'],
+  ['camera_make', 'TEXT'],
+  ['camera_model', 'TEXT'],
+  ['search_text', 'TEXT'],
 ];
 
 export function addMissingPhotoColumns(sqlite: Database.Database): void {
@@ -87,5 +92,41 @@ export function dropMvpEdits(sqlite: Database.Database): void {
   sqlite.exec(`
     DELETE FROM edits
     WHERE CASE WHEN json_valid(edit_instructions_json) THEN json_type(edit_instructions_json) <> 'array' ELSE 1 END
+  `);
+}
+
+/**
+ * Library indexes of the photos' text, rebuilt from disk: tags (keyed by their lowercased spelling) and the
+ * people named in folder sidecars and on photos. Drops the MVP database-only `tags` and `photo_tags`.
+ */
+export function createTextTables(sqlite: Database.Database): void {
+  sqlite.exec(`
+    DROP TABLE IF EXISTS photo_tags;
+    DROP TABLE IF EXISTS tags;
+
+    CREATE TABLE IF NOT EXISTS photo_keywords (
+      photo_id INTEGER NOT NULL REFERENCES photos(id) ON DELETE CASCADE,
+      keyword TEXT NOT NULL,
+      key TEXT NOT NULL,
+      PRIMARY KEY (photo_id, key)
+    );
+    CREATE INDEX IF NOT EXISTS photo_keywords_key ON photo_keywords(key);
+
+    CREATE TABLE IF NOT EXISTS folder_people (
+      folder_id INTEGER NOT NULL REFERENCES folders(id) ON DELETE CASCADE,
+      contact_id TEXT NOT NULL,
+      name TEXT,
+      email TEXT,
+      google_id TEXT,
+      PRIMARY KEY (folder_id, contact_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS photo_people (
+      photo_id INTEGER NOT NULL REFERENCES photos(id) ON DELETE CASCADE,
+      contact_id TEXT NOT NULL,
+      position INTEGER NOT NULL,
+      PRIMARY KEY (photo_id, contact_id)
+    );
+    CREATE INDEX IF NOT EXISTS photo_people_contact ON photo_people(contact_id);
   `);
 }

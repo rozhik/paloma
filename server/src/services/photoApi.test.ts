@@ -330,3 +330,101 @@ describe('listPhotos and listFolders', () => {
     expect(api.listPhotos({}).find((p) => p.filename === 'c.jpg')?.albums).toEqual([]);
   });
 });
+
+describe('embedded text', () => {
+  const embed = (filename: string, values: { embeddedCaption?: string; embeddedKeywords?: string[] }) =>
+    db.update(schema.photos).set({
+      embeddedCaption: values.embeddedCaption ?? null,
+      embeddedKeywords: values.embeddedKeywords ? JSON.stringify(values.embeddedKeywords) : null,
+    }).where(eq(schema.photos.id, ids[filename])).run();
+
+  it('clears an embedded caption by storing "" and leaves the photo file alone', () => {
+    embed('a.jpg', { embeddedCaption: 'Market day' });
+    const file = path.join(dir, 'a.jpg');
+    const before = fs.statSync(file).mtimeMs;
+
+    const result = api.updatePhoto(ids['a.jpg'], { caption: '' });
+
+    expect(result.status).toBe(200);
+    expect(result.body).toMatchObject({ caption: null });
+    expect(sidecar().photos['a.jpg']).toMatchObject({ caption: '' });
+    expect(fs.statSync(file).mtimeMs).toBe(before);
+    expect(fs.readFileSync(file, 'utf-8')).toBe('');
+  });
+
+  it('removes the last embedded tag by storing []', () => {
+    embed('a.jpg', { embeddedKeywords: ['old'] });
+    const result = api.updatePhoto(ids['a.jpg'], { keywords: [] });
+    expect(result.body).toMatchObject({ keywords: [] });
+    expect(sidecar().photos['a.jpg']).toMatchObject({ keywords: [] });
+  });
+});
+
+describe('changePhotosKeywords', () => {
+  let dirB: string;
+  let idB: number;
+
+  beforeEach(() => {
+    dirB = fs.mkdtempSync(path.join(tmpDir, 'photos_'));
+    const folderB = db.insert(schema.folders).values({ path: dirB, name: path.basename(dirB), indexedAt: '' })
+      .returning({ id: schema.folders.id }).get().id;
+    fs.writeFileSync(path.join(dirB, '2.jpg'), '');
+    idB = db.insert(schema.photos).values({ folderId: folderB, filename: '2.jpg', fileHash: '2', createdAt: '' })
+      .returning({ id: schema.photos.id }).get().id;
+  });
+
+  const sidecarB = () => JSON.parse(fs.readFileSync(path.join(dirB, '.paloma.json'), 'utf-8'));
+
+  it('adds a tag in two folders, keeping embedded tags first', () => {
+    db.update(schema.photos).set({ embeddedKeywords: '["old"]', keywords: '["old"]' }).where(eq(schema.photos.id, ids['a.jpg'])).run();
+
+    const result = api.changePhotosKeywords({ photoIds: [ids['a.jpg'], idB], add: ['trip'] });
+
+    expect(result.status).toBe(200);
+    expect((result.body as Array<{ keywords: string[] }>).map((p) => p.keywords)).toEqual([['old', 'trip'], ['trip']]);
+    expect(sidecar().photos['a.jpg'].keywords).toEqual(['old', 'trip']);
+    expect(sidecarB().photos['2.jpg'].keywords).toEqual(['trip']);
+  });
+
+  it('leaves a photo that has the tag in another case unchanged', () => {
+    api.updatePhoto(ids['a.jpg'], { keywords: ['Trip'] });
+    const before = fs.readFileSync(path.join(dir, '.paloma.json'), 'utf-8');
+
+    expect(api.changePhotosKeywords({ photoIds: [ids['a.jpg']], add: ['trip'] }).status).toBe(200);
+    expect(fs.readFileSync(path.join(dir, '.paloma.json'), 'utf-8')).toBe(before);
+  });
+
+  it('removes a tag ignoring case, storing [] over embedded tags', () => {
+    db.update(schema.photos).set({ embeddedKeywords: '["Birds"]', keywords: '["Birds"]' }).where(eq(schema.photos.id, ids['a.jpg'])).run();
+    api.updatePhoto(ids['b.jpg'], { keywords: ['birds', 'sky'] });
+
+    const result = api.changePhotosKeywords({ photoIds: [ids['a.jpg'], ids['b.jpg']], remove: ['BIRDS'] });
+
+    expect(result.status).toBe(200);
+    expect(sidecar().photos['a.jpg'].keywords).toEqual([]);
+    expect(sidecar().photos['b.jpg'].keywords).toEqual(['sky']);
+  });
+
+  it.each([
+    [{ photoIds: [1], add: [] }, 'no_photo_fields'],
+    [{ photoIds: [], add: ['x'] }, 'photo_ids_required'],
+    [{ photoIds: [1], add: 'x' }, 'invalid_field'],
+  ])('rejects %j with 400', (body, code) => {
+    const result = api.changePhotosKeywords(body);
+    expect(result.status).toBe(400);
+    expect(result.body).toMatchObject({ code });
+  });
+
+  it('responds 404 for an unknown photo and changes nothing', () => {
+    expect(api.changePhotosKeywords({ photoIds: [ids['a.jpg'], 999999], add: ['x'] }).status).toBe(404);
+    expect(fs.existsSync(path.join(dir, '.paloma.json'))).toBe(false);
+  });
+
+  it('responds 409 for a corrupt sidecar and writes nothing', () => {
+    fs.writeFileSync(path.join(dirB, '.paloma.json'), '{broken');
+    const result = api.changePhotosKeywords({ photoIds: [ids['a.jpg'], idB], add: ['x'] });
+    expect(result.status).toBe(409);
+    expect(fs.existsSync(path.join(dir, '.paloma.json'))).toBe(false);
+    expect(fs.readFileSync(path.join(dirB, '.paloma.json'), 'utf-8')).toBe('{broken');
+  });
+});

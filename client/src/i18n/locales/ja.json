@@ -1,5 +1,7 @@
 {
-  "_meta": { "reviewed": false },
+  "_meta": {
+    "reviewed": false
+  },
   "app": {
     "title": "Paloma — モダンな写真管理アプリ（Google Picasa の後継）"
   },
@@ -32,6 +34,8 @@
     "recentImport": "📥 最近の取り込み",
     "albums": "アルバム",
     "noAlbums": "アルバムはまだありません。写真を選んで「アルバムへ」をクリックしてください。",
+    "tags": "タグ",
+    "noTags": "タグはまだありません。写真を選んで「タグを追加」をクリックしてください。",
     "folders": "監視中のフォルダ",
     "noFolders": "フォルダがありません。.env ファイルの PALOMA_PHOTOS_DIRS に写真フォルダを指定し、サーバーを再起動してください。",
     "geotagged": "📍 位置情報あり",
@@ -58,6 +62,8 @@
     "selected": "🖼️ 選択中:",
     "removeFromTray": "トレイから外す",
     "addToAlbum": "アルバムへ",
+    "addTags": "タグを追加",
+    "removeTag": "タグを外す",
     "removeFromAlbum": "アルバムから外す",
     "makeCover": "表紙にする",
     "clear": "クリア",
@@ -306,7 +312,52 @@
     "saving": "変更を保存しています…",
     "zoomIn": "拡大",
     "zoomOut": "縮小",
-    "fit": "画面に合わせる"
+    "fit": "画面に合わせる",
+    "info": "情報"
+  },
+  "tags": {
+    "placeholder": "タグを入力して Enter を押してください",
+    "addChip": "タグを追加",
+    "removeChip": "タグ「{{name}}」を外す",
+    "addTitle_other": "{{count, number}} 枚の写真にタグを追加",
+    "addConfirm": "タグを追加"
+  },
+  "info": {
+    "title": "情報",
+    "close": "情報を閉じる",
+    "loading": "読み込み中…",
+    "file": "ファイル",
+    "path": "ディスク上の場所",
+    "size": "サイズ",
+    "dimensions": "寸法",
+    "dimensionsValue": "{{width, number}} × {{height, number}}",
+    "dateTaken": "撮影日時",
+    "modified": "ファイル更新日時",
+    "description": "説明",
+    "descriptionPlaceholder": "説明を追加",
+    "tags": "タグ",
+    "albums": "アルバム",
+    "noAlbums": "どのアルバムにも入っていません",
+    "people": "人物",
+    "noPeople": "この写真には名前の付いた人物がいません",
+    "unknownPerson": "不明な人物",
+    "location": "場所",
+    "noLocation": "この写真には場所がありません",
+    "fromCamera": "カメラから",
+    "setByUser": "あなたが設定",
+    "exif": "EXIF",
+    "noExif": "EXIF データはありません",
+    "binary": "バイナリデータ {{size}}",
+    "json": "JSON",
+    "jsonIni": "Picasa の .ini から読み込み。まだ .paloma.json に保存されていません。",
+    "jsonNone": "この写真は .paloma.json にエントリがありません。",
+    "jsonUnreadable": "このフォルダーの .paloma.json を読み込めません。",
+    "other": "その他",
+    "starred": "スター付き",
+    "notStarred": "スターなし",
+    "hidden": "非表示",
+    "notHidden": "表示中",
+    "edits_other": "編集 {{count, number}} 件"
   },
   "levels": {
     "child": {

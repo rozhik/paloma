@@ -1,9 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import type { EditStep, Geotag } from '../../../shared/types.js';
+import type { EditStep, Geotag, PalomaFace, PalomaPerson } from '../../../shared/types.js';
 import { isGeotag, roundGeotag } from './location.js';
-import { parseFilters } from './picasaFilters.js';
+import { parseFilters, parseRect64 } from './picasaFilters.js';
 
 /** Photo fields Paloma takes from a Picasa .ini file section (and stores in .paloma.json). */
 export interface PhotoFields {
@@ -13,6 +13,8 @@ export interface PhotoFields {
   keywords?: string[];
   /** Album tokens, without duplicates */
   albums?: string[];
+  /** Faces of contacts, or ignored faces; from Picasa `faces=` */
+  faces?: PalomaFace[];
   /** Location in decimal degrees; null (sidecar only) means the location was removed */
   geotag?: Geotag | null;
   /** Edit chain; from Picasa `filters=`, which is also the photo's edit history */
@@ -34,6 +36,8 @@ export interface PicasaIniData {
   sections: Record<string, PhotoFields>;
   /** Album definitions keyed by token */
   albums: Record<string, IniAlbum>;
+  /** People from `[Contacts2]`, keyed by contact id (16 lowercase hex digits) */
+  people: Record<string, PalomaPerson>;
 }
 
 export type PicasaIniRead =
@@ -69,6 +73,36 @@ function decode(bytes: Buffer): string {
   return text.startsWith('﻿') ? text.slice(1) : text;
 }
 
+const CONTACT_ID = /^[0-9a-f]{1,16}$/i;
+const IGNORED_CONTACT = 'ffffffffffffffff';
+const CONTACTS_SECTION = 'Contacts2';
+
+/** A Picasa contact id (`%I64x`, leading zeros may be missing) as 16 lowercase hex digits. */
+export function normalizeContactId(id: string): string | undefined {
+  return CONTACT_ID.test(id) ? id.toLowerCase().padStart(16, '0') : undefined;
+}
+
+/** Picasa `faces=rect64(<hex>),<contactId>;…`; items that cannot be read are dropped. */
+export function parseFaces(value: string | undefined): PalomaFace[] {
+  const faces: PalomaFace[] = [];
+  for (const item of value?.split(';') ?? []) {
+    const match = /^rect64\(([^)]*)\),(.*)$/.exec(item);
+    const rect = match && parseRect64(match[1]);
+    const person = match && normalizeContactId(match[2]);
+    if (!rect || !person) continue;
+    faces.push(person === IGNORED_CONTACT ? { rect, ignored: true } : { rect, person });
+  }
+  return faces;
+}
+
+/** A `[Contacts2]` line `<name>;<email>;<googleId>`; undefined unless it has exactly three parts. */
+function parseContact(value: string): PalomaPerson | undefined {
+  const parts = value.split(';');
+  if (parts.length !== 3) return undefined;
+  const [name, email, googleId] = parts.map((part) => (part === '' ? null : part));
+  return { name, email, googleId };
+}
+
 const DECIMAL = /^[+-]?(\d+(\.\d*)?|\.\d+)$/;
 
 /** Picasa's `geotag=lat,lon` in decimal degrees; undefined unless it is exactly two numbers in range. */
@@ -89,6 +123,8 @@ function toFields(entries: Map<string, string>): PhotoFields {
   if (keywords?.length) fields.keywords = keywords;
   const albums = [...new Set(entries.get('albums')?.split(',').filter((token) => token !== ''))];
   if (albums.length) fields.albums = albums;
+  const faces = parseFaces(entries.get('faces'));
+  if (faces.length) fields.faces = faces;
   const geotag = parseGeotag(entries.get('geotag'));
   if (geotag) fields.geotag = geotag;
   const edits = parseFilters(entries.get('filters'));
@@ -129,7 +165,16 @@ export function parsePicasaIni(bytes: Buffer): PicasaIniData {
 
   const sections: Record<string, PhotoFields> = {};
   const albums: Record<string, IniAlbum> = {};
+  const people: Record<string, PalomaPerson> = {};
   for (const [name, entries] of raw) {
+    if (name === CONTACTS_SECTION) {
+      for (const [id, value] of entries) {
+        const contactId = normalizeContactId(id);
+        const person = parseContact(value);
+        if (contactId && person) people[contactId] ??= person;
+      }
+      continue;
+    }
     if (name.startsWith(ALBUM_PREFIX)) {
       const token = name.slice(ALBUM_PREFIX.length);
       if (token !== '') albums[token] = toAlbum(entries);
@@ -139,7 +184,7 @@ export function parsePicasaIni(bytes: Buffer): PicasaIniData {
     const fields = toFields(entries);
     if (Object.keys(fields).length > 0) sections[name] = fields;
   }
-  return { sections, albums };
+  return { sections, albums, people };
 }
 
 /** Reads the folder's Picasa .ini, if any. Paloma never writes these files. */

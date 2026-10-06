@@ -31,6 +31,13 @@ export const photos = sqliteTable('photos', {
   caption: text('caption'),
   keywords: text('keywords'), // JSON array of strings
   isHidden: integer('is_hidden', { mode: 'boolean' }).notNull().default(false),
+  // Text embedded in the photo file (XMP, IPTC, EXIF); caption and keywords above are the effective values
+  embeddedCaption: text('embedded_caption'),
+  embeddedKeywords: text('embedded_keywords'), // JSON array of strings
+  cameraMake: text('camera_make'),
+  cameraModel: text('camera_model'),
+  // Lowercased file name, folder path, caption, keywords, camera make and model, one per line
+  searchText: text('search_text'),
 });
 
 export const edits = sqliteTable('edits', {
@@ -55,15 +62,36 @@ export const faceAnnotations = sqliteTable('face_annotations', {
   isConfirmed: integer('is_confirmed', { mode: 'boolean' }).notNull().default(false),
 });
 
-export const tags = sqliteTable('tags', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  name: text('name').notNull().unique(),
-});
-
-export const photoTags = sqliteTable('photo_tags', {
+// One row per tag of a photo; `key` is the tag lowercased in JS, so tags compare ignoring case beyond ASCII
+export const photoKeywords = sqliteTable('photo_keywords', {
   photoId: integer('photo_id').notNull().references(() => photos.id, { onDelete: 'cascade' }),
-  tagId: integer('tag_id').notNull().references(() => tags.id, { onDelete: 'cascade' }),
-});
+  keyword: text('keyword').notNull(),
+  key: text('key').notNull(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.photoId, table.key] }),
+  byKey: index('photo_keywords_key').on(table.key),
+}));
+
+// One row per person definition in a folder's .paloma.json `people` (or Picasa [Contacts2]); rebuilt from disk
+export const folderPeople = sqliteTable('folder_people', {
+  folderId: integer('folder_id').notNull().references(() => folders.id, { onDelete: 'cascade' }),
+  contactId: text('contact_id').notNull(),
+  name: text('name'),
+  email: text('email'),
+  googleId: text('google_id'),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.folderId, table.contactId] }),
+}));
+
+// The distinct people of a photo's faces that are not ignored, in face order
+export const photoPeople = sqliteTable('photo_people', {
+  photoId: integer('photo_id').notNull().references(() => photos.id, { onDelete: 'cascade' }),
+  contactId: text('contact_id').notNull(),
+  position: integer('position').notNull(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.photoId, table.contactId] }),
+  byContact: index('photo_people_contact').on(table.contactId),
+}));
 
 // One row per album definition copy in a folder's .paloma.json (or Picasa .ini); rebuilt from disk
 export const folderAlbums = sqliteTable('folder_albums', {

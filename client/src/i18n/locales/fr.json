@@ -1,5 +1,7 @@
 {
-  "_meta": { "reviewed": false },
+  "_meta": {
+    "reviewed": false
+  },
   "app": {
     "title": "Paloma — un gestionnaire de photos moderne (successeur de Google Picasa)"
   },
@@ -34,6 +36,8 @@
     "recentImport": "📥 Dernière importation",
     "albums": "Albums",
     "noAlbums": "Aucun album pour l’instant. Sélectionnez des photos et cliquez sur « Vers l’album ».",
+    "tags": "Étiquettes",
+    "noTags": "Aucune étiquette pour l’instant. Sélectionnez des photos et cliquez sur « Ajouter des étiquettes ».",
     "folders": "Dossiers surveillés",
     "noFolders": "Aucun dossier. Indiquez vos dossiers de photos dans PALOMA_PHOTOS_DIRS du fichier .env et redémarrez le serveur.",
     "geotagged": "📍 Géolocalisées",
@@ -60,6 +64,8 @@
     "selected": "🖼️ Sélection :",
     "removeFromTray": "Retirer de la sélection",
     "addToAlbum": "Vers l’album",
+    "addTags": "Ajouter des étiquettes",
+    "removeTag": "Retirer l’étiquette",
     "removeFromAlbum": "Retirer de l’album",
     "makeCover": "Définir comme couverture",
     "clear": "Vider",
@@ -330,7 +336,56 @@
     "saving": "Enregistrement de la modification…",
     "zoomIn": "Zoom avant",
     "zoomOut": "Zoom arrière",
-    "fit": "Ajuster à l’écran"
+    "fit": "Ajuster à l’écran",
+    "info": "Infos"
+  },
+  "tags": {
+    "placeholder": "Saisissez une étiquette et appuyez sur Entrée",
+    "addChip": "Ajouter une étiquette",
+    "removeChip": "Retirer l’étiquette « {{name}} »",
+    "addTitle_one": "Ajouter des étiquettes à {{count, number}} photo",
+    "addTitle_many": "Ajouter des étiquettes à {{count, number}} de photos",
+    "addTitle_other": "Ajouter des étiquettes à {{count, number}} photos",
+    "addConfirm": "Ajouter les étiquettes"
+  },
+  "info": {
+    "title": "Infos",
+    "close": "Fermer les infos",
+    "loading": "Chargement…",
+    "file": "Fichier",
+    "path": "Sur le disque",
+    "size": "Taille",
+    "dimensions": "Dimensions",
+    "dimensionsValue": "{{width, number}} × {{height, number}}",
+    "dateTaken": "Prise le",
+    "modified": "Fichier modifié",
+    "description": "Description",
+    "descriptionPlaceholder": "Ajouter une description",
+    "tags": "Étiquettes",
+    "albums": "Albums",
+    "noAlbums": "Dans aucun album",
+    "people": "Personnes",
+    "noPeople": "Aucune personne n’est nommée sur cette photo",
+    "unknownPerson": "Personne inconnue",
+    "location": "Lieu",
+    "noLocation": "Cette photo n’a pas de lieu",
+    "fromCamera": "De l’appareil photo",
+    "setByUser": "Défini par vous",
+    "exif": "EXIF",
+    "noExif": "Aucune donnée EXIF",
+    "binary": "{{size}} de données binaires",
+    "json": "JSON",
+    "jsonIni": "Lu depuis le .ini de Picasa ; pas encore enregistré dans .paloma.json.",
+    "jsonNone": "Cette photo n’a pas d’entrée dans .paloma.json.",
+    "jsonUnreadable": "Le .paloma.json du dossier est illisible.",
+    "other": "Autres",
+    "starred": "Étoilée",
+    "notStarred": "Sans étoile",
+    "hidden": "Masquée",
+    "notHidden": "Non masquée",
+    "edits_one": "{{count, number}} retouche",
+    "edits_many": "{{count, number}} de retouches",
+    "edits_other": "{{count, number}} retouches"
   },
   "levels": {
     "child": {

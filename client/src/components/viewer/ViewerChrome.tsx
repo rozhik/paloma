@@ -1,7 +1,8 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { framePixelSize } from '../cropFrame.js';
-import { barStyle } from './barLayout.js';
+import { barStyle, infoPanelStyle } from './barLayout.js';
+import { InfoPanel } from './InfoPanel.js';
 import { EditBar } from './EditBar.js';
 import { ChangesList, FilterControls, FloatingPanel, FrameControls } from './FilterPanel.js';
 import { NavBar } from './NavBar.js';
@@ -42,7 +43,11 @@ export const ViewerChrome: React.FC<ViewerChromeProps> = ({ model: v, className 
         onZoomIn={() => v.zoomBy(ZOOM_STEP)}
         onZoomOut={() => v.zoomBy(1 / ZOOM_STEP)}
         onFit={v.fit}
+        onInfo={v.canInfo ? v.toggleInfo : undefined}
+        infoOpen={v.showInfo}
       />
+
+      {v.showInfo && <InfoPanel className={className} photo={v.photo} style={infoPanelStyle(v.layout)} onClose={v.closeInfo} />}
 
       {v.canEdit && (
         <EditBar

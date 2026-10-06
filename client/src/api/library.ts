@@ -3,6 +3,7 @@ import type { FilterType } from '../store/usePalomaStore.js';
 export interface LibrarySelection {
   selectedFolderId: number | null;
   selectedAlbumToken: string | null;
+  selectedTag: string | null;
   selectedFilter: FilterType;
   searchQuery: string;
 }
@@ -12,6 +13,7 @@ export function libraryQueryParams(selection: LibrarySelection, lang: string): U
   const params = new URLSearchParams();
   if (selection.selectedFolderId !== null) params.append('folderId', String(selection.selectedFolderId));
   if (selection.selectedAlbumToken !== null) params.append('album', selection.selectedAlbumToken);
+  if (selection.selectedTag !== null) params.append('tag', selection.selectedTag);
   if (selection.selectedFilter === 'starred') params.append('starred', 'true');
   if (selection.selectedFilter === 'geotagged') params.append('geotagged', 'true');
   if (selection.searchQuery.trim()) params.append('query', selection.searchQuery.trim());

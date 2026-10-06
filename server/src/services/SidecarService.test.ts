@@ -63,7 +63,8 @@ describe('readFolderSidecar', () => {
 describe('fieldsOf', () => {
   it('reads fields of the wrong type as absent', () => {
     expect(SidecarService.fieldsOf({ star: 'yes', hidden: 1, caption: 5, keywords: 'a,b' } as unknown as PalomaPhotoEntry)).toEqual({});
-    expect(SidecarService.fieldsOf({ caption: '', keywords: ['a', 3, '', 'b'] } as unknown as PalomaPhotoEntry)).toEqual({ keywords: ['a', 'b'] });
+    // "" and [] mark embedded text as removed, so they are kept
+    expect(SidecarService.fieldsOf({ caption: '', keywords: ['a', 3, '', 'b'] } as unknown as PalomaPhotoEntry)).toEqual({ caption: '', keywords: ['a', 'b'] });
     expect(SidecarService.fieldsOf({ star: true, hidden: true, caption: 'x', modified: 't', rotate: 90 }))
       .toEqual({ star: true, hidden: true, caption: 'x' });
   });
@@ -165,6 +166,7 @@ describe('getFolderState', () => {
     expect(SidecarService.getFolderState(dir)).toEqual({
       photos: { 'a.jpg': { albums: ['c9ea'] } },
       albums: { c9ea: { name: 'Birds', cover: 'a.jpg' } },
+      people: {},
     });
   });
 
@@ -174,6 +176,7 @@ describe('getFolderState', () => {
     expect(SidecarService.getFolderState(dir)).toEqual({
       photos: { 'a.jpg': { albums: ['c9ea'] } },
       albums: { c9ea: { name: ' Birds' } },
+      people: {},
     });
     expect(fs.existsSync(sidecarPath())).toBe(false);
   });
@@ -208,7 +211,7 @@ describe('getFolderState', () => {
   it('gives no fields for an unreadable sidecar, ignores the .ini and keeps the file', () => {
     writeIni('[a.jpg]', 'star=yes');
     fs.writeFileSync(sidecarPath(), '{broken');
-    expect(SidecarService.getFolderState(dir)).toEqual({ photos: {}, albums: {} });
+    expect(SidecarService.getFolderState(dir)).toEqual({ photos: {}, albums: {}, people: {} });
     expect(fs.readFileSync(sidecarPath(), 'utf-8')).toBe('{broken');
     expect(console.error).toHaveBeenCalledWith(expect.stringContaining('.paloma.json'));
   });
@@ -343,7 +346,7 @@ describe('updatePhotoFields', () => {
     writeJson({ format: 'paloma-folder', version: 2, albums: ['Birds'], photos: { 'a.jpg': { star: true } } });
     const before = fs.readFileSync(sidecarPath(), 'utf-8');
 
-    expect(SidecarService.getFolderState(dir)).toEqual({ photos: {}, albums: {} });
+    expect(SidecarService.getFolderState(dir)).toEqual({ photos: {}, albums: {}, people: {} });
     expect(() => SidecarService.updatePhotoFields(dir, 'a.jpg', { caption: 'x' })).toThrow(SidecarUnreadableError);
     expect(fs.readFileSync(sidecarPath(), 'utf-8')).toBe(before);
   });
@@ -515,5 +518,108 @@ describe('edits', () => {
     touch('a.jpg');
     SidecarService.updatePhotoFields(dir, 'a.jpg', { edits: [{ filter: 'bw' }] });
     expect(SidecarService.getFolderState(dir).photos['a.jpg']).toEqual({ edits: [{ filter: 'bw' }] });
+  });
+});
+
+const FACE = { rect: { left: 0.34, top: 0.13, right: 0.63, bottom: 0.88 }, person: 'b8e4117cf1d6615b' };
+const ROY = { name: 'Roy Avery', email: null, googleId: null };
+
+describe('faces and people', () => {
+  it('reads "" and [] as removed embedded text', () => {
+    writeJson({ format: 'paloma-folder', version: 2, photos: { 'a.jpg': { caption: '', keywords: [] } } });
+    expect(SidecarService.getFolderState(dir).photos).toEqual({ 'a.jpg': { caption: '', keywords: [] } });
+  });
+
+  it('ignores a malformed face for the library and keeps it in the file', () => {
+    touch('a.jpg', 'b.jpg');
+    writeJson({ format: 'paloma-folder', version: 2, photos: { 'a.jpg': { faces: [{ person: 5 }] } } });
+
+    expect(SidecarService.getFolderState(dir).photos).toEqual({});
+    SidecarService.updatePhotoFields(dir, 'b.jpg', { star: true });
+    expect(readJson().photos['a.jpg']).toEqual({ faces: [{ person: 5 }] });
+  });
+
+  it('keeps faces when the photo is starred', () => {
+    touch('a.jpg');
+    writeJson({ format: 'paloma-folder', version: 2, photos: { 'a.jpg': { faces: [FACE] } } });
+
+    SidecarService.updatePhotoFields(dir, 'a.jpg', { star: true });
+
+    expect(readJson().photos['a.jpg']).toMatchObject({ faces: [FACE], star: true });
+    expect(SidecarService.getFolderState(dir).photos['a.jpg']).toEqual({ star: true, faces: [FACE] });
+  });
+
+  it('reads valid people and ignores an invalid people section without rejecting the file', () => {
+    writeJson({
+      format: 'paloma-folder', version: 2,
+      people: { b8e4117cf1d6615b: ROY, nothex: ROY, '0123456789abcdef': { name: 5 } },
+      photos: { 'a.jpg': { star: true } },
+    });
+    expect(SidecarService.getFolderState(dir)).toMatchObject({ people: { b8e4117cf1d6615b: ROY }, photos: { 'a.jpg': { star: true } } });
+
+    writeJson({ format: 'paloma-folder', version: 2, people: ['Roy'], photos: { 'a.jpg': { star: true } } });
+    expect(SidecarService.getFolderState(dir)).toMatchObject({ people: {}, photos: { 'a.jpg': { star: true } } });
+  });
+
+  it('shows Picasa faces and people live, then imports them on the first change', () => {
+    touch('a.jpg', 'b.jpg');
+    writeIni('[Contacts2]', 'b8e4117cf1d6615b=Roy Avery;;', '[a.jpg]', 'faces=rect64(579922efa1cce2aa),b8e4117cf1d6615b');
+
+    const live = SidecarService.getFolderState(dir);
+    expect(live.people).toEqual({ b8e4117cf1d6615b: ROY });
+    expect(live.photos['a.jpg'].faces).toHaveLength(1);
+    expect(fs.existsSync(sidecarPath())).toBe(false);
+
+    SidecarService.updatePhotoFields(dir, 'b.jpg', { star: true });
+    const saved = readJson();
+    expect(saved.people).toEqual({ b8e4117cf1d6615b: ROY });
+    expect(saved.photos['a.jpg'].faces).toEqual(live.photos['a.jpg'].faces);
+  });
+
+  it('re-imports renamed people and never removes a person', () => {
+    touch('a.jpg', 'b.jpg');
+    writeIni('[Contacts2]', 'b8e4117cf1d6615b=Roy Avery;;', '0123456789abcdef=Ann;;', '[a.jpg]', 'star=yes');
+    SidecarService.updatePhotoFields(dir, 'b.jpg', { star: true });
+
+    writeIni('[Contacts2]', 'b8e4117cf1d6615b=Roy A.;;', '[a.jpg]', 'star=yes');
+    const state = SidecarService.getFolderState(dir);
+
+    expect(state.people).toEqual({
+      b8e4117cf1d6615b: { ...ROY, name: 'Roy A.' },
+      '0123456789abcdef': { name: 'Ann', email: null, googleId: null },
+    });
+    expect(readJson().people).toEqual(state.people);
+  });
+});
+
+describe('clearing embedded text', () => {
+  beforeEach(() => touch('a.jpg'));
+  const entry = () => readJson().photos['a.jpg'];
+
+  it('writes "" when the file has an embedded description', () => {
+    SidecarService.updatePhotoFields(dir, 'a.jpg', { caption: '', captionEmbedded: true });
+    expect(entry()).toMatchObject({ caption: '' });
+  });
+
+  it('removes the caption key without an embedded description', () => {
+    writeJson({ format: 'paloma-folder', version: 2, photos: { 'a.jpg': { caption: 'Sunrise', star: true } } });
+    SidecarService.updatePhotoFields(dir, 'a.jpg', { caption: '' });
+    expect(entry()).not.toHaveProperty('caption');
+  });
+
+  it('writes [] when the file has embedded tags', () => {
+    SidecarService.updatePhotoFields(dir, 'a.jpg', { keywords: [], keywordsEmbedded: true });
+    expect(entry()).toMatchObject({ keywords: [] });
+  });
+
+  it('removes the keywords key without embedded tags', () => {
+    writeJson({ format: 'paloma-folder', version: 2, photos: { 'a.jpg': { keywords: ['old'], star: true } } });
+    SidecarService.updatePhotoFields(dir, 'a.jpg', { keywords: [] });
+    expect(entry()).not.toHaveProperty('keywords');
+  });
+
+  it('drops later duplicates ignoring case', () => {
+    SidecarService.updatePhotoFields(dir, 'a.jpg', { keywords: ['Київ', 'київ', 'Lviv'] });
+    expect(entry().keywords).toEqual(['Київ', 'Lviv']);
   });
 });

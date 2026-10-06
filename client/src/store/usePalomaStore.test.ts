@@ -57,3 +57,28 @@ describe('photo viewer state', () => {
     expect(state().libraryVersion).toBe(1);
   });
 });
+
+describe('tag selection', () => {
+  beforeEach(() => {
+    usePalomaStore.setState({ selectedFolderId: null, selectedAlbumToken: null, selectedTag: null, selectedFilter: 'all' });
+  });
+
+  it('replaces a chosen album, folder or collection', () => {
+    state().setSelectedAlbum('c9ea');
+    state().setSelectedTag('dawn');
+    expect(state()).toMatchObject({ selectedTag: 'dawn', selectedAlbumToken: null, selectedFolderId: null, selectedFilter: 'all' });
+  });
+
+  it('is cleared by choosing a folder, an album, a collection or the Child level', () => {
+    for (const choose of [
+      () => state().setSelectedFolderId(3),
+      () => state().setSelectedAlbum('c9ea'),
+      () => state().setSelectedFilter('starred'),
+      () => state().enterChildMode(),
+    ]) {
+      state().setSelectedTag('dawn');
+      choose();
+      expect(state().selectedTag).toBeNull();
+    }
+  });
+});

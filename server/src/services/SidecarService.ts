@@ -1,10 +1,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import type { EditStep, Geotag, PalomaAlbumDefinition, PalomaFolderFile, PalomaPhotoEntry } from '../../../shared/types.js';
+import type {
+  EditStep, Geotag, PalomaAlbumDefinition, PalomaFace, PalomaFolderFile, PalomaPerson, PalomaPhotoEntry,
+} from '../../../shared/types.js';
 import { ALBUM_KEYS, readPicasaIni, type IniAlbum, type PhotoFields, type PicasaIniRead } from './picasaIni.js';
 import { isGeotag, roundGeotag } from './location.js';
 import { isEditChain } from './editChain.js';
+import { uniqueKeywords } from './embeddedText.js';
 
 export type { PhotoFields } from './picasaIni.js';
 
@@ -15,13 +18,17 @@ export type SidecarRead =
   | { kind: 'ok'; data: PalomaFolderFile }
   | { kind: 'unreadable'; reason: string };
 
-/** What a folder's files say: photo fields keyed by file name (photos without fields are absent) and album definitions keyed by token. */
+/**
+ * What a folder's files say: photo fields keyed by file name (photos without fields are absent), album
+ * definitions keyed by token and people keyed by contact id.
+ */
 export interface FolderState {
   photos: Record<string, PhotoFields>;
   albums: Record<string, PalomaAlbumDefinition>;
+  people: Record<string, PalomaPerson>;
 }
 
-const EMPTY_STATE: FolderState = { photos: {}, albums: {} };
+const EMPTY_STATE: FolderState = { photos: {}, albums: {}, people: {} };
 
 /** A change to a photo's fields. `false`, `''` and `[]` clear the field. */
 export interface FieldPatch {
@@ -29,6 +36,10 @@ export interface FieldPatch {
   hidden?: boolean;
   caption?: string;
   keywords?: string[];
+  /** The photo file has an embedded description: clearing the caption stores `""` instead of removing the key */
+  captionEmbedded?: boolean;
+  /** The photo file has embedded tags: clearing the keywords stores `[]` instead of removing the key */
+  keywordsEmbedded?: boolean;
   /** An object sets the location, `null` stores that it was removed, `false` deletes the key */
   geotag?: Geotag | null | false;
   /** The whole edit chain; `[]` removes the edits */
@@ -43,7 +54,7 @@ export class SidecarUnreadableError extends Error {
 }
 
 /** Fields mapped from the Picasa .ini, which a re-import replaces in unmodified entries; `edits` comes from `filters=`. */
-const SUPPORTED_FIELDS = ['star', 'hidden', 'caption', 'keywords', 'albums', 'geotag', 'edits'] as const;
+const SUPPORTED_FIELDS = ['star', 'hidden', 'caption', 'keywords', 'albums', 'faces', 'geotag', 'edits'] as const;
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -60,6 +71,40 @@ function stringList(value: unknown): string[] | undefined {
   return list.length > 0 ? list : undefined;
 }
 
+const CONTACT_ID = /^[0-9a-f]{16}$/;
+
+const isFraction = (value: unknown): value is number => typeof value === 'number' && value >= 0 && value <= 1;
+
+function isFace(value: unknown): value is PalomaFace {
+  if (!isPlainObject(value) || !isPlainObject(value.rect)) return false;
+  const { left, top, right, bottom } = value.rect;
+  if (![left, top, right, bottom].every(isFraction)) return false;
+  if (value.ignored === true) return value.person === undefined;
+  return typeof value.person === 'string' && CONTACT_ID.test(value.person) && value.ignored === undefined;
+}
+
+/** The valid faces of an entry's `faces`; undefined when it is not an array or none is valid. */
+function facesOf(value: unknown): PalomaFace[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const faces = value.filter(isFace).map((face) => structuredClone(face));
+  return faces.length > 0 ? faces : undefined;
+}
+
+const isNullableString = (value: unknown) => value === null || typeof value === 'string';
+
+/** The valid person definitions of a sidecar's `people`; anything else is ignored, never a reason to reject the file. */
+export function peopleOf(value: unknown): Record<string, PalomaPerson> {
+  const people: Record<string, PalomaPerson> = {};
+  if (!isPlainObject(value)) return people;
+  for (const [id, person] of Object.entries(value)) {
+    if (!CONTACT_ID.test(id) || !isPlainObject(person)) continue;
+    const { name = null, email = null, googleId = null } = person;
+    if (![name, email, googleId].every(isNullableString)) continue;
+    people[id] = { name, email, googleId } as PalomaPerson;
+  }
+  return people;
+}
+
 function listDir(dir: string): string[] {
   try {
     return fs.readdirSync(dir);
@@ -74,6 +119,7 @@ function sameFields(a: PhotoFields, b: PhotoFields): boolean {
     && a.caption === b.caption
     && JSON.stringify(a.keywords ?? []) === JSON.stringify(b.keywords ?? [])
     && JSON.stringify(a.albums ?? []) === JSON.stringify(b.albums ?? [])
+    && JSON.stringify(a.faces ?? []) === JSON.stringify(b.faces ?? [])
     && sameGeotag(a.geotag, b.geotag)
     && JSON.stringify(a.edits ?? []) === JSON.stringify(b.edits ?? []);
 }
@@ -130,13 +176,15 @@ export class SidecarService {
     if (!entry) return fields;
     if (entry.star === true) fields.star = true;
     if (entry.hidden === true) fields.hidden = true;
-    if (typeof entry.caption === 'string' && entry.caption !== '') fields.caption = entry.caption;
+    // "" and [] are kept: they say that the text embedded in the photo file was removed
+    if (typeof entry.caption === 'string') fields.caption = entry.caption;
     if (Array.isArray(entry.keywords)) {
-      const keywords = entry.keywords.filter((k): k is string => typeof k === 'string' && k !== '');
-      if (keywords.length > 0) fields.keywords = keywords;
+      fields.keywords = entry.keywords.filter((k): k is string => typeof k === 'string' && k !== '');
     }
     const albums = stringList(entry.albums);
     if (albums) fields.albums = albums;
+    const faces = facesOf(entry.faces);
+    if (faces) fields.faces = faces;
     if (entry.geotag === null) fields.geotag = null;
     else if (isGeotag(entry.geotag)) fields.geotag = { lat: entry.geotag.lat, lon: entry.geotag.lon };
     if (isEditChain(entry.edits) && entry.edits.length > 0) fields.edits = structuredClone(entry.edits);
@@ -176,6 +224,7 @@ export class SidecarService {
     iniHash: string,
     dir = '',
     iniAlbums: Record<string, IniAlbum> = {},
+    iniPeople: Record<string, PalomaPerson> = {},
   ): PalomaFolderFile {
     const photos: Record<string, PalomaPhotoEntry> = {};
     for (const [name, entry] of Object.entries(data.photos)) {
@@ -196,17 +245,27 @@ export class SidecarService {
       if (!(name in data.photos)) photos[name] = { ...fields };
     }
 
+    let result: PalomaFolderFile = { ...data, iniHash, photos };
+
     // Definitions changed in Paloma are kept; definitions missing from the .ini are never removed
-    if (data.albums === undefined && Object.keys(iniAlbums).length === 0) return { ...data, iniHash, photos };
-    const albums: Record<string, PalomaAlbumDefinition> = { ...data.albums };
-    for (const [token, fromIni] of Object.entries(iniAlbums)) {
-      const current = albums[token];
-      if (typeof current?.modified === 'string') continue;
-      const next: PalomaAlbumDefinition = { ...current };
-      for (const key of ALBUM_KEYS) delete next[key];
-      albums[token] = Object.assign(next, fromIni);
+    if (data.albums !== undefined || Object.keys(iniAlbums).length > 0) {
+      const albums: Record<string, PalomaAlbumDefinition> = { ...data.albums };
+      for (const [token, fromIni] of Object.entries(iniAlbums)) {
+        const current = albums[token];
+        if (typeof current?.modified === 'string') continue;
+        const next: PalomaAlbumDefinition = { ...current };
+        for (const key of ALBUM_KEYS) delete next[key];
+        albums[token] = Object.assign(next, fromIni);
+      }
+      result = { ...result, albums };
     }
-    return { ...data, iniHash, albums, photos };
+
+    // People listed in the .ini replace their definitions; people are never removed
+    if (Object.keys(iniPeople).length > 0) {
+      const current = isPlainObject(data.people) ? data.people : {};
+      result = { ...result, people: { ...current, ...structuredClone(iniPeople) } };
+    }
+    return result;
   }
 
   /** Serializes with sorted photo keys, 2-space indent and a trailing LF, keeping other keys in their order. */
@@ -241,7 +300,7 @@ export class SidecarService {
     if (data.iniHash === undefined) return null;
     const ini = readPicasaIni(dir, names);
     if (ini.kind !== 'ok' || ini.sha256 === data.iniHash) return null;
-    return this.reimport(data, this.matchSections(ini.sections, names), ini.sha256, dir, ini.albums);
+    return this.reimport(data, this.matchSections(ini.sections, names), ini.sha256, dir, ini.albums, ini.people);
   }
 
   /** A new sidecar holding a snapshot of the folder's Picasa .ini, or an empty one without an .ini. */
@@ -253,6 +312,7 @@ export class SidecarService {
       version: 2,
       iniHash: ini.sha256,
       ...(Object.keys(albums).length > 0 ? { albums } : {}),
+      ...(Object.keys(ini.people).length > 0 ? { people: structuredClone(ini.people) } : {}),
       photos: { ...this.matchSections(ini.sections, names) } as Record<string, PalomaPhotoEntry>,
     };
   }
@@ -267,6 +327,7 @@ export class SidecarService {
 
     let photos: Record<string, PalomaPhotoEntry | PhotoFields>;
     let albums: Record<string, PalomaAlbumDefinition>;
+    let people: Record<string, PalomaPerson>;
     if (sidecar.kind === 'unreadable') {
       console.error(`Ignoring ${this.getSidecarPath(dir)}: ${sidecar.reason}`);
       return EMPTY_STATE;
@@ -283,13 +344,15 @@ export class SidecarService {
       }
       photos = data.photos;
       albums = data.albums ?? {};
+      people = peopleOf(data.people);
     } else {
       const ini = readPicasaIni(dir, names);
       photos = ini.kind === 'ok' ? this.matchSections(ini.sections, names) : {};
       albums = ini.kind === 'ok' ? ini.albums : {};
+      people = ini.kind === 'ok' ? ini.people : {};
     }
 
-    const state: FolderState = { photos: {}, albums };
+    const state: FolderState = { photos: {}, albums, people };
     for (const [name, entry] of Object.entries(photos)) {
       const fields = this.fieldsOf(entry as PalomaPhotoEntry);
       if (Object.keys(fields).length > 0) state.photos[name] = fields;
@@ -364,10 +427,11 @@ function applyPatch(entry: PalomaPhotoEntry, patch: FieldPatch): void {
     if (patch.hidden) entry.hidden = true; else delete entry.hidden;
   }
   if (patch.caption !== undefined) {
-    if (patch.caption !== '') entry.caption = patch.caption; else delete entry.caption;
+    if (patch.caption !== '' || patch.captionEmbedded) entry.caption = patch.caption; else delete entry.caption;
   }
   if (patch.keywords !== undefined) {
-    if (patch.keywords.length > 0) entry.keywords = patch.keywords; else delete entry.keywords;
+    const keywords = uniqueKeywords(patch.keywords);
+    if (keywords.length > 0 || patch.keywordsEmbedded) entry.keywords = keywords; else delete entry.keywords;
   }
   if (patch.geotag !== undefined) {
     if (patch.geotag === false) delete entry.geotag;
