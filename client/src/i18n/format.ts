@@ -1,5 +1,11 @@
 import { useTranslation } from 'react-i18next';
 
+/** A `YYYY-MM-DD` calendar day as local midnight, so formatting shows that same day in every time zone. */
+const calendarDay = (day: string) => {
+  const [year, month, date] = day.split('-').map(Number);
+  return new Date(year, month - 1, date);
+};
+
 /** Formatters for numbers, dates and times in the given language. */
 export function formatters(language: string) {
   const number = new Intl.NumberFormat(language);
@@ -12,6 +18,8 @@ export function formatters(language: string) {
     formatNumber: (value: number) => number.format(value),
     formatDate: (value: Date | string) => date.format(new Date(value)),
     formatDateTime: (value: Date | string) => dateTime.format(new Date(value)),
+    /** Two `YYYY-MM-DD` calendar days as a range, e.g. `Oct 3 – 9, 2016` */
+    formatDayRange: (from: string, to: string) => date.formatRange(calendarDay(from), calendarDay(to)),
   };
 }
 

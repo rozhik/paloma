@@ -48,7 +48,9 @@
     "collapseSidebar": "Сховати бічну панель",
     "open": "Папки та альбоми",
     "people": "Люди",
-    "noPeople": "Людей ще немає. Відкрийте «Інфо» фото або запустіть «Знайти обличчя»."
+    "noPeople": "Людей ще немає. Відкрийте «Інфо» фото або запустіть «Знайти обличчя».",
+    "memories": "Спогади",
+    "noMemories": "Сьогодні спогадів немає."
   },
   "grid": {
     "emptyTitle": "Світлин не знайдено",
@@ -83,6 +85,14 @@
     "deleteTitle": "Видалити альбом?",
     "deleteBody": "Альбом «{{name}}» буде видалено. Світлини залишаться у своїх папках.",
     "deleteConfirm": "Видалити альбом"
+  },
+  "memories": {
+    "yearsAgo_one": "{{count, number}} рік тому",
+    "yearsAgo_few": "{{count, number}} роки тому",
+    "yearsAgo_many": "{{count, number}} років тому",
+    "yearsAgo_other": "{{count, number}} року тому",
+    "albumInYear": "{{album}} у '{{yy}}",
+    "taken": "Знято {{range}}"
   },
   "albumPicker": {
     "title_one": "Додати {{count, number}} світлину до альбому",
@@ -262,7 +272,8 @@
     "render_failed": "Не вдалося обробити фото: {{message}}",
     "filter_not_found": "Плагін «{{id}}» не має значка для фільтра «{{filter}}».",
     "person_not_found": "Людину не знайдено. Можливо, її видалили.",
-    "face_not_found": "Обличчя не знайдено. Можливо, пошук облич запустили знову."
+    "face_not_found": "Обличчя не знайдено. Можливо, пошук облич запустили знову.",
+    "invalid_date": "Некоректна дата в полі «{{field}}»."
   },
   "geo": {
     "coordinates": "{{lat}}; {{lon}}",

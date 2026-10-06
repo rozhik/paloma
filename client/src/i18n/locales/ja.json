@@ -45,7 +45,9 @@
     "collapseSidebar": "サイドバーを隠す",
     "open": "フォルダーとアルバム",
     "people": "人物",
-    "noPeople": "まだ人物がいません。写真の情報を開くか、「顔を検出」を実行してください。"
+    "noPeople": "まだ人物がいません。写真の情報を開くか、「顔を検出」を実行してください。",
+    "memories": "思い出",
+    "noMemories": "今日の思い出はありません。"
   },
   "grid": {
     "emptyTitle": "写真が見つかりません",
@@ -80,6 +82,11 @@
     "deleteTitle": "アルバムを削除しますか？",
     "deleteBody": "アルバム「{{name}}」を削除します。写真は元のフォルダに残ります。",
     "deleteConfirm": "アルバムを削除"
+  },
+  "memories": {
+    "yearsAgo_other": "{{count, number}} 年前",
+    "albumInYear": "'{{yy}} 年の{{album}}",
+    "taken": "撮影日 {{range}}"
   },
   "albumPicker": {
     "title_other": "{{count, number}} 枚の写真をアルバムに追加",
@@ -238,7 +245,8 @@
     "render_failed": "写真を処理できませんでした: {{message}}",
     "filter_not_found": "プラグイン「{{id}}」にはフィルター「{{filter}}」のアイコンがありません。",
     "person_not_found": "人物が見つかりません。削除された可能性があります。",
-    "face_not_found": "顔が見つかりません。顔の検出が再実行された可能性があります。"
+    "face_not_found": "顔が見つかりません。顔の検出が再実行された可能性があります。",
+    "invalid_date": "「{{field}}」の日付が正しくありません。"
   },
   "geo": {
     "coordinates": "{{lat}}、{{lon}}",

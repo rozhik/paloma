@@ -11,6 +11,7 @@ let dir: string;
 let api: typeof import('./photoApi.js');
 let db: typeof import('../db/index.js').db;
 let schema: typeof import('../db/schema.js');
+let invalidDateFilter: typeof import('./photoFilters.js').invalidDateFilter;
 
 beforeAll(async () => {
   tmpDir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'paloma_api_test_')));
@@ -23,6 +24,7 @@ beforeAll(async () => {
   await (await import('../plugins/index.js')).pluginRegistry.init();
   ({ db } = await import('../db/index.js'));
   schema = await import('../db/schema.js');
+  ({ invalidDateFilter } = await import('./photoFilters.js'));
 });
 
 afterAll(() => {
@@ -328,6 +330,49 @@ describe('listPhotos and listFolders', () => {
     expect(api.listPhotos({ album: 'c9ea', includeHidden: 'true' }).find((p) => p.filename === 'b.jpg')?.albums.sort())
       .toEqual(['7f01', 'c9ea']);
     expect(api.listPhotos({}).find((p) => p.filename === 'c.jpg')?.albums).toEqual([]);
+  });
+});
+
+describe('photos taken in a date range', () => {
+  const take = (filename: string, dateTaken: string) =>
+    db.update(schema.photos).set({ dateTaken }).where(eq(schema.photos.id, ids[filename])).run();
+
+  beforeEach(() => {
+    take('a.jpg', '2016-10-02T23:59:59.000Z');
+    take('b.jpg', '2016-10-03T00:00:00.000Z');
+    take('c.jpg', '2016-10-09T23:59:59.000Z');
+  });
+
+  it('returns the photos whose day taken lies in the inclusive range, newest first', () => {
+    expect(api.listPhotos({ takenFrom: '2016-10-03', takenTo: '2016-10-09' }).map((p) => p.filename)).toEqual(['c.jpg', 'b.jpg']);
+    expect(api.listPhotos({ takenFrom: '2016-10-03' }).map((p) => p.filename)).toEqual(['c.jpg', 'b.jpg']);
+    expect(api.listPhotos({ takenTo: '2016-10-02' }).map((p) => p.filename)).toEqual(['a.jpg']);
+  });
+
+  it('combines with the album, search and hidden-photo filters', () => {
+    db.insert(schema.albumPhotos).values([{ photoId: ids['b.jpg'], token: 'c9ea' }, { photoId: ids['c.jpg'], token: 'c9ea' }]).run();
+    const range = { takenFrom: '2016-10-01', takenTo: '2016-10-09' };
+
+    expect(api.listPhotos({ ...range, album: 'c9ea' }).map((p) => p.filename)).toEqual(['c.jpg', 'b.jpg']);
+    expect(api.listPhotos({ ...range, query: 'a.jpg' }).map((p) => p.filename)).toEqual([]);
+    api.updatePhoto(ids['c.jpg'], { caption: 'bridge', isHidden: true });
+    expect(api.listPhotos({ ...range, query: 'bridge' })).toEqual([]);
+    expect(api.listPhotos({ ...range, query: 'bridge', includeHidden: 'true' }).map((p) => p.filename)).toEqual(['c.jpg']);
+  });
+
+  it.each([
+    [{ takenFrom: '2016-13-40' }, 'takenFrom'],
+    [{ takenFrom: '2016-02-30' }, 'takenFrom'],
+    [{ takenTo: '16-10-09' }, 'takenTo'],
+    [{ takenFrom: '2016-10-03', takenTo: ['2016-10-09'] }, 'takenTo'],
+  ])('names an invalid date %j', (query, field) => {
+    expect(invalidDateFilter(query)).toBe(field);
+    expect(api.listPhotos(query)).toEqual([]);
+  });
+
+  it('accepts valid dates and no dates', () => {
+    expect(invalidDateFilter({ takenFrom: '2016-02-29', takenTo: '2016-10-09' })).toBeUndefined();
+    expect(invalidDateFilter({})).toBeUndefined();
   });
 });
 

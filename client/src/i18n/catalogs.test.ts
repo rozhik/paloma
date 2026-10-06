@@ -44,7 +44,7 @@ describe('catalogs', () => {
 
   it('translates every API error code', () => {
     const codes: Record<ApiErrorCode, true> = {
-      invalid_body: true, invalid_field: true, album_name_required: true, photo_ids_required: true, no_album_fields: true,
+      invalid_body: true, invalid_field: true, invalid_date: true, album_name_required: true, photo_ids_required: true, no_album_fields: true,
       no_photo_fields: true, photo_not_found: true, album_not_found: true, file_not_found: true, cover_not_in_album: true,
       sidecar_unreadable: true, sidecar_write_failed: true, album_empty: true, export_params_required: true,
       person_name_required: true, internal: true, invalid_location: true, query_required: true, geocoder_disabled: true,

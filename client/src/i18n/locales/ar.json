@@ -50,7 +50,9 @@
     "collapseSidebar": "إخفاء الشريط الجانبي",
     "open": "المجلدات والألبومات",
     "people": "الأشخاص",
-    "noPeople": "لا يوجد أشخاص بعد. افتح معلومات صورة أو شغّل «العثور على الوجوه»."
+    "noPeople": "لا يوجد أشخاص بعد. افتح معلومات صورة أو شغّل «العثور على الوجوه».",
+    "memories": "ذكريات",
+    "noMemories": "لا توجد ذكريات اليوم."
   },
   "grid": {
     "emptyTitle": "لم يتم العثور على صور",
@@ -85,6 +87,16 @@
     "deleteTitle": "حذف الألبوم؟",
     "deleteBody": "سيُحذف الألبوم «{{name}}». ستبقى الصور في مجلداتها.",
     "deleteConfirm": "حذف الألبوم"
+  },
+  "memories": {
+    "yearsAgo_zero": "منذ {{count, number}} سنة",
+    "yearsAgo_one": "منذ سنة واحدة ({{count, number}})",
+    "yearsAgo_two": "منذ سنتين ({{count, number}})",
+    "yearsAgo_few": "منذ {{count, number}} سنوات",
+    "yearsAgo_many": "منذ {{count, number}} سنة",
+    "yearsAgo_other": "منذ {{count, number}} سنة",
+    "albumInYear": "{{album}} في '{{yy}}",
+    "taken": "التُقطت {{range}}"
   },
   "albumPicker": {
     "title_zero": "إضافة {{count, number}} صورة إلى ألبوم",
@@ -278,7 +290,8 @@
     "render_failed": "تعذّرت معالجة الصورة: {{message}}",
     "filter_not_found": "لا يحتوي المكوّن الإضافي «{{id}}» على أيقونة للمرشّح «{{filter}}».",
     "person_not_found": "لم يُعثر على الشخص. ربما حُذف.",
-    "face_not_found": "لم يُعثر على الوجه. ربما أُعيد تشغيل العثور على الوجوه."
+    "face_not_found": "لم يُعثر على الوجه. ربما أُعيد تشغيل العثور على الوجوه.",
+    "invalid_date": "تاريخ غير صالح في «{{field}}»."
   },
   "geo": {
     "coordinates": "{{lat}}، {{lon}}",

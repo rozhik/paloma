@@ -18,4 +18,10 @@ describe('libraryQueryParams', () => {
     expect(Object.fromEntries(libraryQueryParams({ ...NONE, selectedPerson: 'b8e4117cf1d6615b', searchQuery: 'beach' }, 'en')))
       .toEqual({ person: 'b8e4117cf1d6615b', query: 'beach', lang: 'en' });
   });
+
+  it('adds the date range of a memory', () => {
+    expect(Object.fromEntries(libraryQueryParams(
+      { ...NONE, selectedMemory: { year: 2016, yearsAgo: 10, from: '2016-10-03', to: '2016-10-09', album: null, title: null }, searchQuery: 'bridge' }, 'en',
+    ))).toEqual({ takenFrom: '2016-10-03', takenTo: '2016-10-09', query: 'bridge', lang: 'en' });
+  });
 });

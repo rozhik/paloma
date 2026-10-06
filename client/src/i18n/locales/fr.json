@@ -47,7 +47,9 @@
     "collapseSidebar": "Masquer le panneau latéral",
     "open": "Dossiers et albums",
     "people": "Personnes",
-    "noPeople": "Aucune personne pour l’instant. Ouvrez les infos d’une photo ou lancez « Trouver les visages »."
+    "noPeople": "Aucune personne pour l’instant. Ouvrez les infos d’une photo ou lancez « Trouver les visages ».",
+    "memories": "Souvenirs",
+    "noMemories": "Aucun souvenir aujourd’hui."
   },
   "grid": {
     "emptyTitle": "Aucune photo trouvée",
@@ -82,6 +84,13 @@
     "deleteTitle": "Supprimer l’album ?",
     "deleteBody": "L’album « {{name}} » sera supprimé. Les photos restent dans leurs dossiers.",
     "deleteConfirm": "Supprimer l’album"
+  },
+  "memories": {
+    "yearsAgo_one": "il y a {{count, number}} an",
+    "yearsAgo_many": "il y a {{count, number}} d’années",
+    "yearsAgo_other": "il y a {{count, number}} ans",
+    "albumInYear": "{{album}} en '{{yy}}",
+    "taken": "Prises {{range}}"
   },
   "albumPicker": {
     "title_one": "Ajouter {{count, number}} photo à un album",
@@ -254,7 +263,8 @@
     "render_failed": "Impossible de générer la photo : {{message}}",
     "filter_not_found": "Le plugin « {{id}} » n’a pas d’icône pour le filtre « {{filter}} ».",
     "person_not_found": "La personne est introuvable. Elle a peut-être été supprimée.",
-    "face_not_found": "Le visage est introuvable. La recherche de visages a peut-être été relancée."
+    "face_not_found": "Le visage est introuvable. La recherche de visages a peut-être été relancée.",
+    "invalid_date": "Date non valide dans « {{field}} »."
   },
   "geo": {
     "coordinates": "{{lat}} ; {{lon}}",

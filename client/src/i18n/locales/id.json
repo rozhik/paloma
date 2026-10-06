@@ -45,7 +45,9 @@
     "collapseSidebar": "Sembunyikan bilah samping",
     "open": "Folder dan album",
     "people": "Orang",
-    "noPeople": "Belum ada orang. Buka Info sebuah foto atau jalankan “Cari wajah”."
+    "noPeople": "Belum ada orang. Buka Info sebuah foto atau jalankan “Cari wajah”.",
+    "memories": "Kenangan",
+    "noMemories": "Tidak ada kenangan hari ini."
   },
   "grid": {
     "emptyTitle": "Foto tidak ditemukan",
@@ -80,6 +82,11 @@
     "deleteTitle": "Hapus album?",
     "deleteBody": "Album “{{name}}” akan dihapus. Foto tetap berada di foldernya.",
     "deleteConfirm": "Hapus album"
+  },
+  "memories": {
+    "yearsAgo_other": "{{count, number}} tahun lalu",
+    "albumInYear": "{{album}} tahun '{{yy}}",
+    "taken": "Diambil {{range}}"
   },
   "albumPicker": {
     "title_other": "Tambahkan {{count, number}} foto ke album",
@@ -238,7 +245,8 @@
     "render_failed": "Tidak dapat memproses foto: {{message}}",
     "filter_not_found": "Plugin “{{id}}” tidak memiliki ikon untuk filter “{{filter}}”.",
     "person_not_found": "Orang tidak ditemukan. Mungkin sudah dihapus.",
-    "face_not_found": "Wajah tidak ditemukan. Pencarian wajah mungkin dijalankan lagi."
+    "face_not_found": "Wajah tidak ditemukan. Pencarian wajah mungkin dijalankan lagi.",
+    "invalid_date": "Tanggal tidak valid di “{{field}}”."
   },
   "geo": {
     "coordinates": "{{lat}}; {{lon}}",

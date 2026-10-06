@@ -13,6 +13,7 @@ import { SettingsView } from './components/SettingsView.js';
 import { AlbumHeader } from './components/AlbumHeader.js';
 import { LibraryHeader } from './components/LibraryHeader.js';
 import { TagHeader } from './components/TagHeader.js';
+import { MemoryHeader } from './memories/MemoryHeader.js';
 import { PersonHeader } from './people/PersonHeader.js';
 import { usePerson } from './people/usePerson.js';
 import { SimilarFaces } from './faces/SimilarFaces.js';
@@ -26,12 +27,13 @@ import { usePinGate } from './levels/pinGate.js';
 import { SettingsPinDialog } from './levels/PinDialog.js';
 
 /**
- * The library: the album's, tag's or person's header if one is open, else a header with the slideshow, over the
+ * The library: the album's, tag's, memory's or person's header if one is open, else a header with the slideshow, over the
  * skin's photo grid, or a person's similar faces.
  */
 const Library: React.FC = () => {
   const selectedAlbumToken = usePalomaStore((state) => state.selectedAlbumToken);
   const selectedTag = usePalomaStore((state) => state.selectedTag);
+  const selectedMemory = usePalomaStore((state) => state.selectedMemory);
   const selectedPerson = usePalomaStore((state) => state.selectedPerson);
   const personMode = usePalomaStore((state) => state.personMode);
   const selectedUnrecognized = usePalomaStore((state) => state.selectedUnrecognized);
@@ -46,6 +48,7 @@ const Library: React.FC = () => {
   const header = selectedAlbumToken !== null
     ? <AlbumHeader token={selectedAlbumToken} photos={photos} />
     : selectedTag !== null ? <TagHeader tag={selectedTag} photos={photos} />
+    : selectedMemory !== null ? <MemoryHeader memory={selectedMemory} photos={photos} />
     : person !== null ? <PersonHeader person={person} photos={photos} onSaved={setPerson} />
     : photos.length > 0 ? <LibraryHeader photos={photos} /> : null;
   return (

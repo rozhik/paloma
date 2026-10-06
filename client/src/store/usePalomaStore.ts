@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Photo, Folder } from '../../../shared/types.js';
+import type { Photo, Folder, Memory } from '../../../shared/types.js';
 
 export type AppView = 'library' | 'collage' | 'map' | 'people' | 'plugins' | 'settings';
 /** The photo viewer: a snapshot of the grid's photos when it opened, and the one shown. */
@@ -17,6 +17,9 @@ export interface SlideshowState {
 }
 
 export type FilterType = 'all' | 'starred' | 'recent' | 'geotagged';
+
+/** A memory whose photos the library shows: its window (`from`, `to`) and what names it, as listed when it was chosen. */
+export type MemorySelection = Pick<Memory, 'year' | 'yearsAgo' | 'from' | 'to' | 'album' | 'title'>;
 
 /** What the grid of a person shows: their photos, or detected faces that look like them. */
 export type PersonMode = 'photos' | 'similar';
@@ -38,6 +41,8 @@ interface PalomaStore {
   selectedPerson: string | null;
   /** The library shows the detected faces that belong to no person */
   selectedUnrecognized: boolean;
+  /** Memory whose photos the library shows; null when no memory is chosen */
+  selectedMemory: MemorySelection | null;
   personMode: PersonMode;
   /** Bumped after a change so the sidebar and the photo grid refetch without waiting for the poll */
   libraryVersion: number;
@@ -62,6 +67,8 @@ interface PalomaStore {
   /** Shows the photos of a person, replacing a chosen folder, album, tag or collection */
   setSelectedPerson: (person: string | null) => void;
   setPersonMode: (mode: PersonMode) => void;
+  /** Shows the photos of a memory, replacing every other source */
+  setSelectedMemory: (memory: MemorySelection | null) => void;
   /** Shows the faces that belong to no person, replacing every other source */
   showUnrecognized: () => void;
   bumpLibrary: () => void;
@@ -74,7 +81,7 @@ interface PalomaStore {
   removePhotoFromTray: (photoId: number) => void;
   clearTray: () => void;
   /**
-   * What switching to the Child level resets: the selection, search, folder, tag, person and shortcut, which Child cannot
+   * What switching to the Child level resets: the selection, search, folder, tag, person, memory and shortcut, which Child cannot
    * see or change. An open album stays.
    */
   enterChildMode: () => void;
@@ -84,7 +91,7 @@ interface PalomaStore {
 /** Choosing where the library's photos come from clears every other source. */
 const NO_SOURCE = {
   selectedFolderId: null, selectedFilter: 'all', selectedAlbumToken: null, selectedTag: null, selectedPerson: null, personMode: 'photos',
-  selectedUnrecognized: false,
+  selectedUnrecognized: false, selectedMemory: null,
 } as const;
 
 export const usePalomaStore = create<PalomaStore>((set, get) => ({
@@ -100,6 +107,7 @@ export const usePalomaStore = create<PalomaStore>((set, get) => ({
   selectedPerson: null,
   personMode: 'photos',
   selectedUnrecognized: false,
+  selectedMemory: null,
   libraryVersion: 0,
 
   setCurrentView: (view) => set({ currentView: view }),
@@ -135,6 +143,7 @@ export const usePalomaStore = create<PalomaStore>((set, get) => ({
   setSelectedTag: (selectedTag) => set({ ...NO_SOURCE, selectedTag }),
   setSelectedPerson: (selectedPerson) => set({ ...NO_SOURCE, selectedPerson }),
   setPersonMode: (personMode) => set({ personMode }),
+  setSelectedMemory: (selectedMemory) => set({ ...NO_SOURCE, selectedMemory }),
   showUnrecognized: () => set({ ...NO_SOURCE, selectedUnrecognized: true }),
   bumpLibrary: () => set({ libraryVersion: get().libraryVersion + 1 }),
 
@@ -167,7 +176,7 @@ export const usePalomaStore = create<PalomaStore>((set, get) => ({
 
   enterChildMode: () => set({
     selectedPhotos: [], searchQuery: '', selectedFolderId: null, selectedFilter: 'all', selectedTag: null, selectedPerson: null,
-    personMode: 'photos', selectedUnrecognized: false,
+    personMode: 'photos', selectedUnrecognized: false, selectedMemory: null,
   }),
 
   isPhotoSelected: (photoId) => {

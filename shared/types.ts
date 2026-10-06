@@ -248,6 +248,24 @@ export interface Album {
   coverThumbnailUrl: string | null;
 }
 
+/** `GET /api/memories`: photos taken around the given date in one earlier year; computed, never stored. */
+export interface Memory {
+  year: number;
+  /** The given date's year minus `year` */
+  yearsAgo: number;
+  /** First and last day of the memory's window, `YYYY-MM-DD` */
+  from: string;
+  to: string;
+  /** Photos in the memory that are not hidden */
+  photoCount: number;
+  /** The smallest named album holding every photo of the memory, which names it; null when there is none */
+  album: { token: string; name: string } | null;
+  /** Reserved for a generated name; the client prefers it when set */
+  title: string | null;
+  coverPhotoId: number;
+  coverThumbnailUrl: string;
+}
+
 /** An album definition in `.paloma.json` `albums`, keyed by token. Keys Paloma does not interpret are preserved. */
 export interface PalomaAlbumDefinition {
   name?: string;
@@ -324,6 +342,7 @@ export interface PalomaFolderFile {
 export type ApiErrorCode =
   | 'invalid_body'
   | 'invalid_field'
+  | 'invalid_date'
   | 'album_name_required'
   | 'photo_ids_required'
   | 'no_album_fields'

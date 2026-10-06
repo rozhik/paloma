@@ -130,7 +130,8 @@ interface PendingPlacement {
 
 export const PlacesMap: React.FC = () => {
   const {
-    setCurrentView, selectedFolderId, selectedAlbumToken, selectedTag, selectedPerson, selectedFilter, searchQuery, libraryVersion, bumpLibrary,
+    setCurrentView, selectedFolderId, selectedAlbumToken, selectedTag, selectedPerson, selectedMemory, selectedFilter, searchQuery,
+    libraryVersion, bumpLibrary,
     selectedPhotos, selectPhotos, refreshSelectedPhotos, clearTray,
   } = usePalomaStore();
   const { t, i18n } = useTranslation();
@@ -154,7 +155,7 @@ export const PlacesMap: React.FC = () => {
   const onMap = useCallback((map: L.Map) => { mapRef.current = map; }, []);
 
   const lang = i18n.language;
-  const selection = { selectedFolderId, selectedAlbumToken, selectedTag, selectedPerson, selectedFilter, searchQuery };
+  const selection = { selectedFolderId, selectedAlbumToken, selectedTag, selectedPerson, selectedMemory, selectedFilter, searchQuery };
   const selectionKey = libraryQueryParams(selection, '').toString();
   const params = useMemo(() => libraryQueryParams(selection, currentLanguage()), [selectionKey, lang]);
   const geocoding = settings?.geocoding === true;

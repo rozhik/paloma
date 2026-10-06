@@ -48,7 +48,9 @@
     "collapseSidebar": "Скрыть боковую панель",
     "open": "Папки и альбомы",
     "people": "Люди",
-    "noPeople": "Людей пока нет. Откройте «Инфо» фото или запустите «Найти лица»."
+    "noPeople": "Людей пока нет. Откройте «Инфо» фото или запустите «Найти лица».",
+    "memories": "Воспоминания",
+    "noMemories": "Сегодня воспоминаний нет."
   },
   "grid": {
     "emptyTitle": "Фотографии не найдены",
@@ -83,6 +85,14 @@
     "deleteTitle": "Удалить альбом?",
     "deleteBody": "Альбом «{{name}}» будет удалён. Фотографии останутся в своих папках.",
     "deleteConfirm": "Удалить альбом"
+  },
+  "memories": {
+    "yearsAgo_one": "{{count, number}} год назад",
+    "yearsAgo_few": "{{count, number}} года назад",
+    "yearsAgo_many": "{{count, number}} лет назад",
+    "yearsAgo_other": "{{count, number}} года назад",
+    "albumInYear": "{{album}} в '{{yy}}",
+    "taken": "Снято {{range}}"
   },
   "albumPicker": {
     "title_one": "Добавить {{count, number}} фотографию в альбом",
@@ -262,7 +272,8 @@
     "render_failed": "Не удалось обработать фото: {{message}}",
     "filter_not_found": "У плагина «{{id}}» нет значка для фильтра «{{filter}}».",
     "person_not_found": "Человек не найден. Возможно, его удалили.",
-    "face_not_found": "Лицо не найдено. Возможно, поиск лиц запустили снова."
+    "face_not_found": "Лицо не найдено. Возможно, поиск лиц запустили снова.",
+    "invalid_date": "Некорректная дата в поле «{{field}}»."
   },
   "geo": {
     "coordinates": "{{lat}}; {{lon}}",

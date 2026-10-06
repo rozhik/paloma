@@ -28,7 +28,7 @@ describe('shell lists by level', () => {
 
   it('shows Easy the album, export and print actions but not the advanced ones', () => {
     expect(navItemsFor('easy').map((item) => item.view)).toEqual(['library', 'settings']);
-    expect(sidebarListsFor('easy')).toEqual(['shortcuts', 'albums', 'tags', 'people', 'folders']);
+    expect(sidebarListsFor('easy')).toEqual(['shortcuts', 'memories', 'albums', 'tags', 'people', 'folders']);
     expect(trayActionsFor('easy')).toEqual(['addToAlbum', 'addTags', 'removeTag', 'removeFromAlbum', 'makeCover', 'clear', 'export', 'print']);
   });
 

@@ -80,4 +80,10 @@ describe('geo routes', () => {
     });
     expect(await send('GET', '/geo/points?geotagged=true')).toEqual({ status: 200, body: [] });
   });
+
+  it('rejects an invalid date range of the photo list, naming the field', async () => {
+    expect(await send('GET', '/photos?takenFrom=2016-10-03&takenTo=2016-13-40')).toEqual({
+      status: 400, body: { error: expect.any(String), code: 'invalid_date', params: { field: 'takenTo' } },
+    });
+  });
 });

@@ -17,7 +17,9 @@ import { RenderService } from '../services/RenderService.js';
 import { libraryLookup } from '../services/libraryImages.js';
 import { parseEditsJson } from '../services/photoImages.js';
 import { apiError } from '../services/apiError.js';
+import { invalidDateFilter } from '../services/photoFilters.js';
 import { listTags } from '../services/tagApi.js';
+import { listMemories } from '../services/memories.js';
 import { getPhotoInfo } from '../services/photoInfo.js';
 import { personAvatar, photoFace, photoFaceSource } from '../services/faceImages.js';
 import { assignFaces, dismissFaces, pendingPhotos, saveDetectedFaces, similarFaces, unassignedFaces } from '../services/faceDetectionApi.js';
@@ -44,6 +46,8 @@ router.get('/folders', (req, res) => {
 
 // --- Photos API ---
 router.get('/photos', (req, res) => {
+  const field = invalidDateFilter(req.query);
+  if (field) return res.status(400).json(apiError('invalid_date', `${field} must be a YYYY-MM-DD date`, { field }));
   res.json(listPhotos(req.query));
 });
 
@@ -382,6 +386,12 @@ router.get('/geo/search', async (req, res, next) => {
 });
 
 // --- Albums API ---
+// --- Memories API ---
+router.get('/memories', (req, res) => {
+  const result = listMemories(req.query.date);
+  res.status(result.status).json(result.body);
+});
+
 router.get('/albums', (req, res) => {
   res.json(listAlbums());
 });

@@ -45,7 +45,9 @@
     "collapseSidebar": "隐藏侧边栏",
     "open": "文件夹和相册",
     "people": "人物",
-    "noPeople": "还没有人物。打开照片的信息，或运行“查找人脸”。"
+    "noPeople": "还没有人物。打开照片的信息，或运行“查找人脸”。",
+    "memories": "回忆",
+    "noMemories": "今天没有回忆。"
   },
   "grid": {
     "emptyTitle": "未找到照片",
@@ -80,6 +82,11 @@
     "deleteTitle": "删除相册？",
     "deleteBody": "相册“{{name}}”将被删除。照片仍保留在原文件夹中。",
     "deleteConfirm": "删除相册"
+  },
+  "memories": {
+    "yearsAgo_other": "{{count, number}} 年前",
+    "albumInYear": "'{{yy}} 年的{{album}}",
+    "taken": "拍摄于 {{range}}"
   },
   "albumPicker": {
     "title_other": "将 {{count, number}} 张照片加入相册",
@@ -238,7 +245,8 @@
     "render_failed": "无法处理照片：{{message}}",
     "filter_not_found": "插件“{{id}}”没有滤镜“{{filter}}”的图标。",
     "person_not_found": "找不到该人物，可能已被删除。",
-    "face_not_found": "找不到该人脸，可能已重新查找人脸。"
+    "face_not_found": "找不到该人脸，可能已重新查找人脸。",
+    "invalid_date": "“{{field}}”中的日期无效。"
   },
   "geo": {
     "coordinates": "{{lat}}，{{lon}}",

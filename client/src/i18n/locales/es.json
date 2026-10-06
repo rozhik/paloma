@@ -47,7 +47,9 @@
     "collapseSidebar": "Ocultar la barra lateral",
     "open": "Carpetas y álbumes",
     "people": "Personas",
-    "noPeople": "Aún no hay personas. Abre la información de una foto o ejecuta «Buscar caras»."
+    "noPeople": "Aún no hay personas. Abre la información de una foto o ejecuta «Buscar caras».",
+    "memories": "Recuerdos",
+    "noMemories": "Hoy no hay recuerdos."
   },
   "grid": {
     "emptyTitle": "No se encontraron fotos",
@@ -82,6 +84,13 @@
     "deleteTitle": "¿Eliminar el álbum?",
     "deleteBody": "Se eliminará el álbum «{{name}}». Las fotos se quedan en sus carpetas.",
     "deleteConfirm": "Eliminar álbum"
+  },
+  "memories": {
+    "yearsAgo_one": "hace {{count, number}} año",
+    "yearsAgo_many": "hace {{count, number}} de años",
+    "yearsAgo_other": "hace {{count, number}} años",
+    "albumInYear": "{{album}} en el '{{yy}}",
+    "taken": "Tomadas {{range}}"
   },
   "albumPicker": {
     "title_one": "Añadir {{count, number}} foto a un álbum",
@@ -254,7 +263,8 @@
     "render_failed": "No se pudo procesar la foto: {{message}}",
     "filter_not_found": "El complemento «{{id}}» no tiene icono para el filtro «{{filter}}».",
     "person_not_found": "No se encontró la persona. Puede que se haya eliminado.",
-    "face_not_found": "No se encontró la cara. Puede que la búsqueda de caras se haya vuelto a ejecutar."
+    "face_not_found": "No se encontró la cara. Puede que la búsqueda de caras se haya vuelto a ejecutar.",
+    "invalid_date": "Fecha no válida en «{{field}}»."
   },
   "geo": {
     "coordinates": "{{lat}}; {{lon}}",

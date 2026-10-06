@@ -35,6 +35,8 @@ export const CONTROL_LEVELS: Record<ControlId, Level> = {
   slideshow: 'child',
 
   'sidebar.shortcuts': 'easy',
+  // Today's memories and opening one; a memory cannot be changed
+  'sidebar.memories': 'easy',
   'sidebar.folders': 'easy',
   'sidebar.tags': 'easy',
   search: 'easy',

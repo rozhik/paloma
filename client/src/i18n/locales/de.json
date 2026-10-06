@@ -46,7 +46,9 @@
     "collapseSidebar": "Seitenleiste ausblenden",
     "open": "Ordner und Alben",
     "people": "Personen",
-    "noPeople": "Noch keine Personen. Öffnen Sie die Info eines Fotos oder starten Sie „Gesichter finden“."
+    "noPeople": "Noch keine Personen. Öffnen Sie die Info eines Fotos oder starten Sie „Gesichter finden“.",
+    "memories": "Erinnerungen",
+    "noMemories": "Heute keine Erinnerungen."
   },
   "grid": {
     "emptyTitle": "Keine Fotos gefunden",
@@ -81,6 +83,12 @@
     "deleteTitle": "Album löschen?",
     "deleteBody": "Das Album „{{name}}“ wird gelöscht. Die Fotos bleiben in ihren Ordnern.",
     "deleteConfirm": "Album löschen"
+  },
+  "memories": {
+    "yearsAgo_one": "vor {{count, number}} Jahr",
+    "yearsAgo_other": "vor {{count, number}} Jahren",
+    "albumInYear": "{{album}} '{{yy}}",
+    "taken": "Aufgenommen {{range}}"
   },
   "albumPicker": {
     "title_one": "{{count, number}} Foto zu einem Album hinzufügen",
@@ -246,7 +254,8 @@
     "render_failed": "Das Foto konnte nicht berechnet werden: {{message}}",
     "filter_not_found": "Das Plugin „{{id}}“ hat kein Symbol für den Filter „{{filter}}“.",
     "person_not_found": "Die Person wurde nicht gefunden. Sie wurde vielleicht gelöscht.",
-    "face_not_found": "Das Gesicht wurde nicht gefunden. Die Gesichtersuche lief vielleicht erneut."
+    "face_not_found": "Das Gesicht wurde nicht gefunden. Die Gesichtersuche lief vielleicht erneut.",
+    "invalid_date": "Ungültiges Datum in „{{field}}“."
   },
   "geo": {
     "coordinates": "{{lat}}; {{lon}}",

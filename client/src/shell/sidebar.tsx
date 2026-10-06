@@ -1,6 +1,6 @@
 import React, { useId } from 'react';
 import { useTranslation } from 'react-i18next';
-import { BookImage, ChevronDown, Clock, Folder, Image, MapPin, ScanFace, Star, Tag, User, type LucideIcon } from 'lucide-react';
+import { BookImage, ChevronDown, Clock, Folder, History, Image, MapPin, ScanFace, Star, Tag, User, type LucideIcon } from 'lucide-react';
 import { usePalomaStore, type FilterType } from '../store/usePalomaStore.js';
 import { SIDEBAR_LISTS, useUiSettings, type SidebarListId } from '../settings/uiSettings.js';
 import { allows, useLevel } from '../levels/controls.js';
@@ -9,8 +9,10 @@ import { useFolderTree } from './useFolderTree.js';
 import { useTags } from './useTags.js';
 import { sortPeople, usePeople, useUnrecognizedCount } from '../people/usePeople.js';
 import { avatarUrl } from '../api/people.js';
+import { useMemories } from './useMemories.js';
+import { memoryName } from '../memories/memoryName.js';
 
-/** One entry of a sidebar list: a shortcut, an album, a tag, a person or a folder. */
+/** One entry of a sidebar list: a shortcut, a memory, an album, a tag, a person or a folder. */
 export interface SidebarItem {
   key: string;
   label: string;
@@ -59,7 +61,7 @@ const SHORTCUTS: { filter: FilterType; icon: LucideIcon; iconClass: string; labe
 /** The sidebar lists shown at a level. */
 export const sidebarListsFor = (level: Level): SidebarListId[] => SIDEBAR_LISTS.filter((id) => allows(level, `sidebar.${id}`));
 
-/** The sidebar's lists shown at the active level (shortcuts, albums, tags, people, folders), with their entries and collapsed state. */
+/** The sidebar's lists shown at the active level (shortcuts, memories, albums, tags, people, folders), with their entries and collapsed state. */
 export function useSidebarSections(): SidebarSectionData[] {
   const { t, i18n } = useTranslation();
   const level = useLevel();
@@ -67,15 +69,17 @@ export function useSidebarSections(): SidebarSectionData[] {
   const {
     selectedFolderId, setSelectedFolderId, selectedFilter, setSelectedFilter, selectedAlbumToken, setSelectedAlbum,
     selectedTag, setSelectedTag, selectedPerson, setSelectedPerson, selectedUnrecognized, showUnrecognized,
+    selectedMemory, setSelectedMemory,
   } = usePalomaStore();
   const collapsed = useUiSettings((state) => state.collapsedSidebarLists);
   const { folders, albums } = useFolderTree();
   const tags = useTags();
+  const memories = useMemories(shown.includes('memories'));
   // People on at least one photo that is not hidden
   const people = sortPeople(usePeople().people.filter((person) => person.photoCount > 0), i18n.language);
   const unrecognized = useUnrecognizedCount(allows(level, 'faces.unrecognized') && shown.includes('people'));
   const nothingSelected = selectedFolderId === null && selectedAlbumToken === null && selectedTag === null && selectedPerson === null
-    && !selectedUnrecognized;
+    && !selectedUnrecognized && selectedMemory === null;
 
   const section = (id: SidebarListId, data: Omit<SidebarSectionData, 'id' | 'collapsed' | 'toggle'>): SidebarSectionData => ({
     id, collapsed: collapsed.includes(id), toggle: () => toggleSidebarList(id), ...data,
@@ -92,6 +96,21 @@ export function useSidebarSections(): SidebarSectionData[] {
         // "All photos" is active only when no folder or album narrows it
         active: selectedFilter === filter && (filter !== 'all' || nothingSelected),
         select: () => setSelectedFilter(filter),
+      })),
+    }),
+    section('memories', {
+      title: t('sidebar.memories'),
+      count: memories.length,
+      emptyText: t('sidebar.noMemories'),
+      items: memories.map(({ year, yearsAgo, from, to, album, title, photoCount, coverThumbnailUrl }) => ({
+        key: String(year),
+        label: memoryName({ year, yearsAgo, album, title }, t),
+        icon: History,
+        iconClass: 'text-secondary',
+        thumbnailUrl: coverThumbnailUrl,
+        count: photoCount,
+        active: selectedMemory !== null && selectedMemory.from === from && selectedMemory.to === to,
+        select: () => setSelectedMemory({ year, yearsAgo, from, to, album, title }),
       })),
     }),
     section('albums', {

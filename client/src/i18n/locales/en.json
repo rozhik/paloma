@@ -43,7 +43,9 @@
     "collapseSidebar": "Hide the sidebar",
     "open": "Folders and albums",
     "people": "People",
-    "noPeople": "No people yet. Open a photo’s Info or run “Find faces”."
+    "noPeople": "No people yet. Open a photo’s Info or run “Find faces”.",
+    "memories": "Memories",
+    "noMemories": "No memories today."
   },
   "grid": {
     "emptyTitle": "No photos found",
@@ -78,6 +80,12 @@
     "deleteTitle": "Delete album?",
     "deleteBody": "The album “{{name}}” will be deleted. The photos stay in their folders.",
     "deleteConfirm": "Delete album"
+  },
+  "memories": {
+    "yearsAgo_one": "{{count, number}} year ago",
+    "yearsAgo_other": "{{count, number}} years ago",
+    "albumInYear": "{{album}} in '{{yy}}",
+    "taken": "Photos taken {{range}}"
   },
   "albumPicker": {
     "title_one": "Add {{count, number}} photo to an album",
@@ -243,7 +251,8 @@
     "render_failed": "Could not render the photo: {{message}}",
     "filter_not_found": "The plugin “{{id}}” has no icon for the filter “{{filter}}”.",
     "person_not_found": "The person was not found. They may have been deleted.",
-    "face_not_found": "The face was not found. Face finding may have run again."
+    "face_not_found": "The face was not found. Face finding may have run again.",
+    "invalid_date": "Invalid date in “{{field}}”."
   },
   "geo": {
     "coordinates": "{{lat}}, {{lon}}",

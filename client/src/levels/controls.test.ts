@@ -34,6 +34,10 @@ describe('control levels', () => {
     for (const id of changing) expect([allows('easy', id), allows('normal', id)], id).toEqual([false, true]);
   });
 
+  it('show memories from Easy, not at Child', () => {
+    expect([allows('child', 'sidebar.memories'), allows('easy', 'sidebar.memories')]).toEqual([false, true]);
+  });
+
   it('show the Info panel at Easy, its EXIF from Professional and its JSON only at Developer', () => {
     expect(['child', 'easy', 'normal', 'pro', 'developer'].map((level) => [
       allows(level as never, 'viewer.info'), allows(level as never, 'info.exif'), allows(level as never, 'info.json'),

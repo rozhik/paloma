@@ -79,7 +79,7 @@ describe.each(SKIN_IDS)('%s skin', (id) => {
       // The lists are in a floating panel, opened from the toolbar
       expect(markup).toMatch(new RegExp(`aria-label="${i18n.t('sidebar.open')}"[^>]*aria-expanded="false"|aria-expanded="false"[^>]*aria-label="${i18n.t('sidebar.open')}"`));
     } else if (view === 'library') {
-      for (const title of ['sidebar.collections', 'sidebar.albums', 'sidebar.folders'] as const) {
+      for (const title of ['sidebar.collections', 'sidebar.memories', 'sidebar.albums', 'sidebar.folders'] as const) {
         expect(markup).toMatch(new RegExp(`aria-expanded="(true|false)"[^>]*>(?:(?!</button>).)*${i18n.t(title)}`, 's'));
       }
     }
@@ -114,12 +114,18 @@ describe.each(SKIN_IDS)('%s skin', (id) => {
       expect(markup).not.toContain(i18n.t('sidebar.folders'));
       expect(markup).not.toContain(i18n.t('sidebar.collections'));
       expect(markup).not.toContain(i18n.t('sidebar.tags'));
+      expect(markup).not.toContain(i18n.t('sidebar.memories'));
       if (id !== 'glass') expect(markup).toContain(i18n.t('sidebar.albums'));
     });
 
-    it('shows Easy the Tags list', async () => {
+    it('shows Easy the Tags and Memories lists', async () => {
       const markup = await render('easy');
-      if (id !== 'glass') expect(markup).toContain(i18n.t('sidebar.tags'));
+      if (id !== 'glass') {
+        expect(markup).toContain(i18n.t('sidebar.tags'));
+        // Memories are fetched after the first render, so the list says it has none yet
+        expect(markup).toContain(i18n.t('sidebar.memories'));
+        expect(markup).toContain(i18n.t('sidebar.noMemories'));
+      }
     });
 
     it('shows Normal every view, search and the language switcher', async () => {

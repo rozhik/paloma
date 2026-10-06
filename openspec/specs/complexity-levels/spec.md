@@ -36,7 +36,7 @@ A control that is not available at the active level SHALL NOT be shown, not even
 - **THEN** no filter panel opens and no edit is made
 
 ### Requirement: Levels of current controls
-The current controls SHALL have these levels. Child: library view limited to albums, the album list in the sidebar, opening photos in the viewer with its navigation bar and zoom, the slideshow, and the Settings view (behind the PIN). Easy: the shortcuts, tags and folders sidebar lists, search, selecting photos and the tray with Add to album, Add tags, Remove tag, Remove from album, Make cover, Clear, Export and Print, starring, the top-bar language switcher, and the viewer's Info button and panel with editing the description and tags. Professional: the EXIF section of the Info panel. Developer: the JSON section of the Info panel. Normal: all other current views and controls.
+The current controls SHALL have these levels. Child: library view limited to albums, the album list in the sidebar, opening photos in the viewer with its navigation bar and zoom, the slideshow, and the Settings view (behind the PIN). Easy: the shortcuts, memories, tags, people and folders sidebar lists, opening a memory, choosing a person to see their photos, search, selecting photos and the tray with Add to album, Add tags, Remove tag, Remove from album, Make cover, Clear, Export and Print, starring, the top-bar language switcher, and the viewer's Info button and panel with editing the description and tags and the list of people on the photo, and the viewer's Faces toggle with its frames. Professional: the EXIF section of the Info panel. Developer: the JSON section of the Info panel. Normal: all other current views and controls, including the People view, adding, editing and deleting people, adding, assigning and removing people on a photo, assigning a face from its frame, the Unrecognized faces entry and view, face detection and Similar faces.
 
 #### Scenario: Easy offers export but not collage
 - **WHEN** the level is Easy and the user selects two photos
@@ -61,6 +61,22 @@ The current controls SHALL have these levels. Child: library view limited to alb
 #### Scenario: Info sections by level
 - **WHEN** the user opens the Info panel at Normal, then at Professional, then at Developer
 - **THEN** at Normal it has no EXIF or JSON section, at Professional it has EXIF but no JSON, and at Developer it has both
+
+#### Scenario: Easy sees people but does not edit them
+- **WHEN** the level is Easy, the user chooses `Roy Avery` in the sidebar and opens the Info panel of one of his photos
+- **THEN** the grid shows his photos without the face detection button, the Similar faces switch or an Edit button, and the People section lists `Roy Avery` without add, remove or assign controls
+
+#### Scenario: Child sees no people
+- **WHEN** the level is Child
+- **THEN** the sidebar has no People list and no person can be chosen
+
+#### Scenario: Easy sees frames but does not assign
+- **WHEN** the level is Easy, Faces is on and the user clicks an unassigned frame
+- **THEN** nothing opens and no face is assigned
+
+#### Scenario: Memories from Easy
+- **WHEN** the level is Child, and then Easy, and today has memories
+- **THEN** at Child the sidebar has no Memories section, and at Easy it lists the memories and the user can open one
 
 ### Requirement: Child mode is view-only
 At Child, nothing SHALL be offered that changes photos, albums, locations, edits, plugins or files. The sidebar SHALL show only the album list. The library SHALL show the photos of the chosen album, and, when no album is chosen, a message asking to choose one. Photo cards SHALL open the viewer and SHALL NOT offer selecting or starring. The viewer SHALL show its navigation bar without the edit bar.

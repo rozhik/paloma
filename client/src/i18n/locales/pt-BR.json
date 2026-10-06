@@ -47,7 +47,9 @@
     "collapseSidebar": "Ocultar a barra lateral",
     "open": "Pastas e álbuns",
     "people": "Pessoas",
-    "noPeople": "Ainda não há pessoas. Abra as informações de uma foto ou execute “Encontrar rostos”."
+    "noPeople": "Ainda não há pessoas. Abra as informações de uma foto ou execute “Encontrar rostos”.",
+    "memories": "Lembranças",
+    "noMemories": "Nenhuma lembrança hoje."
   },
   "grid": {
     "emptyTitle": "Nenhuma foto encontrada",
@@ -82,6 +84,13 @@
     "deleteTitle": "Excluir o álbum?",
     "deleteBody": "O álbum “{{name}}” será excluído. As fotos permanecem nas pastas delas.",
     "deleteConfirm": "Excluir álbum"
+  },
+  "memories": {
+    "yearsAgo_one": "há {{count, number}} ano",
+    "yearsAgo_many": "há {{count, number}} de anos",
+    "yearsAgo_other": "há {{count, number}} anos",
+    "albumInYear": "{{album}} em '{{yy}}",
+    "taken": "Tiradas {{range}}"
   },
   "albumPicker": {
     "title_one": "Adicionar {{count, number}} foto a um álbum",
@@ -254,7 +263,8 @@
     "render_failed": "Não foi possível processar a foto: {{message}}",
     "filter_not_found": "O plugin “{{id}}” não tem ícone para o filtro “{{filter}}”.",
     "person_not_found": "A pessoa não foi encontrada. Talvez tenha sido excluída.",
-    "face_not_found": "O rosto não foi encontrado. A busca de rostos pode ter sido executada de novo."
+    "face_not_found": "O rosto não foi encontrado. A busca de rostos pode ter sido executada de novo.",
+    "invalid_date": "Data inválida em “{{field}}”."
   },
   "geo": {
     "coordinates": "{{lat}}; {{lon}}",

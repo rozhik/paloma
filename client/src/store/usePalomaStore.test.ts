@@ -137,3 +137,39 @@ describe('unrecognized faces', () => {
     }
   });
 });
+
+describe('memories', () => {
+  const memory = { year: 2016, yearsAgo: 10, from: '2016-10-03', to: '2016-10-09', album: null, title: null };
+
+  beforeEach(() => {
+    usePalomaStore.setState({
+      selectedFolderId: null, selectedAlbumToken: null, selectedTag: null, selectedPerson: null, selectedUnrecognized: false,
+      selectedMemory: null, selectedFilter: 'all',
+    });
+  });
+
+  it('replace every other source', () => {
+    state().setSelectedAlbum('c9ea');
+    state().setSelectedMemory(memory);
+    expect(state()).toMatchObject({
+      selectedMemory: memory, selectedAlbumToken: null, selectedFolderId: null, selectedTag: null, selectedPerson: null,
+      selectedUnrecognized: false, selectedFilter: 'all',
+    });
+  });
+
+  it('are left by choosing another source or the Child level', () => {
+    for (const choose of [
+      () => state().setSelectedAlbum('c9ea'),
+      () => state().setSelectedFolderId(3),
+      () => state().setSelectedTag('dawn'),
+      () => state().setSelectedPerson('b8e4117cf1d6615b'),
+      () => state().setSelectedFilter('starred'),
+      () => state().showUnrecognized(),
+      () => state().enterChildMode(),
+    ]) {
+      state().setSelectedMemory(memory);
+      choose();
+      expect(state().selectedMemory).toBeNull();
+    }
+  });
+});

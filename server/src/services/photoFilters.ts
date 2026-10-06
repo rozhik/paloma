@@ -21,10 +21,33 @@ export interface PhotoFilterQuery {
   ids?: unknown;
   /** A contact id: only photos with a face of that person */
   person?: unknown;
+  /** `YYYY-MM-DD`: only photos taken on or after that day */
+  takenFrom?: unknown;
+  /** `YYYY-MM-DD`: only photos taken on or before that day */
+  takenTo?: unknown;
 }
 
+/** Whether a value is a real calendar date written as `YYYY-MM-DD`. */
+export function isIsoDate(value: unknown): value is string {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
+/** The name of the first date filter that is given but is not a `YYYY-MM-DD` date, if any. */
+export function invalidDateFilter({ takenFrom, takenTo }: PhotoFilterQuery): 'takenFrom' | 'takenTo' | undefined {
+  if (takenFrom !== undefined && !isIsoDate(takenFrom)) return 'takenFrom';
+  if (takenTo !== undefined && !isIsoDate(takenTo)) return 'takenTo';
+  return undefined;
+}
+
+/** A photo's day taken: the calendar date of its date taken as the library stores it. */
+export const dayTaken = sql<string>`substr(${photos.dateTaken}, 1, 10)`;
+
 /** The SQL condition for a library selection; undefined when it matches every photo. */
-export function photoFilters({ folderId, starred, album, tag, query, includeHidden, geotagged, ids, person }: PhotoFilterQuery): SQL | undefined {
+export function photoFilters({
+  folderId, starred, album, tag, query, includeHidden, geotagged, ids, person, takenFrom, takenTo,
+}: PhotoFilterQuery): SQL | undefined {
   const conditions: SQL[] = [];
   if (typeof ids === 'string') {
     const list = ids.split(',').map(Number).filter((id) => Number.isInteger(id) && id > 0);
@@ -41,6 +64,9 @@ export function photoFilters({ folderId, starred, album, tag, query, includeHidd
   if (person && typeof person === 'string') {
     conditions.push(inArray(photos.id, db.select({ id: photoPeople.photoId }).from(photoPeople).where(eq(photoPeople.contactId, person))));
   }
+  // An invalid date matches nothing; GET /api/photos rejects it before
+  if (takenFrom !== undefined) conditions.push(isIsoDate(takenFrom) ? sql`${dayTaken} >= ${takenFrom}` : sql`0`);
+  if (takenTo !== undefined) conditions.push(isIsoDate(takenTo) ? sql`${dayTaken} <= ${takenTo}` : sql`0`);
   if (includeHidden !== 'true') conditions.push(eq(photos.isHidden, false));
   if (geotagged === 'true') conditions.push(isNotNull(photos.latitude));
   if (geotagged === 'false') conditions.push(isNull(photos.latitude));
