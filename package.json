@@ -2,6 +2,22 @@
   "name": "paloma",
   "description": "Paloma — a self-hosted photo manager inspired by Google Picasa.",
   "version": "1.0.0",
+  "license": "MIT",
+  "author": "Oleksandr Rozhyk",
+  "homepage": "https://github.com/rozhik/paloma#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rozhik/paloma.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rozhik/paloma/issues"
+  },
+  "keywords": [
+    "photo-manager",
+    "picasa",
+    "self-hosted",
+    "photos"
+  ],
   "private": true,
   "scripts": {
     "dev:server": "npm --prefix server run dev",
