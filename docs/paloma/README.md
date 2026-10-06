@@ -31,15 +31,15 @@
 
 | Розділ | Опис специфікації | Файл документації |
 | :--- | :--- | :--- |
-| **0. Огляд та архітектура** | Головна концепція, стек розробки, Senior-Friendly UX та карта проєкту | [README.md](file:///Users/orozhyk/proj/picassa/docs/paloma/README.md) |
-| **1. Головний екран бібліотеки** | Сітка фото з віртуалізацією (`react-window`), бічне дерево папок, Photo Tray (піддон) | [01-main-library-view.md](file:///Users/orozhyk/proj/picassa/docs/paloma/01-main-library-view.md) |
-| **2. Екран редагування фото** | Canvas/CSS прев'ю, неруйнівне редагування (JSON DAG), вкладки корекції та порівняння | [02-editor-view.md](file:///Users/orozhyk/proj/picassa/docs/paloma/02-editor-view.md) |
-| **3. Дімпорту, експорту та друку** | Фоновий сканер `chokidar`, модальне вікно експорту, макети друку (CSS Print) | [03-import-export-dialogs.md](file:///Users/orozhyk/proj/picassa/docs/paloma/03-import-export-dialogs.md) |
-| **4. Інструменти створення** | Конструктор колажів (`fabric.js`/`konva`), генератор MP4 слайд-шоу (`fluent-ffmpeg`) | [04-creation-tools.md](file:///Users/orozhyk/proj/picassa/docs/paloma/04-creation-tools.md) |
-| **5. Організація та геодані** | Локальне розпізнавання облич (`@vladmandic/face-api`), карта (`leaflet`), пакетні операції | [05-organizer-tools.md](file:///Users/orozhyk/proj/picassa/docs/paloma/05-organizer-tools.md) |
-| **6. Збереження та метадані** | Схема SQLite, структура `.paloma.json`, підтримка EXIF/XMP, `.paloma/originals` | [06-storage-and-metadata.md](file:///Users/orozhyk/proj/picassa/docs/paloma/06-storage-and-metadata.md) |
-| **7. Зовнішні залежності** | Вичерпний перелік усіх npm-пакетів та бібліотек | [external-dep.md](file:///Users/orozhyk/proj/picassa/docs/paloma/external-dep.md) |
-| **8. Покроковий план (Roadmap)** | Детальний чек-лист розробки Paloma по етапах | [detailed-todo.md](file:///Users/orozhyk/proj/picassa/docs/paloma/detailed-todo.md) |
+| **0. Огляд та архітектура** | Головна концепція, стек розробки, Senior-Friendly UX та карта проєкту | [README.md](README.md) |
+| **1. Головний екран бібліотеки** | Сітка фото з віртуалізацією (`react-window`), бічне дерево папок, Photo Tray (піддон) | [01-main-library-view.md](01-main-library-view.md) |
+| **2. Екран редагування фото** | Canvas/CSS прев'ю, неруйнівне редагування (JSON DAG), вкладки корекції та порівняння | [02-editor-view.md](02-editor-view.md) |
+| **3. Дімпорту, експорту та друку** | Фоновий сканер `chokidar`, модальне вікно експорту, макети друку (CSS Print) | [03-import-export-dialogs.md](03-import-export-dialogs.md) |
+| **4. Інструменти створення** | Конструктор колажів (`fabric.js`/`konva`), генератор MP4 слайд-шоу (`fluent-ffmpeg`) | [04-creation-tools.md](04-creation-tools.md) |
+| **5. Організація та геодані** | Локальне розпізнавання облич (`@vladmandic/face-api`), карта (`leaflet`), пакетні операції | [05-organizer-tools.md](05-organizer-tools.md) |
+| **6. Збереження та метадані** | Схема SQLite, структура `.paloma.json`, підтримка EXIF/XMP, `.paloma/originals` | [06-storage-and-metadata.md](06-storage-and-metadata.md) |
+| **7. Зовнішні залежності** | Вичерпний перелік усіх npm-пакетів та бібліотек | [external-dep.md](external-dep.md) |
+| **8. Покроковий план (Roadmap)** | Детальний чек-лист розробки Paloma по етапах | [detailed-todo.md](detailed-todo.md) |
 
 ---
 

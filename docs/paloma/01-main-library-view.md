@@ -53,7 +53,7 @@
 * **Картка фотографії `<PhotoCard />`:**
   * Завантажує оптимізовані мініатюри (WebP / JPEG 300px), згенеровані Node.js `sharp`.
   * Відображає бейджи: ⭐ (Обране), 📍 (Геолокація), 💬 (Наявність підпису).
-  * Подвійний клік — перехід у модуль редагування [`02-editor-view.md`](file:///Users/orozhyk/proj/picassa/docs/paloma/02-editor-view.md).
+  * Подвійний клік — перехід у модуль редагування [`02-editor-view.md`](02-editor-view.md).
 
 ### 4. `<PhotoTray />` — Буфер вибору (Фотопіддон)
 * **Стан React (Zustand/Redux):** Глобальний масив `selectedPhotos: Photo[]`.

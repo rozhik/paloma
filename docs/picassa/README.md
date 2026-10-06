@@ -19,12 +19,12 @@ Google Picasa — це настільний додаток для каталог
 
 | Розділ | Опис екрана | Файл документації |
 | :--- | :--- | :--- |
-| **1. Головний екран бібліотеки** | Основний каталог, бічна панель колекцій, сітка мініатюр (Light Box), фотопіддон | [01-main-library-view.md](file:///Users/orozhyk/proj/picassa/docs/picassa/01-main-library-view.md) |
-| **2. Екран редагування фото** | Панель з 5 вкладок корекції та ефектів, режими порівняння До/Після | [02-editor-view.md](file:///Users/orozhyk/proj/picassa/docs/picassa/02-editor-view.md) |
-| **3. Дімпорту, експорту та друку** | Модуль захоплення з камер/карт, майстер експорту JPEG, майстер друку | [03-import-export-dialogs.md](file:///Users/orozhyk/proj/picassa/docs/picassa/03-import-export-dialogs.md) |
-| **4. Інструменти створення** | Конструктор фотоколажів (Picture Collage), редактор відео (Movie Maker) | [04-creation-tools.md](file:///Users/orozhyk/proj/picassa/docs/picassa/04-creation-tools.md) |
-| **5. Організація та геодані** | Екран розпізнавання облич (People), інтерактивна карта (Places), пакетне перейменування | [05-organizer-tools.md](file:///Users/orozhyk/proj/picassa/docs/picassa/05-organizer-tools.md) |
-| **6. Збереження та метадані** | Неруйнівне редагування, оригінали `.picasaoriginals`, службовий файл `.picasa.ini`, база DB3, EXIF/IPTC/XMP | [06-storage-and-metadata.md](file:///Users/orozhyk/proj/picassa/docs/picassa/06-storage-and-metadata.md) |
+| **1. Головний екран бібліотеки** | Основний каталог, бічна панель колекцій, сітка мініатюр (Light Box), фотопіддон | [01-main-library-view.md](01-main-library-view.md) |
+| **2. Екран редагування фото** | Панель з 5 вкладок корекції та ефектів, режими порівняння До/Після | [02-editor-view.md](02-editor-view.md) |
+| **3. Дімпорту, експорту та друку** | Модуль захоплення з камер/карт, майстер експорту JPEG, майстер друку | [03-import-export-dialogs.md](03-import-export-dialogs.md) |
+| **4. Інструменти створення** | Конструктор фотоколажів (Picture Collage), редактор відео (Movie Maker) | [04-creation-tools.md](04-creation-tools.md) |
+| **5. Організація та геодані** | Екран розпізнавання облич (People), інтерактивна карта (Places), пакетне перейменування | [05-organizer-tools.md](05-organizer-tools.md) |
+| **6. Збереження та метадані** | Неруйнівне редагування, оригінали `.picasaoriginals`, службовий файл `.picasa.ini`, база DB3, EXIF/IPTC/XMP | [06-storage-and-metadata.md](06-storage-and-metadata.md) |
 | **7. Формат `.picasa.ini`** | Специфікація для reverse engineering: секції, ключі, ланцюжки фільтрів, `rect64`, текстові шари | [07-picasa-ini-format.md](07-picasa-ini-format.md) |
 | **8. Формат `.paloma.json`** | Власний sidecar Paloma (`.ini` лише імпортується): структура JSON, відповідність ключам `.picasa.ini`, злиття, Save/Revert через `.picasaoriginals` | [08-paloma-json-format.md](08-paloma-json-format.md) |
 
