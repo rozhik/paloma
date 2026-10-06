@@ -1,5 +1,6 @@
 {
-  "name": "paloma-monorepo",
+  "name": "paloma",
+  "description": "Paloma — a self-hosted photo manager inspired by Google Picasa.",
   "version": "1.0.0",
   "private": true,
   "scripts": {
