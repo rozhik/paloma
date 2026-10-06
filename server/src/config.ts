@@ -78,6 +78,8 @@ export const config = {
   port: Number(process.env.PORT) || 3001,
   dataDir,
   cacheDir: resolveDir(process.env.PALOMA_CACHE_DIR, path.join(dataDir, 'cache')),
+  /** The only place exports and movies are written to */
+  exportDir: resolveDir(process.env.PALOMA_EXPORT_DIR, path.join(dataDir, 'export')),
   photosDirs: resolveDirList(process.env.PALOMA_PHOTOS_DIRS),
   excludeDirs: resolveDirList(process.env.PALOMA_EXCLUDE_DIRS),
   geo: geoConfig(process.env),

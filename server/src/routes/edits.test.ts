@@ -42,6 +42,7 @@ beforeAll(async () => {
   vi.stubEnv('PALOMA_DATA_DIR', path.join(tmpDir, 'data'));
   vi.stubEnv('PALOMA_CACHE_DIR', path.join(tmpDir, 'cache'));
   vi.stubEnv('PALOMA_PLUGINS_DIR', path.join(tmpDir, 'no-plugins'));
+  vi.stubEnv('PALOMA_EXPORT_DIR', path.join(tmpDir, 'export'));
   vi.stubEnv('PALOMA_PHOTOS_DIRS', '');
   vi.stubEnv('PALOMA_EXCLUDE_DIRS', '');
   vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -247,14 +248,23 @@ describe('GET /api/photos/:id/thumbnail and preview', () => {
 describe('POST /api/export', () => {
   it('exports the photo rendered at full size through its edits', async () => {
     await send('PUT', `/photos/${photoId}/edits`, { edits: [{ filter: 'crop64', rect: { left: 0, top: 0, right: 0.5, bottom: 1 } }] });
-    const outputDir = path.join(tmpDir, 'export');
-    const { status, body } = await send('POST', '/export', { photoIds: [photoId], outputDir });
+    // The destination is a folder inside the export folder
+    const { status, body } = await send('POST', '/export', { photoIds: [photoId], outputDir: 'trip' });
     expect(status).toBe(200);
+    expect(path.dirname(body.exportedFiles[0])).toBe(path.join(tmpDir, 'export', 'trip'));
     const { data, info } = await sharp(body.exportedFiles[0]).raw().toBuffer({ resolveWithObject: true });
     expect([info.width, info.height]).toEqual([200, 300]);
     // Only the red left half: the right edge is red, not blue
     const at = ((150 * info.width) + info.width - 1) * info.channels;
     expect(data[at]).toBeGreaterThan(200);
     expect(data[at + 2]).toBeLessThan(60);
+  });
+
+  it('refuses a destination outside the export folder', async () => {
+    const outside = path.join(tmpDir, 'elsewhere');
+    const { status, body } = await send('POST', '/export', { photoIds: [photoId], outputDir: outside });
+    expect(status).toBe(400);
+    expect(body).toMatchObject({ code: 'invalid_field', params: { field: 'outputDir' } });
+    expect(fs.existsSync(outside)).toBe(false);
   });
 });

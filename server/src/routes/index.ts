@@ -19,6 +19,8 @@ import { parseEditsJson } from '../services/photoImages.js';
 import { apiError } from '../services/apiError.js';
 import { listTags } from '../services/tagApi.js';
 import { getPhotoInfo } from '../services/photoInfo.js';
+import { movieFilename, resolveInside } from '../services/outputPaths.js';
+import { config } from '../config.js';
 import sharp from 'sharp';
 import ffmpeg from 'fluent-ffmpeg';
 import ffmpegStatic from 'ffmpeg-static';
@@ -150,15 +152,18 @@ router.get('/raw/:photoId', (req, res) => {
 
 // --- Export API ---
 router.post('/export', async (req, res) => {
-  const { photoIds, outputDir, quality = 85, resizeWidth, watermarkText } = req.body;
+  const { photoIds, outputDir, quality = 85, resizeWidth } = req.body ?? {};
 
   if (!photoIds || !Array.isArray(photoIds) || !outputDir) {
     return res.status(400).json(apiError('export_params_required', 'photoIds array and outputDir are required'));
   }
 
-  if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir, { recursive: true });
+  // Exports stay inside the export folder: the destination is relative to it, never an arbitrary path
+  const destination = typeof outputDir === 'string' ? resolveInside(config.exportDir, outputDir) : null;
+  if (destination === null) {
+    return res.status(400).json(apiError('invalid_field', 'outputDir must be a folder inside the export folder', { field: 'outputDir' }));
   }
+  fs.mkdirSync(destination, { recursive: true });
 
   const selectedPhotos = db.select({
     photo: photos,
@@ -175,7 +180,7 @@ router.post('/export', async (req, res) => {
 
   for (const { photo, folder, edit } of selectedPhotos) {
     const srcPath = path.join(folder.path, photo.filename);
-    const destPath = path.join(outputDir, `exported_${photo.filename}`);
+    const destPath = path.join(destination, `exported_${photo.filename}`);
 
     // Full size through the photo's edits, before any resizing chosen for the export
     let pipeline = await RenderService.render(srcPath, parseEditsJson(edit?.editInstructionsJson) ?? [], {
@@ -196,7 +201,7 @@ router.post('/export', async (req, res) => {
 
 // --- Movie Maker API ---
 router.post('/creation/movie', async (req, res) => {
-  const { photoIds, durationPerSlide = 3, outputFilename = 'paloma_slideshow.mp4' } = req.body;
+  const { photoIds, durationPerSlide = 3, outputFilename } = req.body ?? {};
 
   if (!Array.isArray(photoIds) || photoIds.length === 0) {
     return res.status(400).json(apiError('photo_ids_required', 'At least one photoId is required'));
@@ -211,7 +216,14 @@ router.post('/creation/movie', async (req, res) => {
     .where(inArray(photos.id, photoIds))
     .all();
 
-  const tmpDir = path.join(process.cwd(), '.paloma_data', 'tmp_movie');
+  fs.mkdirSync(config.exportDir, { recursive: true });
+  // The duration goes into ffmpeg's options, so it must be a plain number
+  const slideSeconds = Number(durationPerSlide);
+  if (!Number.isFinite(slideSeconds) || slideSeconds <= 0 || slideSeconds > 60) {
+    return res.status(400).json(apiError('invalid_field', 'durationPerSlide must be a number from 0 to 60', { field: 'durationPerSlide' }));
+  }
+
+  const tmpDir = path.join(config.dataDir, 'tmp_movie');
   if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
 
   const tempFiles: string[] = [];
@@ -223,12 +235,12 @@ router.post('/creation/movie', async (req, res) => {
     tempFiles.push(tmpFrame);
   }
 
-  const outputMoviePath = path.join(process.cwd(), '.paloma_data', outputFilename);
+  const outputMoviePath = path.join(config.exportDir, movieFilename(outputFilename));
 
   ffmpeg()
     .input(path.join(tmpDir, 'frame_%04d.jpg'))
-    .inputOptions([`-loop 1`, `-framerate 1/${durationPerSlide}`])
-    .outputOptions(['-c:v libx264', '-pix_fmt yuv420p', `-t ${selectedPhotos.length * durationPerSlide}`])
+    .inputOptions([`-loop 1`, `-framerate 1/${slideSeconds}`])
+    .outputOptions(['-c:v libx264', '-pix_fmt yuv420p', `-t ${selectedPhotos.length * slideSeconds}`])
     .output(outputMoviePath)
     .on('end', () => {
       res.json({ success: true, moviePath: outputMoviePath });

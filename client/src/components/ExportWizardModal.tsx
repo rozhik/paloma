@@ -12,7 +12,7 @@ interface ExportWizardModalProps {
 export const ExportWizardModal: React.FC<ExportWizardModalProps> = ({ show, onHide }) => {
   const { selectedPhotos } = usePalomaStore();
   const { t } = useTranslation();
-  const [outputDir, setOutputDir] = useState('/Users/orozhyk/Pictures/Paloma_Export');
+  const [outputDir, setOutputDir] = useState('Paloma_Export');
   const [quality, setQuality] = useState(85);
   const [resizeWidth, setResizeWidth] = useState(1920);
   const [loading, setLoading] = useState(false);
