@@ -61,7 +61,7 @@ When the user zooms in, the viewer SHALL replace the shown image with a sharper 
 - **THEN** after a moment the photo is shown at the higher resolution, without a blank frame in between
 
 ### Requirement: Navigation bar
-The viewer SHALL show a navigation bar with Close, Previous and Next buttons, the photo's file name, its position in the list ("3 / 120"), the zoom buttons and percentage, and, when the level allows it, the Info button described in the photo-info capability. Each button SHALL have a tooltip and an accessible name in the active UI language.
+The viewer SHALL show a navigation bar with Close, Previous and Next buttons, the photo's file name, its position in the list ("3 / 120"), the zoom buttons and percentage, and, when the level allows it, the Info button described in the photo-info capability and the Faces toggle described in the people capability. Each button SHALL have a tooltip and an accessible name in the active UI language.
 
 #### Scenario: Bar contents
 - **WHEN** the user opens the third of 120 photos, `IMG_0042.JPG`
@@ -70,6 +70,10 @@ The viewer SHALL show a navigation bar with Close, Previous and Next buttons, th
 #### Scenario: Info button
 - **WHEN** the level is Normal and the user opens a photo
 - **THEN** the navigation bar also shows the Info button
+
+#### Scenario: Faces toggle
+- **WHEN** the level is Easy and the user opens a photo
+- **THEN** the navigation bar shows the Faces toggle, pressed when face frames are on
 
 ### Requirement: Previous and next follow the grid
 Previous and Next SHALL move to the photo before or after the current one in the list of photos the grid showed when the viewer opened, in grid order. Previous SHALL be disabled on the first photo and Next on the last, without wrapping around.
@@ -90,7 +94,7 @@ Close SHALL return to the library view with the same folder, album, filter, sear
 - **THEN** the library shows the same grid, and that photo's thumbnail is in sepia
 
 ### Requirement: Viewer keyboard
-In the viewer, Esc SHALL close the viewer, `←` and `→` SHALL go to the previous and next photo, and `i` SHALL open or close the Info panel when the level allows it. In a right-to-left UI language, `←` SHALL go to the next photo and `→` to the previous one, and the Previous and Next icons SHALL be mirrored. Keys typed into a text or slider control SHALL go to that control. While a floating panel, the Info panel or a frame is open, Esc SHALL close it instead of the viewer.
+In the viewer, Esc SHALL close the viewer, `←` and `→` SHALL go to the previous and next photo, `i` SHALL open or close the Info panel and `f` SHALL turn face frames on or off, each when the level allows it. In a right-to-left UI language, `←` SHALL go to the next photo and `→` to the previous one, and the Previous and Next icons SHALL be mirrored. Keys typed into a text or slider control SHALL go to that control. While a floating panel, the Info panel or a frame is open, Esc SHALL close it instead of the viewer.
 
 #### Scenario: Arrow keys
 - **WHEN** the UI language is English and the user presses `→`
@@ -107,6 +111,14 @@ In the viewer, Esc SHALL close the viewer, `←` and `→` SHALL go to the previ
 #### Scenario: Typing a tag
 - **WHEN** the Info panel is open and the user types `i` into its tag field
 - **THEN** the letter goes into the field and the panel stays open
+
+#### Scenario: Faces key
+- **WHEN** the level is Easy and the user presses `f`
+- **THEN** face frames turn on, and pressing `f` again turns them off
+
+#### Scenario: Typing f
+- **WHEN** the Info panel is open and the user types `f` into its tag field
+- **THEN** the letter goes into the field and face frames do not change
 
 ### Requirement: Overlay bars are placed by the settings
 The navigation bar and the edit bar SHALL each be placed along the screen edge chosen in the settings: top, bottom, left or right. On the top or bottom edge a bar SHALL lay out its buttons in a row, and on the left or right edge in a column. When both bars are on the same edge, the navigation bar SHALL be nearest the edge and the edit bar next to it, without overlapping. The edges are physical screen sides and SHALL NOT be mirrored in a right-to-left UI language.
