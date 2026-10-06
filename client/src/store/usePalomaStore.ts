@@ -18,6 +18,9 @@ export interface SlideshowState {
 
 export type FilterType = 'all' | 'starred' | 'recent' | 'geotagged';
 
+/** What the grid of a person shows: their photos, or detected faces that look like them. */
+export type PersonMode = 'photos' | 'similar';
+
 interface PalomaStore {
   currentView: AppView;
   selectedPhotos: Photo[];
@@ -31,6 +34,11 @@ interface PalomaStore {
   selectedAlbumToken: string | null;
   /** Tag whose photos the library shows; null when no tag is chosen */
   selectedTag: string | null;
+  /** Contact id of the person whose photos the library shows; null when no person is chosen */
+  selectedPerson: string | null;
+  /** The library shows the detected faces that belong to no person */
+  selectedUnrecognized: boolean;
+  personMode: PersonMode;
   /** Bumped after a change so the sidebar and the photo grid refetch without waiting for the poll */
   libraryVersion: number;
 
@@ -51,6 +59,11 @@ interface PalomaStore {
   setSelectedAlbum: (token: string | null) => void;
   /** Shows the photos of a tag, replacing a chosen folder, album or collection */
   setSelectedTag: (tag: string | null) => void;
+  /** Shows the photos of a person, replacing a chosen folder, album, tag or collection */
+  setSelectedPerson: (person: string | null) => void;
+  setPersonMode: (mode: PersonMode) => void;
+  /** Shows the faces that belong to no person, replacing every other source */
+  showUnrecognized: () => void;
   bumpLibrary: () => void;
 
   toggleSelectPhoto: (photo: Photo) => void;
@@ -61,12 +74,18 @@ interface PalomaStore {
   removePhotoFromTray: (photoId: number) => void;
   clearTray: () => void;
   /**
-   * What switching to the Child level resets: the selection, search, folder, tag and shortcut, which Child cannot
+   * What switching to the Child level resets: the selection, search, folder, tag, person and shortcut, which Child cannot
    * see or change. An open album stays.
    */
   enterChildMode: () => void;
   isPhotoSelected: (photoId: number) => boolean;
 }
+
+/** Choosing where the library's photos come from clears every other source. */
+const NO_SOURCE = {
+  selectedFolderId: null, selectedFilter: 'all', selectedAlbumToken: null, selectedTag: null, selectedPerson: null, personMode: 'photos',
+  selectedUnrecognized: false,
+} as const;
 
 export const usePalomaStore = create<PalomaStore>((set, get) => ({
   currentView: 'library',
@@ -78,6 +97,9 @@ export const usePalomaStore = create<PalomaStore>((set, get) => ({
   selectedFilter: 'all',
   selectedAlbumToken: null,
   selectedTag: null,
+  selectedPerson: null,
+  personMode: 'photos',
+  selectedUnrecognized: false,
   libraryVersion: 0,
 
   setCurrentView: (view) => set({ currentView: view }),
@@ -107,10 +129,13 @@ export const usePalomaStore = create<PalomaStore>((set, get) => ({
   },
   stopSlideshow: () => set({ slideshow: null }),
   setSearchQuery: (searchQuery) => set({ searchQuery }),
-  setSelectedFolderId: (selectedFolderId) => set({ selectedFolderId, selectedFilter: 'all', selectedAlbumToken: null, selectedTag: null }),
-  setSelectedFilter: (selectedFilter) => set({ selectedFilter, selectedFolderId: null, selectedAlbumToken: null, selectedTag: null }),
-  setSelectedAlbum: (selectedAlbumToken) => set({ selectedAlbumToken, selectedFolderId: null, selectedFilter: 'all', selectedTag: null }),
-  setSelectedTag: (selectedTag) => set({ selectedTag, selectedFolderId: null, selectedAlbumToken: null, selectedFilter: 'all' }),
+  setSelectedFolderId: (selectedFolderId) => set({ ...NO_SOURCE, selectedFolderId }),
+  setSelectedFilter: (selectedFilter) => set({ ...NO_SOURCE, selectedFilter }),
+  setSelectedAlbum: (selectedAlbumToken) => set({ ...NO_SOURCE, selectedAlbumToken }),
+  setSelectedTag: (selectedTag) => set({ ...NO_SOURCE, selectedTag }),
+  setSelectedPerson: (selectedPerson) => set({ ...NO_SOURCE, selectedPerson }),
+  setPersonMode: (personMode) => set({ personMode }),
+  showUnrecognized: () => set({ ...NO_SOURCE, selectedUnrecognized: true }),
   bumpLibrary: () => set({ libraryVersion: get().libraryVersion + 1 }),
 
   toggleSelectPhoto: (photo) => {
@@ -140,7 +165,10 @@ export const usePalomaStore = create<PalomaStore>((set, get) => ({
 
   clearTray: () => set({ selectedPhotos: [] }),
 
-  enterChildMode: () => set({ selectedPhotos: [], searchQuery: '', selectedFolderId: null, selectedFilter: 'all', selectedTag: null }),
+  enterChildMode: () => set({
+    selectedPhotos: [], searchQuery: '', selectedFolderId: null, selectedFilter: 'all', selectedTag: null, selectedPerson: null,
+    personMode: 'photos', selectedUnrecognized: false,
+  }),
 
   isPhotoSelected: (photoId) => {
     return get().selectedPhotos.some((p) => p.id === photoId);

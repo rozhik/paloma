@@ -43,7 +43,9 @@
     "collapseList": "Sembunyikan daftar ini",
     "expandSidebar": "Tampilkan bilah samping",
     "collapseSidebar": "Sembunyikan bilah samping",
-    "open": "Folder dan album"
+    "open": "Folder dan album",
+    "people": "Orang",
+    "noPeople": "Belum ada orang. Buka Info sebuah foto atau jalankan “Cari wajah”."
   },
   "grid": {
     "emptyTitle": "Foto tidak ditemukan",
@@ -164,12 +166,46 @@
     "found_other": "{{count, number}} geotag ditemukan"
   },
   "people": {
-    "title": "👤 Pengenalan wajah dan orang",
-    "add": "Tambahkan orang baru",
+    "add": "Tambah orang",
     "namePlaceholder": "Nama (misalnya: Nenek Sari)",
-    "create": "Buat profil",
     "catalog": "Orang ({{count, number}})",
-    "empty": "Belum ada orang. Masukkan nama di sebelah kiri atau jalankan pemindai wajah."
+    "empty": "Belum ada orang. Tambahkan orang di sini, beri nama orang di Info sebuah foto, atau jalankan “Cari wajah” pada sebuah folder.",
+    "unknown": "Orang tak dikenal",
+    "unrecognized": "Belum dikenali",
+    "open": "Tampilkan foto {{name}}",
+    "edit": "Ubah",
+    "addTitle": "Orang baru",
+    "editTitle": "Ubah {{name}}",
+    "name": "Nama",
+    "nameOptional": "Kosongkan nama untuk orang yang belum Anda kenal.",
+    "alias": "Nama panggilan",
+    "comment": "Komentar",
+    "links": "Profil di internet",
+    "link": "Tautan {{index, number}}",
+    "addLink": "Tambah tautan",
+    "removeLink": "Hapus tautan {{index, number}}",
+    "birth": "Kelahiran",
+    "birthYear": "Tahun",
+    "birthDate": "Tanggal",
+    "gender": "Jenis kelamin",
+    "genderUnset": "Tidak diisi",
+    "female": "Perempuan",
+    "male": "Laki-laki",
+    "avatar": "Avatar",
+    "defaultAvatar": "Bawaan",
+    "avatarFace": "Wajah {{index, number}}",
+    "noAvatarFaces": "Belum ada wajah bertanda untuk dipilih. Tandai orang ini pada sebuah wajah, atau jalankan “Cari wajah” pada fotonya.",
+    "delete": "Hapus orang",
+    "deleteTitle": "Hapus {{name}}?",
+    "deleteBody_other": "Orang ini dihapus dari {{count, number}} foto, di file .paloma.json folder foto tersebut. Fotonya sendiri tetap ada.",
+    "searchPlaceholder": "Cari orang menurut nama atau nama panggilan",
+    "noMatches": "Tidak ada yang cocok.",
+    "newNamed": "Orang baru",
+    "newNamedAs": "Orang baru “{{name}}”",
+    "newUnknown": "Orang tak dikenal baru",
+    "modes": "Yang ditampilkan",
+    "modePhotos": "Foto",
+    "modeSimilar": "Wajah serupa"
   },
   "errors": {
     "network": "Tidak dapat terhubung ke server Paloma. Pastikan server sedang berjalan.",
@@ -200,7 +236,9 @@
     "plugin_invalid_body": "Pengaturan plugin tidak valid.",
     "edits_invalid": "Suntingan pada langkah {{step}} tidak valid.",
     "render_failed": "Tidak dapat memproses foto: {{message}}",
-    "filter_not_found": "Plugin “{{id}}” tidak memiliki ikon untuk filter “{{filter}}”."
+    "filter_not_found": "Plugin “{{id}}” tidak memiliki ikon untuk filter “{{filter}}”.",
+    "person_not_found": "Orang tidak ditemukan. Mungkin sudah dihapus.",
+    "face_not_found": "Wajah tidak ditemukan. Pencarian wajah mungkin dijalankan lagi."
   },
   "geo": {
     "coordinates": "{{lat}}; {{lon}}",
@@ -313,7 +351,9 @@
     "zoomIn": "Perbesar",
     "zoomOut": "Perkecil",
     "fit": "Paskan ke layar",
-    "info": "Info"
+    "info": "Info",
+    "faces": "Wajah",
+    "facesUnavailable": "Bingkai wajah tidak dapat ditampilkan untuk foto ini karena pelurusannya."
   },
   "tags": {
     "placeholder": "Ketik tag lalu tekan Enter",
@@ -341,6 +381,11 @@
     "people": "Orang",
     "noPeople": "Tidak ada orang yang dinamai di foto ini",
     "unknownPerson": "Orang tak dikenal",
+    "addPerson": "Tambah orang",
+    "removePerson": "Hapus {{name}} dari foto ini",
+    "unassignedFaces": "Wajah yang ditemukan di foto ini:",
+    "whoIsThis": "Siapa ini? (wajah {{index, number}})",
+    "whoIsThisTitle": "Siapa ini?",
     "location": "Lokasi",
     "noLocation": "Foto ini tidak punya lokasi",
     "fromCamera": "Dari kamera",
@@ -406,5 +451,31 @@
     "pause": "Jeda",
     "interval": "Waktu per foto",
     "seconds": "{{seconds, number}} dtk"
+  },
+  "faces": {
+    "detect": "Cari wajah",
+    "cancel": "Hentikan pencarian wajah ({{done, number}} dari {{total, number}} selesai)",
+    "cancelling": "Menghentikan…",
+    "found": "Wajah ditemukan: {{faces, number}}, pada {{photos, number}} foto.",
+    "stopped": "Pencarian wajah dihentikan.",
+    "failed": "Foto yang tidak dapat diperiksa: {{failed, number}}.",
+    "nothingToDo": "Wajah pada foto-foto ini sudah ditemukan.",
+    "loadFailed": "Pencarian wajah tidak dapat dimulai: {{message}}",
+    "noReferenceTitle": "Belum ada wajah {{name}} untuk dibandingkan",
+    "noReferenceHint": "Jalankan “Cari wajah” pada foto {{name}}, lalu kembali ke sini.",
+    "noSimilarTitle": "Tidak ada wajah serupa",
+    "noSimilarHint": "Jalankan “Cari wajah” pada folder lain untuk menemukan lebih banyak foto {{name}}.",
+    "selectAll": "Pilih semua",
+    "selectNone": "Batalkan pilihan",
+    "selected": "Dipilih: {{count, number}}",
+    "assignTo": "Ini {{name}}",
+    "notPerson": "Bukan {{name}}",
+    "face": "Wajah {{index, number}}",
+    "faceHint": "Klik untuk memilih; klik dua kali untuk membuka foto",
+    "unrecognizedTitle": "Wajah yang belum dikenali",
+    "noUnrecognizedTitle": "Tidak ada wajah yang belum dikenali",
+    "noUnrecognizedHint": "Setiap wajah yang ditemukan sudah dimiliki seseorang. Jalankan “Cari wajah” pada folder lain untuk menemukan yang baru.",
+    "shownOf": "Menampilkan {{shown, number}} dari {{total, number}}",
+    "assignFailed": "Wajah yang tidak dapat disimpan: {{failed, number}}. Folder-nya tidak dapat ditulisi."
   }
 }

@@ -41,7 +41,9 @@
     "collapseList": "Hide this list",
     "expandSidebar": "Show the sidebar",
     "collapseSidebar": "Hide the sidebar",
-    "open": "Folders and albums"
+    "open": "Folders and albums",
+    "people": "People",
+    "noPeople": "No people yet. Open a photo’s Info or run “Find faces”."
   },
   "grid": {
     "emptyTitle": "No photos found",
@@ -168,12 +170,47 @@
     "found_other": "Found {{count, number}} geotags"
   },
   "people": {
-    "title": "👤 Face recognition and people",
-    "add": "Add a new person",
+    "add": "Add a person",
     "namePlaceholder": "Name (for example: Grandma Helen)",
-    "create": "Create profile",
     "catalog": "People ({{count, number}})",
-    "empty": "No people added yet. Enter a name on the left or run the face scanner."
+    "empty": "No people yet. Add a person here, name people in a photo’s Info, or run “Find faces” on a folder.",
+    "unknown": "Unknown person",
+    "unrecognized": "Unrecognized",
+    "open": "Show the photos of {{name}}",
+    "edit": "Edit",
+    "addTitle": "New person",
+    "editTitle": "Edit {{name}}",
+    "name": "Name",
+    "nameOptional": "Leave the name empty for someone you do not know yet.",
+    "alias": "Nickname",
+    "comment": "Comment",
+    "links": "Profiles on the internet",
+    "link": "Link {{index, number}}",
+    "addLink": "Add a link",
+    "removeLink": "Remove link {{index, number}}",
+    "birth": "Birth",
+    "birthYear": "Year",
+    "birthDate": "Date",
+    "gender": "Gender",
+    "genderUnset": "Not set",
+    "female": "Female",
+    "male": "Male",
+    "avatar": "Avatar",
+    "defaultAvatar": "Default",
+    "avatarFace": "Face {{index, number}}",
+    "noAvatarFaces": "There are no marked faces to choose from yet. Mark this person on a face, or run “Find faces” on their photos.",
+    "delete": "Delete person",
+    "deleteTitle": "Delete {{name}}?",
+    "deleteBody_one": "The person is removed from {{count, number}} photo, in the .paloma.json files of its folder. The photos themselves stay.",
+    "deleteBody_other": "The person is removed from {{count, number}} photos, in the .paloma.json files of their folders. The photos themselves stay.",
+    "searchPlaceholder": "Find a person by name or nickname",
+    "noMatches": "No one matches.",
+    "newNamed": "New person",
+    "newNamedAs": "New person “{{name}}”",
+    "newUnknown": "New unknown person",
+    "modes": "What to show",
+    "modePhotos": "Photos",
+    "modeSimilar": "Similar faces"
   },
   "errors": {
     "network": "Cannot reach the Paloma server. Check that it is running.",
@@ -204,7 +241,9 @@
     "plugin_invalid_body": "The plugin setting is invalid.",
     "edits_invalid": "The edit in step {{step}} is invalid.",
     "render_failed": "Could not render the photo: {{message}}",
-    "filter_not_found": "The plugin “{{id}}” has no icon for the filter “{{filter}}”."
+    "filter_not_found": "The plugin “{{id}}” has no icon for the filter “{{filter}}”.",
+    "person_not_found": "The person was not found. They may have been deleted.",
+    "face_not_found": "The face was not found. Face finding may have run again."
   },
   "geo": {
     "coordinates": "{{lat}}, {{lon}}",
@@ -322,7 +361,9 @@
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out",
     "fit": "Fit to screen",
-    "info": "Info"
+    "info": "Info",
+    "faces": "Faces",
+    "facesUnavailable": "Face frames cannot be shown for this photo because of its straightening."
   },
   "tags": {
     "placeholder": "Type a tag and press Enter",
@@ -351,6 +392,11 @@
     "people": "People",
     "noPeople": "No people are named on this photo",
     "unknownPerson": "Unknown person",
+    "addPerson": "Add a person",
+    "removePerson": "Remove {{name}} from this photo",
+    "unassignedFaces": "Faces found on this photo:",
+    "whoIsThis": "Who is this? (face {{index, number}})",
+    "whoIsThisTitle": "Who is this?",
     "location": "Location",
     "noLocation": "This photo has no location",
     "fromCamera": "From the camera",
@@ -417,5 +463,31 @@
     "pause": "Pause",
     "interval": "Time per photo",
     "seconds": "{{seconds, number}} s"
+  },
+  "faces": {
+    "detect": "Find faces",
+    "cancel": "Stop finding faces ({{done, number}} of {{total, number}} done)",
+    "cancelling": "Stopping…",
+    "found": "Faces found: {{faces, number}}, on {{photos, number}} photos.",
+    "stopped": "Face finding stopped.",
+    "failed": "Photos that could not be checked: {{failed, number}}.",
+    "nothingToDo": "Faces on these photos have already been found.",
+    "loadFailed": "Face finding could not start: {{message}}",
+    "noReferenceTitle": "No faces of {{name}} to compare with yet",
+    "noReferenceHint": "Run “Find faces” on the photos of {{name}}, then come back here.",
+    "noSimilarTitle": "No similar faces",
+    "noSimilarHint": "Run “Find faces” on more folders to find more photos of {{name}}.",
+    "selectAll": "Select all",
+    "selectNone": "Select none",
+    "selected": "Selected: {{count, number}}",
+    "assignTo": "This is {{name}}",
+    "notPerson": "Not {{name}}",
+    "face": "Face {{index, number}}",
+    "faceHint": "Click to select; double-click to open the photo",
+    "unrecognizedTitle": "Unrecognized faces",
+    "noUnrecognizedTitle": "No unrecognized faces",
+    "noUnrecognizedHint": "Every face found so far belongs to someone. Run “Find faces” on more folders to find new ones.",
+    "shownOf": "Showing {{shown, number}} of {{total, number}}",
+    "assignFailed": "Faces that could not be saved: {{failed, number}}. Their folders cannot be written."
   }
 }

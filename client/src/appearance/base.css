@@ -932,3 +932,200 @@ img {
   padding: 0 8px;
   font-variant-numeric: tabular-nums;
 }
+
+/* ---------- People: avatars, cards, pickers ---------- */
+.person-avatar {
+  display: inline-flex;
+  flex-shrink: 0;
+  border-radius: 50%;
+  object-fit: cover;
+  background-color: var(--pal-surface-raised);
+}
+.person-avatar-placeholder {
+  align-items: center;
+  justify-content: center;
+  color: var(--pal-text-muted);
+  border: 1px solid var(--pal-border);
+}
+.person-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+  gap: var(--pal-gap);
+}
+.person-card {
+  position: relative;
+}
+.person-card-open {
+  color: inherit;
+  border: 0;
+}
+.person-card-edit {
+  position: absolute;
+  top: 0.5rem;
+  inset-inline-end: 0.5rem;
+}
+.avatar-choice.active {
+  outline: 3px solid var(--pal-accent);
+  outline-offset: 2px;
+}
+.person-picker-list {
+  max-height: 18rem;
+  overflow-y: auto;
+}
+.info-face {
+  border-radius: 50%;
+}
+.min-w-0 {
+  min-width: 0;
+}
+
+/* ---------- Face detection progress ---------- */
+.face-progress-dock {
+  position: fixed;
+  bottom: calc(var(--pal-tray-height) + var(--pal-gap));
+  inset-inline-end: calc(var(--pal-gap) * 2);
+  z-index: 1040;
+  max-width: min(28rem, calc(100vw - 2rem));
+}
+.face-progress {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 4.5rem;
+  height: 4.5rem;
+  padding: 0;
+  border: 1px solid var(--pal-border);
+  border-radius: 50%;
+  box-shadow: 0 0.25rem 1rem color-mix(in srgb, var(--pal-text) 25%, transparent);
+  cursor: pointer;
+}
+.face-progress:focus-visible {
+  outline: 3px solid var(--pal-focus);
+  outline-offset: 2px;
+}
+.face-progress svg {
+  grid-area: 1 / 1;
+}
+.face-progress-track,
+.face-progress-bar {
+  fill: none;
+  stroke-width: 5;
+}
+.face-progress-track {
+  stroke: color-mix(in srgb, var(--pal-text) 15%, transparent);
+}
+.face-progress-bar {
+  stroke: var(--pal-accent);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.3s ease;
+}
+.face-progress-count {
+  grid-area: 1 / 1;
+  font-size: var(--pal-font-size-small);
+  font-weight: var(--pal-font-weight-strong);
+  color: var(--pal-text);
+}
+
+/* ---------- Similar faces ---------- */
+.similar-faces-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+  gap: var(--pal-gap);
+  align-content: start;
+}
+.similar-face {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 3px solid transparent;
+  border-radius: var(--pal-radius-large);
+  overflow: hidden;
+  background-color: var(--pal-placeholder);
+}
+.similar-face img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.similar-face.selected {
+  border-color: var(--pal-accent);
+}
+.similar-face:focus-visible {
+  outline: 3px solid var(--pal-focus);
+  outline-offset: 2px;
+}
+.similar-face-check {
+  position: absolute;
+  top: 0.35rem;
+  inset-inline-start: 0.35rem;
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background-color: var(--pal-accent);
+  color: var(--pal-accent-text);
+}
+
+/* ---------- Face frames in the viewer ---------- */
+.face-frames {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.face-frame {
+  position: absolute;
+  border: 2px solid var(--pal-viewer-text);
+  border-radius: 4px;
+  box-shadow: 0 0 0 1px var(--pal-viewer-bg), inset 0 0 0 1px var(--pal-viewer-bg);
+  background: transparent;
+  padding: 0;
+}
+.face-frame.unassigned {
+  border-style: dashed;
+  border-color: var(--pal-warning);
+}
+button.face-frame {
+  pointer-events: auto;
+  cursor: pointer;
+}
+button.face-frame:hover,
+button.face-frame:focus-visible {
+  outline: 3px solid var(--pal-focus);
+  outline-offset: 1px;
+}
+.face-frame-label {
+  position: absolute;
+  bottom: 100%;
+  inset-inline-start: -2px;
+  margin-bottom: 2px;
+  max-width: 16rem;
+  padding: 0 0.4rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-radius: 4px;
+  font-size: var(--pal-font-size-small);
+  background-color: var(--pal-viewer-bg);
+  color: var(--pal-viewer-text);
+}
+.face-frame-label.inside {
+  bottom: auto;
+  top: 0;
+  margin: 2px;
+}
+.face-frames-note {
+  position: absolute;
+  top: var(--pal-gap);
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 90%;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--pal-radius);
+  background-color: var(--pal-viewer-bg);
+  color: var(--pal-viewer-text);
+  font-size: var(--pal-font-size-small);
+  pointer-events: none;
+}

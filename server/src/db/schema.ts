@@ -1,4 +1,4 @@
-import { sqliteTable, integer, text, real, primaryKey, index } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, integer, text, real, blob, primaryKey, index } from 'drizzle-orm/sqlite-core';
 
 export const folders = sqliteTable('folders', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -47,20 +47,62 @@ export const edits = sqliteTable('edits', {
   updatedAt: text('updated_at').notNull(),
 });
 
-export const people = sqliteTable('people', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  name: text('name').notNull(),
-  avatarCropPath: text('avatar_crop_path'),
+// A person of the library, keyed by contact id. Profiles exist only here, never in folder files.
+// `edited` = 0: never edited in Paloma, so the shown name comes from the folder files (folder_people)
+export const persons = sqliteTable('persons', {
+  contactId: text('contact_id').primaryKey(),
+  name: text('name'),
+  alias: text('alias'),
+  comment: text('comment'),
+  links: text('links'), // JSON array of URLs
+  birth: text('birth'), // YYYY or YYYY-MM-DD
+  gender: text('gender', { enum: ['female', 'male'] }),
+  // The chosen avatar face: the photo's folder path and file name (photo ids change), and its rectangle as JSON
+  avatarFolder: text('avatar_folder'),
+  avatarFile: text('avatar_file'),
+  avatarRect: text('avatar_rect'),
+  edited: integer('edited', { mode: 'boolean' }).notNull().default(false),
+  createdAt: text('created_at').notNull(),
 });
 
-export const faceAnnotations = sqliteTable('face_annotations', {
+// Every face of a person on a photo, in face order, with its rectangle as JSON (null for a mark without one);
+// rebuilt from disk like photo_people
+export const photoFaces = sqliteTable('photo_faces', {
+  photoId: integer('photo_id').notNull().references(() => photos.id, { onDelete: 'cascade' }),
+  position: integer('position').notNull(),
+  contactId: text('contact_id').notNull(),
+  rect: text('rect'),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.photoId, table.position] }),
+  byContact: index('photo_faces_contact').on(table.contactId),
+}));
+
+// Photos face detection has run on: done while `detector` and `file_hash` match the current ones
+export const faceDetections = sqliteTable('face_detections', {
+  photoId: integer('photo_id').primaryKey().references(() => photos.id, { onDelete: 'cascade' }),
+  detector: text('detector').notNull(),
+  fileHash: text('file_hash').notNull(),
+  detectedAt: text('detected_at').notNull(),
+});
+
+// Faces found by face detection; the descriptor is hidden data for matching, never sent to clients
+export const detectedFaces = sqliteTable('detected_faces', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   photoId: integer('photo_id').notNull().references(() => photos.id, { onDelete: 'cascade' }),
-  personId: integer('person_id').references(() => people.id, { onDelete: 'set null' }),
-  boundingBox: text('bounding_box').notNull(), // JSON string [x, y, w, h]
-  descriptorVector: text('descriptor_vector'), // JSON string array
-  isConfirmed: integer('is_confirmed', { mode: 'boolean' }).notNull().default(false),
-});
+  rect: text('rect').notNull(), // JSON RelativeRect of the unedited photo
+  score: real('score').notNull(),
+  descriptor: blob('descriptor', { mode: 'buffer' }).notNull(), // 128 little-endian float32
+}, (table) => ({
+  byPhoto: index('detected_faces_photo').on(table.photoId),
+}));
+
+// Detected faces the user said are not this person
+export const faceDismissals = sqliteTable('face_dismissals', {
+  faceId: integer('face_id').notNull().references(() => detectedFaces.id, { onDelete: 'cascade' }),
+  contactId: text('contact_id').notNull(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.faceId, table.contactId] }),
+}));
 
 // One row per tag of a photo; `key` is the tag lowercased in JS, so tags compare ignoring case beyond ASCII
 export const photoKeywords = sqliteTable('photo_keywords', {

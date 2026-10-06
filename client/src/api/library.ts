@@ -4,6 +4,7 @@ export interface LibrarySelection {
   selectedFolderId: number | null;
   selectedAlbumToken: string | null;
   selectedTag: string | null;
+  selectedPerson?: string | null;
   selectedFilter: FilterType;
   searchQuery: string;
 }
@@ -14,6 +15,7 @@ export function libraryQueryParams(selection: LibrarySelection, lang: string): U
   if (selection.selectedFolderId !== null) params.append('folderId', String(selection.selectedFolderId));
   if (selection.selectedAlbumToken !== null) params.append('album', selection.selectedAlbumToken);
   if (selection.selectedTag !== null) params.append('tag', selection.selectedTag);
+  if (selection.selectedPerson) params.append('person', selection.selectedPerson);
   if (selection.selectedFilter === 'starred') params.append('starred', 'true');
   if (selection.selectedFilter === 'geotagged') params.append('geotagged', 'true');
   if (selection.searchQuery.trim()) params.append('query', selection.searchQuery.trim());

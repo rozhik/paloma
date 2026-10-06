@@ -45,7 +45,9 @@
     "collapseList": "Ocultar esta lista",
     "expandSidebar": "Mostrar la barra lateral",
     "collapseSidebar": "Ocultar la barra lateral",
-    "open": "Carpetas y álbumes"
+    "open": "Carpetas y álbumes",
+    "people": "Personas",
+    "noPeople": "Aún no hay personas. Abre la información de una foto o ejecuta «Buscar caras»."
   },
   "grid": {
     "emptyTitle": "No se encontraron fotos",
@@ -178,12 +180,48 @@
     "found_other": "{{count, number}} geoetiquetas encontradas"
   },
   "people": {
-    "title": "👤 Reconocimiento facial y personas",
     "add": "Añadir una persona",
     "namePlaceholder": "Nombre (por ejemplo: Abuela Carmen)",
-    "create": "Crear perfil",
     "catalog": "Personas ({{count, number}})",
-    "empty": "Aún no hay personas. Escribe un nombre a la izquierda o ejecuta el escáner de caras."
+    "empty": "Aún no hay personas. Añade una persona aquí, nombra a personas en la información de una foto o ejecuta «Buscar caras» en una carpeta.",
+    "unknown": "Persona desconocida",
+    "unrecognized": "Sin reconocer",
+    "open": "Mostrar las fotos de {{name}}",
+    "edit": "Editar",
+    "addTitle": "Nueva persona",
+    "editTitle": "Editar a {{name}}",
+    "name": "Nombre",
+    "nameOptional": "Deja el nombre vacío para alguien que aún no conoces.",
+    "alias": "Apodo",
+    "comment": "Comentario",
+    "links": "Perfiles en internet",
+    "link": "Enlace {{index, number}}",
+    "addLink": "Añadir un enlace",
+    "removeLink": "Quitar el enlace {{index, number}}",
+    "birth": "Nacimiento",
+    "birthYear": "Año",
+    "birthDate": "Fecha",
+    "gender": "Género",
+    "genderUnset": "Sin indicar",
+    "female": "Femenino",
+    "male": "Masculino",
+    "avatar": "Avatar",
+    "defaultAvatar": "Predeterminado",
+    "avatarFace": "Cara {{index, number}}",
+    "noAvatarFaces": "Aún no hay caras marcadas para elegir. Marca a esta persona en una cara o ejecuta «Buscar caras» en sus fotos.",
+    "delete": "Eliminar persona",
+    "deleteTitle": "¿Eliminar a {{name}}?",
+    "deleteBody_one": "La persona se quita de {{count, number}} foto, en los archivos .paloma.json de su carpeta. Las fotos se conservan.",
+    "deleteBody_many": "La persona se quita de {{count, number}} fotos, en los archivos .paloma.json de sus carpetas. Las fotos se conservan.",
+    "deleteBody_other": "La persona se quita de {{count, number}} fotos, en los archivos .paloma.json de sus carpetas. Las fotos se conservan.",
+    "searchPlaceholder": "Buscar una persona por nombre o apodo",
+    "noMatches": "Nadie coincide.",
+    "newNamed": "Nueva persona",
+    "newNamedAs": "Nueva persona «{{name}}»",
+    "newUnknown": "Nueva persona desconocida",
+    "modes": "Qué mostrar",
+    "modePhotos": "Fotos",
+    "modeSimilar": "Caras parecidas"
   },
   "errors": {
     "network": "No se puede conectar con el servidor de Paloma. Comprueba que está en marcha.",
@@ -214,7 +252,9 @@
     "plugin_invalid_body": "La configuración del complemento no es válida.",
     "edits_invalid": "La edición del paso {{step}} no es válida.",
     "render_failed": "No se pudo procesar la foto: {{message}}",
-    "filter_not_found": "El complemento «{{id}}» no tiene icono para el filtro «{{filter}}»."
+    "filter_not_found": "El complemento «{{id}}» no tiene icono para el filtro «{{filter}}».",
+    "person_not_found": "No se encontró la persona. Puede que se haya eliminado.",
+    "face_not_found": "No se encontró la cara. Puede que la búsqueda de caras se haya vuelto a ejecutar."
   },
   "geo": {
     "coordinates": "{{lat}}; {{lon}}",
@@ -337,7 +377,9 @@
     "zoomIn": "Acercar",
     "zoomOut": "Alejar",
     "fit": "Ajustar a la pantalla",
-    "info": "Información"
+    "info": "Información",
+    "faces": "Caras",
+    "facesUnavailable": "Los marcos de las caras no se pueden mostrar en esta foto por el enderezado."
   },
   "tags": {
     "placeholder": "Escribe una etiqueta y pulsa Intro",
@@ -367,6 +409,11 @@
     "people": "Personas",
     "noPeople": "No hay personas nombradas en esta foto",
     "unknownPerson": "Persona desconocida",
+    "addPerson": "Añadir una persona",
+    "removePerson": "Quitar a {{name}} de esta foto",
+    "unassignedFaces": "Caras encontradas en esta foto:",
+    "whoIsThis": "¿Quién es? (cara {{index, number}})",
+    "whoIsThisTitle": "¿Quién es?",
     "location": "Ubicación",
     "noLocation": "Esta foto no tiene ubicación",
     "fromCamera": "De la cámara",
@@ -434,5 +481,31 @@
     "pause": "Pausa",
     "interval": "Tiempo por foto",
     "seconds": "{{seconds, number}} s"
+  },
+  "faces": {
+    "detect": "Buscar caras",
+    "cancel": "Detener la búsqueda de caras ({{done, number}} de {{total, number}} hechas)",
+    "cancelling": "Deteniendo…",
+    "found": "Caras encontradas: {{faces, number}}, en {{photos, number}} fotos.",
+    "stopped": "Búsqueda de caras detenida.",
+    "failed": "Fotos que no se pudieron revisar: {{failed, number}}.",
+    "nothingToDo": "Las caras de estas fotos ya se encontraron.",
+    "loadFailed": "La búsqueda de caras no pudo empezar: {{message}}",
+    "noReferenceTitle": "Aún no hay caras de {{name}} para comparar",
+    "noReferenceHint": "Ejecuta «Buscar caras» en las fotos de {{name}} y vuelve aquí.",
+    "noSimilarTitle": "No hay caras parecidas",
+    "noSimilarHint": "Ejecuta «Buscar caras» en más carpetas para encontrar más fotos de {{name}}.",
+    "selectAll": "Seleccionar todo",
+    "selectNone": "No seleccionar nada",
+    "selected": "Seleccionadas: {{count, number}}",
+    "assignTo": "Es {{name}}",
+    "notPerson": "No es {{name}}",
+    "face": "Cara {{index, number}}",
+    "faceHint": "Haz clic para seleccionar; doble clic para abrir la foto",
+    "unrecognizedTitle": "Caras sin reconocer",
+    "noUnrecognizedTitle": "No hay caras sin reconocer",
+    "noUnrecognizedHint": "Cada cara encontrada ya pertenece a alguien. Ejecuta «Buscar caras» en más carpetas para encontrar otras nuevas.",
+    "shownOf": "Se muestran {{shown, number}} de {{total, number}}",
+    "assignFailed": "Caras que no se pudieron guardar: {{failed, number}}. No se puede escribir en sus carpetas."
   }
 }

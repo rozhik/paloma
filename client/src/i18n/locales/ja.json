@@ -43,7 +43,9 @@
     "collapseList": "このリストを隠す",
     "expandSidebar": "サイドバーを表示",
     "collapseSidebar": "サイドバーを隠す",
-    "open": "フォルダーとアルバム"
+    "open": "フォルダーとアルバム",
+    "people": "人物",
+    "noPeople": "まだ人物がいません。写真の情報を開くか、「顔を検出」を実行してください。"
   },
   "grid": {
     "emptyTitle": "写真が見つかりません",
@@ -164,12 +166,46 @@
     "found_other": "{{count, number}} 件の位置情報が見つかりました"
   },
   "people": {
-    "title": "👤 顔認識と人物",
     "add": "人物を追加",
     "namePlaceholder": "名前（例: 花子おばあちゃん）",
-    "create": "プロフィールを作成",
     "catalog": "人物（{{count, number}}）",
-    "empty": "まだ人物がいません。左側に名前を入力するか、顔スキャンを実行してください。"
+    "empty": "まだ人物がいません。ここで人物を追加するか、写真の情報で人物に名前を付けるか、フォルダーで「顔を検出」を実行してください。",
+    "unknown": "不明な人物",
+    "unrecognized": "未認識",
+    "open": "{{name}} の写真を表示",
+    "edit": "編集",
+    "addTitle": "新しい人物",
+    "editTitle": "{{name}} を編集",
+    "name": "名前",
+    "nameOptional": "まだ誰かわからない人物は、名前を空のままにしてください。",
+    "alias": "ニックネーム",
+    "comment": "コメント",
+    "links": "インターネット上のプロフィール",
+    "link": "リンク {{index, number}}",
+    "addLink": "リンクを追加",
+    "removeLink": "リンク {{index, number}} を削除",
+    "birth": "生年月日",
+    "birthYear": "年",
+    "birthDate": "日付",
+    "gender": "性別",
+    "genderUnset": "未設定",
+    "female": "女性",
+    "male": "男性",
+    "avatar": "アバター",
+    "defaultAvatar": "既定",
+    "avatarFace": "顔 {{index, number}}",
+    "noAvatarFaces": "選べるマーク済みの顔がまだありません。この人物を顔にマークするか、この人物の写真で「顔を検出」を実行してください。",
+    "delete": "人物を削除",
+    "deleteTitle": "{{name}} を削除しますか？",
+    "deleteBody_other": "この人物は {{count, number}} 枚の写真から、各フォルダーの .paloma.json ファイルで外されます。写真そのものは残ります。",
+    "searchPlaceholder": "名前またはニックネームで人物を検索",
+    "noMatches": "一致する人物はいません。",
+    "newNamed": "新しい人物",
+    "newNamedAs": "新しい人物「{{name}}」",
+    "newUnknown": "新しい不明な人物",
+    "modes": "表示内容",
+    "modePhotos": "写真",
+    "modeSimilar": "似ている顔"
   },
   "errors": {
     "network": "Paloma サーバーに接続できません。サーバーが起動しているか確認してください。",
@@ -200,7 +236,9 @@
     "plugin_invalid_body": "プラグインの設定が正しくありません。",
     "edits_invalid": "ステップ {{step}} の編集が正しくありません。",
     "render_failed": "写真を処理できませんでした: {{message}}",
-    "filter_not_found": "プラグイン「{{id}}」にはフィルター「{{filter}}」のアイコンがありません。"
+    "filter_not_found": "プラグイン「{{id}}」にはフィルター「{{filter}}」のアイコンがありません。",
+    "person_not_found": "人物が見つかりません。削除された可能性があります。",
+    "face_not_found": "顔が見つかりません。顔の検出が再実行された可能性があります。"
   },
   "geo": {
     "coordinates": "{{lat}}、{{lon}}",
@@ -313,7 +351,9 @@
     "zoomIn": "拡大",
     "zoomOut": "縮小",
     "fit": "画面に合わせる",
-    "info": "情報"
+    "info": "情報",
+    "faces": "顔",
+    "facesUnavailable": "この写真は傾き補正されているため、顔の枠を表示できません。"
   },
   "tags": {
     "placeholder": "タグを入力して Enter を押してください",
@@ -341,6 +381,11 @@
     "people": "人物",
     "noPeople": "この写真には名前の付いた人物がいません",
     "unknownPerson": "不明な人物",
+    "addPerson": "人物を追加",
+    "removePerson": "この写真から {{name}} を外す",
+    "unassignedFaces": "この写真で見つかった顔：",
+    "whoIsThis": "これは誰？（顔 {{index, number}}）",
+    "whoIsThisTitle": "これは誰？",
     "location": "場所",
     "noLocation": "この写真には場所がありません",
     "fromCamera": "カメラから",
@@ -406,5 +451,31 @@
     "pause": "一時停止",
     "interval": "1 枚あたりの時間",
     "seconds": "{{seconds, number}} 秒"
+  },
+  "faces": {
+    "detect": "顔を検出",
+    "cancel": "顔の検出を中止（{{total, number}} 枚中 {{done, number}} 枚完了）",
+    "cancelling": "中止しています…",
+    "found": "見つかった顔：{{faces, number}}、写真 {{photos, number}} 枚。",
+    "stopped": "顔の検出を中止しました。",
+    "failed": "確認できなかった写真：{{failed, number}}。",
+    "nothingToDo": "これらの写真の顔はすでに検出済みです。",
+    "loadFailed": "顔の検出を開始できませんでした：{{message}}",
+    "noReferenceTitle": "比較できる {{name}} の顔がまだありません",
+    "noReferenceHint": "{{name}} の写真で「顔を検出」を実行してから、ここに戻ってください。",
+    "noSimilarTitle": "似ている顔はありません",
+    "noSimilarHint": "ほかのフォルダーでも「顔を検出」を実行すると、{{name}} の写真がもっと見つかります。",
+    "selectAll": "すべて選択",
+    "selectNone": "選択を解除",
+    "selected": "選択中：{{count, number}}",
+    "assignTo": "これは {{name}}",
+    "notPerson": "{{name}} ではない",
+    "face": "顔 {{index, number}}",
+    "faceHint": "クリックで選択、ダブルクリックで写真を開きます",
+    "unrecognizedTitle": "未認識の顔",
+    "noUnrecognizedTitle": "未認識の顔はありません",
+    "noUnrecognizedHint": "見つかった顔はすべて誰かに割り当て済みです。ほかのフォルダーで「顔を検出」を実行すると、新しい顔が見つかります。",
+    "shownOf": "{{total, number}} 件中 {{shown, number}} 件を表示",
+    "assignFailed": "保存できなかった顔：{{failed, number}}。フォルダーに書き込めません。"
   }
 }

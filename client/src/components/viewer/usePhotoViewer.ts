@@ -15,6 +15,7 @@ import { ZOOM_STEP, clampPan, clampScale, fitted, isFitted, panBy, zoomAt, type 
 import { useSkin } from '../../appearance/runtime.js';
 import { useAllows, useLevel } from '../../levels/controls.js';
 import { offeredFilters } from '../../levels/filters.js';
+import { isFacesKey } from './faceRects.js';
 
 /** A rectangle parameter being edited as a frame over the photo. */
 export interface FrameEdit {
@@ -70,6 +71,12 @@ export function usePhotoViewer(viewer: ViewerState) {
   /** The Info panel starts closed each time the viewer opens, and stays open from photo to photo */
   const [infoOpen, setInfoOpen] = useState(false);
   const showInfo = canInfo && infoOpen;
+  /** Face frames over the photo: offered from Easy, remembered in this browser */
+  const canFaces = useAllows('viewer.faces');
+  const canAssignFaces = useAllows('viewer.faces.assign');
+  const facesOn = useUiSettings((state) => state.showFaces);
+  const showFaces = canFaces && facesOn;
+  const toggleFaces = () => useUiSettings.getState().update({ showFaces: !useUiSettings.getState().showFaces });
 
   const barSize = useSkin().skin.viewerBarSize;
   const navEdge = useUiSettings((state) => state.navBar);
@@ -225,6 +232,8 @@ export function usePhotoViewer(viewer: ViewerState) {
   // Viewer keys; keys typed into controls stay there
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
+      // A dialog over the viewer, like the person picker, handles its own keys
+      if (event.target instanceof Element && event.target.closest('.modal')) return;
       const typing = isTyping(event.target);
       if (event.key === 'Escape') {
         event.preventDefault();
@@ -260,6 +269,8 @@ export function usePhotoViewer(viewer: ViewerState) {
         setZoomChoice('fit');
       } else if (isInfoKey(event, typing, canInfo)) {
         setInfoOpen((open) => !open);
+      } else if (isFacesKey(event, typing, canFaces)) {
+        toggleFaces();
       }
     };
     window.addEventListener('keydown', onKey);
@@ -276,7 +287,7 @@ export function usePhotoViewer(viewer: ViewerState) {
     setShowGrid, stage, full, zoom, preview, setZoom, onStageResize, zoomBy, fit: () => setZoomChoice('fit'),
     canPrev, canNext, prev, next, close, openFrame, applyFrame, cancelFrame, setFrameRatio, chooseFilter, lastStep,
     paletteValues, blocked, setBlocked, saveMessage, canInfo, showInfo, toggleInfo: () => setInfoOpen((open) => !open),
-    closeInfo: () => setInfoOpen(false),
+    closeInfo: () => setInfoOpen(false), previewSteps, canFaces, canAssignFaces, showFaces, toggleFaces,
   };
 }
 

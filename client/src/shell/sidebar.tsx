@@ -1,14 +1,16 @@
 import React, { useId } from 'react';
 import { useTranslation } from 'react-i18next';
-import { BookImage, ChevronDown, Clock, Folder, Image, MapPin, Star, Tag, type LucideIcon } from 'lucide-react';
+import { BookImage, ChevronDown, Clock, Folder, Image, MapPin, ScanFace, Star, Tag, User, type LucideIcon } from 'lucide-react';
 import { usePalomaStore, type FilterType } from '../store/usePalomaStore.js';
 import { SIDEBAR_LISTS, useUiSettings, type SidebarListId } from '../settings/uiSettings.js';
 import { allows, useLevel } from '../levels/controls.js';
 import type { Level } from '../levels/levels.js';
 import { useFolderTree } from './useFolderTree.js';
 import { useTags } from './useTags.js';
+import { sortPeople, usePeople, useUnrecognizedCount } from '../people/usePeople.js';
+import { avatarUrl } from '../api/people.js';
 
-/** One entry of a sidebar list: a shortcut, an album, a tag or a folder. */
+/** One entry of a sidebar list: a shortcut, an album, a tag, a person or a folder. */
 export interface SidebarItem {
   key: string;
   label: string;
@@ -57,18 +59,23 @@ const SHORTCUTS: { filter: FilterType; icon: LucideIcon; iconClass: string; labe
 /** The sidebar lists shown at a level. */
 export const sidebarListsFor = (level: Level): SidebarListId[] => SIDEBAR_LISTS.filter((id) => allows(level, `sidebar.${id}`));
 
-/** The sidebar's lists shown at the active level (shortcuts, albums, folders), with their entries and collapsed state. */
+/** The sidebar's lists shown at the active level (shortcuts, albums, tags, people, folders), with their entries and collapsed state. */
 export function useSidebarSections(): SidebarSectionData[] {
-  const { t } = useTranslation();
-  const shown = sidebarListsFor(useLevel());
+  const { t, i18n } = useTranslation();
+  const level = useLevel();
+  const shown = sidebarListsFor(level);
   const {
     selectedFolderId, setSelectedFolderId, selectedFilter, setSelectedFilter, selectedAlbumToken, setSelectedAlbum,
-    selectedTag, setSelectedTag,
+    selectedTag, setSelectedTag, selectedPerson, setSelectedPerson, selectedUnrecognized, showUnrecognized,
   } = usePalomaStore();
   const collapsed = useUiSettings((state) => state.collapsedSidebarLists);
   const { folders, albums } = useFolderTree();
   const tags = useTags();
-  const nothingSelected = selectedFolderId === null && selectedAlbumToken === null && selectedTag === null;
+  // People on at least one photo that is not hidden
+  const people = sortPeople(usePeople().people.filter((person) => person.photoCount > 0), i18n.language);
+  const unrecognized = useUnrecognizedCount(allows(level, 'faces.unrecognized') && shown.includes('people'));
+  const nothingSelected = selectedFolderId === null && selectedAlbumToken === null && selectedTag === null && selectedPerson === null
+    && !selectedUnrecognized;
 
   const section = (id: SidebarListId, data: Omit<SidebarSectionData, 'id' | 'collapsed' | 'toggle'>): SidebarSectionData => ({
     id, collapsed: collapsed.includes(id), toggle: () => toggleSidebarList(id), ...data,
@@ -117,6 +124,35 @@ export function useSidebarSections(): SidebarSectionData[] {
         active: selectedTag !== null && selectedTag.toLowerCase() === tag.name.toLowerCase(),
         select: () => setSelectedTag(tag.name),
       })),
+    }),
+    section('people', {
+      title: t('sidebar.people'),
+      count: people.length,
+      emptyText: t('sidebar.noPeople'),
+      items: [
+        // Detected faces of no one come first, while there are any
+        ...(unrecognized > 0 ? [{
+          key: 'unrecognized',
+          label: t('people.unrecognized'),
+          icon: ScanFace,
+          iconClass: 'text-success',
+          count: unrecognized,
+          active: selectedUnrecognized,
+          select: showUnrecognized,
+        }] : []),
+        ...people.map((person) => ({
+        key: person.id,
+        label: person.name ?? t('people.unknown'),
+        placeholder: person.name === null,
+        icon: User,
+        iconClass: 'text-success',
+        thumbnailUrl: avatarUrl(person.id, person.avatarVersion),
+        count: person.photoCount,
+        title: person.alias ?? undefined,
+        active: selectedPerson === person.id,
+        select: () => setSelectedPerson(person.id),
+      })),
+      ],
     }),
     section('folders', {
       title: t('sidebar.folders'),

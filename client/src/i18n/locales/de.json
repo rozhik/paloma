@@ -44,7 +44,9 @@
     "collapseList": "Diese Liste ausblenden",
     "expandSidebar": "Seitenleiste anzeigen",
     "collapseSidebar": "Seitenleiste ausblenden",
-    "open": "Ordner und Alben"
+    "open": "Ordner und Alben",
+    "people": "Personen",
+    "noPeople": "Noch keine Personen. Öffnen Sie die Info eines Fotos oder starten Sie „Gesichter finden“."
   },
   "grid": {
     "emptyTitle": "Keine Fotos gefunden",
@@ -171,12 +173,47 @@
     "found_other": "{{count, number}} Geotags gefunden"
   },
   "people": {
-    "title": "👤 Gesichtserkennung und Personen",
-    "add": "Neue Person hinzufügen",
+    "add": "Person hinzufügen",
     "namePlaceholder": "Name (zum Beispiel: Oma Helga)",
-    "create": "Profil erstellen",
     "catalog": "Personen ({{count, number}})",
-    "empty": "Noch keine Personen. Geben Sie links einen Namen ein oder starten Sie die Gesichtserkennung."
+    "empty": "Noch keine Personen. Fügen Sie hier eine Person hinzu, benennen Sie Personen in der Info eines Fotos oder starten Sie „Gesichter finden“ für einen Ordner.",
+    "unknown": "Unbekannte Person",
+    "unrecognized": "Nicht erkannt",
+    "open": "Fotos von {{name}} anzeigen",
+    "edit": "Bearbeiten",
+    "addTitle": "Neue Person",
+    "editTitle": "{{name}} bearbeiten",
+    "name": "Name",
+    "nameOptional": "Lassen Sie den Namen leer, wenn Sie die Person noch nicht kennen.",
+    "alias": "Spitzname",
+    "comment": "Kommentar",
+    "links": "Profile im Internet",
+    "link": "Link {{index, number}}",
+    "addLink": "Link hinzufügen",
+    "removeLink": "Link {{index, number}} entfernen",
+    "birth": "Geburt",
+    "birthYear": "Jahr",
+    "birthDate": "Datum",
+    "gender": "Geschlecht",
+    "genderUnset": "Nicht angegeben",
+    "female": "Weiblich",
+    "male": "Männlich",
+    "avatar": "Avatar",
+    "defaultAvatar": "Standard",
+    "avatarFace": "Gesicht {{index, number}}",
+    "noAvatarFaces": "Noch keine markierten Gesichter zur Auswahl. Markieren Sie diese Person auf einem Gesicht oder starten Sie „Gesichter finden“ für ihre Fotos.",
+    "delete": "Person löschen",
+    "deleteTitle": "{{name}} löschen?",
+    "deleteBody_one": "Die Person wird von {{count, number}} Foto entfernt, in den .paloma.json-Dateien seines Ordners. Die Fotos selbst bleiben.",
+    "deleteBody_other": "Die Person wird von {{count, number}} Fotos entfernt, in den .paloma.json-Dateien ihrer Ordner. Die Fotos selbst bleiben.",
+    "searchPlaceholder": "Person nach Name oder Spitzname suchen",
+    "noMatches": "Niemand gefunden.",
+    "newNamed": "Neue Person",
+    "newNamedAs": "Neue Person „{{name}}“",
+    "newUnknown": "Neue unbekannte Person",
+    "modes": "Anzeigen",
+    "modePhotos": "Fotos",
+    "modeSimilar": "Ähnliche Gesichter"
   },
   "errors": {
     "network": "Der Paloma-Server ist nicht erreichbar. Prüfen Sie, ob er läuft.",
@@ -207,7 +244,9 @@
     "plugin_invalid_body": "Die Plugin-Einstellung ist ungültig.",
     "edits_invalid": "Die Bearbeitung in Schritt {{step}} ist ungültig.",
     "render_failed": "Das Foto konnte nicht berechnet werden: {{message}}",
-    "filter_not_found": "Das Plugin „{{id}}“ hat kein Symbol für den Filter „{{filter}}“."
+    "filter_not_found": "Das Plugin „{{id}}“ hat kein Symbol für den Filter „{{filter}}“.",
+    "person_not_found": "Die Person wurde nicht gefunden. Sie wurde vielleicht gelöscht.",
+    "face_not_found": "Das Gesicht wurde nicht gefunden. Die Gesichtersuche lief vielleicht erneut."
   },
   "geo": {
     "coordinates": "{{lat}}; {{lon}}",
@@ -325,7 +364,9 @@
     "zoomIn": "Vergrößern",
     "zoomOut": "Verkleinern",
     "fit": "An Bildschirm anpassen",
-    "info": "Info"
+    "info": "Info",
+    "faces": "Gesichter",
+    "facesUnavailable": "Gesichtsrahmen können für dieses Foto wegen der Ausrichtung nicht angezeigt werden."
   },
   "tags": {
     "placeholder": "Tag eingeben und Enter drücken",
@@ -354,6 +395,11 @@
     "people": "Personen",
     "noPeople": "Auf diesem Foto sind keine Personen benannt",
     "unknownPerson": "Unbekannte Person",
+    "addPerson": "Person hinzufügen",
+    "removePerson": "{{name}} von diesem Foto entfernen",
+    "unassignedFaces": "Auf diesem Foto gefundene Gesichter:",
+    "whoIsThis": "Wer ist das? (Gesicht {{index, number}})",
+    "whoIsThisTitle": "Wer ist das?",
     "location": "Ort",
     "noLocation": "Dieses Foto hat keinen Ort",
     "fromCamera": "Von der Kamera",
@@ -420,5 +466,31 @@
     "pause": "Pause",
     "interval": "Zeit pro Foto",
     "seconds": "{{seconds, number}} s"
+  },
+  "faces": {
+    "detect": "Gesichter finden",
+    "cancel": "Gesichtersuche anhalten ({{done, number}} von {{total, number}} fertig)",
+    "cancelling": "Wird angehalten…",
+    "found": "Gefundene Gesichter: {{faces, number}}, auf {{photos, number}} Fotos.",
+    "stopped": "Gesichtersuche angehalten.",
+    "failed": "Fotos, die nicht geprüft werden konnten: {{failed, number}}.",
+    "nothingToDo": "Die Gesichter auf diesen Fotos wurden bereits gefunden.",
+    "loadFailed": "Die Gesichtersuche konnte nicht starten: {{message}}",
+    "noReferenceTitle": "Noch keine Gesichter von {{name}} zum Vergleichen",
+    "noReferenceHint": "Starten Sie „Gesichter finden“ für die Fotos von {{name}} und kommen Sie dann hierher zurück.",
+    "noSimilarTitle": "Keine ähnlichen Gesichter",
+    "noSimilarHint": "Starten Sie „Gesichter finden“ für weitere Ordner, um mehr Fotos von {{name}} zu finden.",
+    "selectAll": "Alle auswählen",
+    "selectNone": "Auswahl aufheben",
+    "selected": "Ausgewählt: {{count, number}}",
+    "assignTo": "Das ist {{name}}",
+    "notPerson": "Nicht {{name}}",
+    "face": "Gesicht {{index, number}}",
+    "faceHint": "Klicken zum Auswählen; Doppelklick öffnet das Foto",
+    "unrecognizedTitle": "Nicht erkannte Gesichter",
+    "noUnrecognizedTitle": "Keine nicht erkannten Gesichter",
+    "noUnrecognizedHint": "Jedes bisher gefundene Gesicht gehört jemandem. Starten Sie „Gesichter finden“ für weitere Ordner, um neue zu finden.",
+    "shownOf": "{{shown, number}} von {{total, number}} angezeigt",
+    "assignFailed": "Gesichter, die nicht gespeichert werden konnten: {{failed, number}}. In ihre Ordner kann nicht geschrieben werden."
   }
 }

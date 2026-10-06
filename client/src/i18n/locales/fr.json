@@ -45,7 +45,9 @@
     "collapseList": "Masquer cette liste",
     "expandSidebar": "Afficher le panneau latéral",
     "collapseSidebar": "Masquer le panneau latéral",
-    "open": "Dossiers et albums"
+    "open": "Dossiers et albums",
+    "people": "Personnes",
+    "noPeople": "Aucune personne pour l’instant. Ouvrez les infos d’une photo ou lancez « Trouver les visages »."
   },
   "grid": {
     "emptyTitle": "Aucune photo trouvée",
@@ -178,12 +180,48 @@
     "found_other": "{{count, number}} géolocalisations trouvées"
   },
   "people": {
-    "title": "👤 Reconnaissance faciale et personnes",
     "add": "Ajouter une personne",
     "namePlaceholder": "Nom (par exemple : Mamie Hélène)",
-    "create": "Créer le profil",
     "catalog": "Personnes ({{count, number}})",
-    "empty": "Aucune personne pour l’instant. Saisissez un nom à gauche ou lancez la détection des visages."
+    "empty": "Aucune personne pour l’instant. Ajoutez une personne ici, nommez des personnes dans les infos d’une photo ou lancez « Trouver les visages » sur un dossier.",
+    "unknown": "Personne inconnue",
+    "unrecognized": "Non reconnus",
+    "open": "Afficher les photos de {{name}}",
+    "edit": "Modifier",
+    "addTitle": "Nouvelle personne",
+    "editTitle": "Modifier {{name}}",
+    "name": "Nom",
+    "nameOptional": "Laissez le nom vide pour une personne que vous ne connaissez pas encore.",
+    "alias": "Surnom",
+    "comment": "Commentaire",
+    "links": "Profils sur Internet",
+    "link": "Lien {{index, number}}",
+    "addLink": "Ajouter un lien",
+    "removeLink": "Retirer le lien {{index, number}}",
+    "birth": "Naissance",
+    "birthYear": "Année",
+    "birthDate": "Date",
+    "gender": "Genre",
+    "genderUnset": "Non indiqué",
+    "female": "Féminin",
+    "male": "Masculin",
+    "avatar": "Avatar",
+    "defaultAvatar": "Par défaut",
+    "avatarFace": "Visage {{index, number}}",
+    "noAvatarFaces": "Aucun visage marqué à choisir pour l’instant. Marquez cette personne sur un visage ou lancez « Trouver les visages » sur ses photos.",
+    "delete": "Supprimer la personne",
+    "deleteTitle": "Supprimer {{name}} ?",
+    "deleteBody_one": "La personne est retirée de {{count, number}} photo, dans les fichiers .paloma.json de son dossier. Les photos elles-mêmes restent.",
+    "deleteBody_many": "La personne est retirée de {{count, number}} photos, dans les fichiers .paloma.json de leurs dossiers. Les photos elles-mêmes restent.",
+    "deleteBody_other": "La personne est retirée de {{count, number}} photos, dans les fichiers .paloma.json de leurs dossiers. Les photos elles-mêmes restent.",
+    "searchPlaceholder": "Chercher une personne par nom ou surnom",
+    "noMatches": "Personne ne correspond.",
+    "newNamed": "Nouvelle personne",
+    "newNamedAs": "Nouvelle personne « {{name}} »",
+    "newUnknown": "Nouvelle personne inconnue",
+    "modes": "Afficher",
+    "modePhotos": "Photos",
+    "modeSimilar": "Visages similaires"
   },
   "errors": {
     "network": "Impossible de joindre le serveur Paloma. Vérifiez qu’il est démarré.",
@@ -214,7 +252,9 @@
     "plugin_invalid_body": "Le réglage du module n’est pas valide.",
     "edits_invalid": "La retouche de l’étape {{step}} n’est pas valide.",
     "render_failed": "Impossible de générer la photo : {{message}}",
-    "filter_not_found": "Le plugin « {{id}} » n’a pas d’icône pour le filtre « {{filter}} »."
+    "filter_not_found": "Le plugin « {{id}} » n’a pas d’icône pour le filtre « {{filter}} ».",
+    "person_not_found": "La personne est introuvable. Elle a peut-être été supprimée.",
+    "face_not_found": "Le visage est introuvable. La recherche de visages a peut-être été relancée."
   },
   "geo": {
     "coordinates": "{{lat}} ; {{lon}}",
@@ -337,7 +377,9 @@
     "zoomIn": "Zoom avant",
     "zoomOut": "Zoom arrière",
     "fit": "Ajuster à l’écran",
-    "info": "Infos"
+    "info": "Infos",
+    "faces": "Visages",
+    "facesUnavailable": "Les cadres des visages ne peuvent pas être affichés pour cette photo à cause du redressement."
   },
   "tags": {
     "placeholder": "Saisissez une étiquette et appuyez sur Entrée",
@@ -367,6 +409,11 @@
     "people": "Personnes",
     "noPeople": "Aucune personne n’est nommée sur cette photo",
     "unknownPerson": "Personne inconnue",
+    "addPerson": "Ajouter une personne",
+    "removePerson": "Retirer {{name}} de cette photo",
+    "unassignedFaces": "Visages trouvés sur cette photo :",
+    "whoIsThis": "Qui est-ce ? (visage {{index, number}})",
+    "whoIsThisTitle": "Qui est-ce ?",
     "location": "Lieu",
     "noLocation": "Cette photo n’a pas de lieu",
     "fromCamera": "De l’appareil photo",
@@ -434,5 +481,31 @@
     "pause": "Pause",
     "interval": "Durée par photo",
     "seconds": "{{seconds, number}} s"
+  },
+  "faces": {
+    "detect": "Trouver les visages",
+    "cancel": "Arrêter la recherche de visages ({{done, number}} sur {{total, number}} faites)",
+    "cancelling": "Arrêt…",
+    "found": "Visages trouvés : {{faces, number}}, sur {{photos, number}} photos.",
+    "stopped": "Recherche de visages arrêtée.",
+    "failed": "Photos qui n’ont pas pu être vérifiées : {{failed, number}}.",
+    "nothingToDo": "Les visages de ces photos ont déjà été trouvés.",
+    "loadFailed": "La recherche de visages n’a pas pu démarrer : {{message}}",
+    "noReferenceTitle": "Aucun visage de {{name}} à comparer pour l’instant",
+    "noReferenceHint": "Lancez « Trouver les visages » sur les photos de {{name}}, puis revenez ici.",
+    "noSimilarTitle": "Aucun visage similaire",
+    "noSimilarHint": "Lancez « Trouver les visages » sur d’autres dossiers pour trouver plus de photos de {{name}}.",
+    "selectAll": "Tout sélectionner",
+    "selectNone": "Tout désélectionner",
+    "selected": "Sélectionnés : {{count, number}}",
+    "assignTo": "C’est {{name}}",
+    "notPerson": "Pas {{name}}",
+    "face": "Visage {{index, number}}",
+    "faceHint": "Cliquez pour sélectionner ; double-cliquez pour ouvrir la photo",
+    "unrecognizedTitle": "Visages non reconnus",
+    "noUnrecognizedTitle": "Aucun visage non reconnu",
+    "noUnrecognizedHint": "Chaque visage trouvé appartient déjà à quelqu’un. Lancez « Trouver les visages » sur d’autres dossiers pour en trouver de nouveaux.",
+    "shownOf": "{{shown, number}} sur {{total, number}} affichés",
+    "assignFailed": "Visages qui n’ont pas pu être enregistrés : {{failed, number}}. Leurs dossiers ne sont pas modifiables."
   }
 }

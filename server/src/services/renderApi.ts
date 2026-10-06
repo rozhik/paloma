@@ -12,7 +12,7 @@ export const MAX_PREVIEW_SIZE = 4096;
 
 export type ImageResult =
   | { status: 200; kind: 'buffer'; image: Buffer; type: string; fullSize?: { width: number; height: number } }
-  | { status: 200; kind: 'file'; file: string }
+  | { status: 200; kind: 'file'; file: string; type?: string; cacheControl?: string }
   | { status: 400 | 404 | 500; body: ApiError };
 
 function photoFile(photoId: number) {

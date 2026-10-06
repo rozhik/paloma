@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { usePalomaStore } from './store/usePalomaStore.js';
 import { PhotoViewer } from './components/viewer/PhotoViewer.js';
 import { ExportWizardModal } from './components/ExportWizardModal.js';
@@ -12,6 +13,11 @@ import { SettingsView } from './components/SettingsView.js';
 import { AlbumHeader } from './components/AlbumHeader.js';
 import { LibraryHeader } from './components/LibraryHeader.js';
 import { TagHeader } from './components/TagHeader.js';
+import { PersonHeader } from './people/PersonHeader.js';
+import { usePerson } from './people/usePerson.js';
+import { SimilarFaces } from './faces/SimilarFaces.js';
+import { UnrecognizedFaces } from './faces/UnrecognizedFaces.js';
+import { FaceDetectionOverlay } from './faces/FaceDetectionProgress.js';
 import { Slideshow } from './components/slideshow/Slideshow.js';
 import { useLibraryPhotos } from './shell/useLibraryPhotos.js';
 import { useAppearanceSync, useSkin } from './appearance/runtime.js';
@@ -19,20 +25,35 @@ import { allows, useLevel } from './levels/controls.js';
 import { usePinGate } from './levels/pinGate.js';
 import { SettingsPinDialog } from './levels/PinDialog.js';
 
-/** The library: the album's or tag's header if one is open, else a header with the slideshow, over the skin's photo grid. */
+/**
+ * The library: the album's, tag's or person's header if one is open, else a header with the slideshow, over the
+ * skin's photo grid, or a person's similar faces.
+ */
 const Library: React.FC = () => {
   const selectedAlbumToken = usePalomaStore((state) => state.selectedAlbumToken);
   const selectedTag = usePalomaStore((state) => state.selectedTag);
+  const selectedPerson = usePalomaStore((state) => state.selectedPerson);
+  const personMode = usePalomaStore((state) => state.personMode);
+  const selectedUnrecognized = usePalomaStore((state) => state.selectedUnrecognized);
+  const level = useLevel();
+  const canChoosePerson = allows(level, 'people.choose');
+  const canSimilar = allows(level, 'faces.similar');
+  const { person, setPerson } = usePerson(canChoosePerson ? selectedPerson : null);
   const { components: { PhotoGrid } } = useSkin();
+  const { t } = useTranslation();
   const { photos, toggleStar } = useLibraryPhotos();
+  if (selectedUnrecognized && allows(level, 'faces.unrecognized')) return <UnrecognizedFaces />;
   const header = selectedAlbumToken !== null
     ? <AlbumHeader token={selectedAlbumToken} photos={photos} />
     : selectedTag !== null ? <TagHeader tag={selectedTag} photos={photos} />
+    : person !== null ? <PersonHeader person={person} photos={photos} onSaved={setPerson} />
     : photos.length > 0 ? <LibraryHeader photos={photos} /> : null;
   return (
     <>
       {header}
-      <PhotoGrid photos={photos} belowHeader={header !== null} onStarToggle={toggleStar} />
+      {person !== null && canSimilar && personMode === 'similar'
+        ? <SimilarFaces personId={person.id} name={person.name ?? t('people.unknown')} />
+        : <PhotoGrid photos={photos} belowHeader={header !== null} onStarToggle={toggleStar} />}
     </>
   );
 };
@@ -92,6 +113,8 @@ export const App: React.FC = () => {
       <MovieMakerModal show={showMovieModal} onHide={() => setShowMovieModal(false)} />
 
       {/* Over whatever view opened it, which stays mounted with its scroll position */}
+      <FaceDetectionOverlay />
+
       <PhotoViewer />
 
       <Slideshow />

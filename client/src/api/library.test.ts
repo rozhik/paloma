@@ -15,5 +15,7 @@ describe('libraryQueryParams', () => {
     expect(libraryQueryParams({ ...NONE, selectedFilter: 'starred' }, 'en').get('starred')).toBe('true');
     expect(libraryQueryParams({ ...NONE, selectedFilter: 'geotagged' }, 'en').get('geotagged')).toBe('true');
     expect(Object.fromEntries(libraryQueryParams({ ...NONE, selectedTag: 'Dawn' }, 'en'))).toEqual({ tag: 'Dawn', lang: 'en' });
+    expect(Object.fromEntries(libraryQueryParams({ ...NONE, selectedPerson: 'b8e4117cf1d6615b', searchQuery: 'beach' }, 'en')))
+      .toEqual({ person: 'b8e4117cf1d6615b', query: 'beach', lang: 'en' });
   });
 });

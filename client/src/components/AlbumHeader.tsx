@@ -10,6 +10,7 @@ import { useFormat } from '../i18n/format.js';
 import { AlbumPropertiesModal } from './AlbumPropertiesModal.js';
 import { useAllows } from '../levels/controls.js';
 import { SlideshowButton } from './slideshow/SlideshowButton.js';
+import { FaceDetectionButton } from '../faces/FaceDetectionButton.js';
 
 interface AlbumHeaderProps {
   token: string;
@@ -70,7 +71,8 @@ export const AlbumHeader: React.FC<AlbumHeaderProps> = ({ token, photos }) => {
             <p className="mb-0 text-muted d-flex align-items-center gap-1"><MapPin size={16} /> <span dir="auto">{album.location}</span></p>
           )}
         </div>
-        <div className="d-flex gap-2 flex-shrink-0">
+        <div className="d-flex gap-2 flex-shrink-0 flex-wrap">
+          <FaceDetectionButton photos={photos} />
           <SlideshowButton photos={photos} />
           {canEdit && (
             <button className="btn btn-outline-primary btn-lg-custom" onClick={() => setShowProperties(true)}>

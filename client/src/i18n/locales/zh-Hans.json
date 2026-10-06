@@ -43,7 +43,9 @@
     "collapseList": "隐藏此列表",
     "expandSidebar": "显示侧边栏",
     "collapseSidebar": "隐藏侧边栏",
-    "open": "文件夹和相册"
+    "open": "文件夹和相册",
+    "people": "人物",
+    "noPeople": "还没有人物。打开照片的信息，或运行“查找人脸”。"
   },
   "grid": {
     "emptyTitle": "未找到照片",
@@ -164,12 +166,46 @@
     "found_other": "找到 {{count, number}} 个地理标记"
   },
   "people": {
-    "title": "👤 人脸识别与人物",
-    "add": "添加新人物",
+    "add": "添加人物",
     "namePlaceholder": "姓名（例如：王奶奶）",
-    "create": "创建资料",
     "catalog": "人物（{{count, number}}）",
-    "empty": "还没有人物。在左侧输入姓名，或运行人脸扫描。"
+    "empty": "还没有人物。在这里添加人物，在照片信息中为人物命名，或对文件夹运行“查找人脸”。",
+    "unknown": "未知人物",
+    "unrecognized": "未识别",
+    "open": "显示 {{name}} 的照片",
+    "edit": "编辑",
+    "addTitle": "新人物",
+    "editTitle": "编辑 {{name}}",
+    "name": "姓名",
+    "nameOptional": "对于还不认识的人，可以将姓名留空。",
+    "alias": "昵称",
+    "comment": "备注",
+    "links": "网上的个人主页",
+    "link": "链接 {{index, number}}",
+    "addLink": "添加链接",
+    "removeLink": "移除链接 {{index, number}}",
+    "birth": "出生",
+    "birthYear": "年份",
+    "birthDate": "日期",
+    "gender": "性别",
+    "genderUnset": "未设置",
+    "female": "女",
+    "male": "男",
+    "avatar": "头像",
+    "defaultAvatar": "默认",
+    "avatarFace": "人脸 {{index, number}}",
+    "noAvatarFaces": "还没有可选择的已标记人脸。请在人脸上标记此人，或对其照片运行“查找人脸”。",
+    "delete": "删除人物",
+    "deleteTitle": "要删除 {{name}} 吗？",
+    "deleteBody_other": "此人将从 {{count, number}} 张照片中移除（修改其文件夹中的 .paloma.json 文件）。照片本身会保留。",
+    "searchPlaceholder": "按姓名或昵称查找人物",
+    "noMatches": "没有匹配的人。",
+    "newNamed": "新人物",
+    "newNamedAs": "新人物“{{name}}”",
+    "newUnknown": "新的未知人物",
+    "modes": "显示内容",
+    "modePhotos": "照片",
+    "modeSimilar": "相似的人脸"
   },
   "errors": {
     "network": "无法连接到 Paloma 服务器。请检查服务器是否正在运行。",
@@ -200,7 +236,9 @@
     "plugin_invalid_body": "插件设置无效。",
     "edits_invalid": "第 {{step}} 步的编辑无效。",
     "render_failed": "无法处理照片：{{message}}",
-    "filter_not_found": "插件“{{id}}”没有滤镜“{{filter}}”的图标。"
+    "filter_not_found": "插件“{{id}}”没有滤镜“{{filter}}”的图标。",
+    "person_not_found": "找不到该人物，可能已被删除。",
+    "face_not_found": "找不到该人脸，可能已重新查找人脸。"
   },
   "geo": {
     "coordinates": "{{lat}}，{{lon}}",
@@ -313,7 +351,9 @@
     "zoomIn": "放大",
     "zoomOut": "缩小",
     "fit": "适应屏幕",
-    "info": "信息"
+    "info": "信息",
+    "faces": "人脸",
+    "facesUnavailable": "这张照片经过拉直，无法显示人脸框。"
   },
   "tags": {
     "placeholder": "输入标签后按 Enter",
@@ -341,6 +381,11 @@
     "people": "人物",
     "noPeople": "这张照片没有标注人物",
     "unknownPerson": "未知人物",
+    "addPerson": "添加人物",
+    "removePerson": "从这张照片中移除 {{name}}",
+    "unassignedFaces": "在这张照片中找到的人脸：",
+    "whoIsThis": "这是谁？（人脸 {{index, number}}）",
+    "whoIsThisTitle": "这是谁？",
     "location": "位置",
     "noLocation": "这张照片没有位置",
     "fromCamera": "来自相机",
@@ -406,5 +451,31 @@
     "pause": "暂停",
     "interval": "每张照片的时长",
     "seconds": "{{seconds, number}} 秒"
+  },
+  "faces": {
+    "detect": "查找人脸",
+    "cancel": "停止查找人脸（已完成 {{done, number}}/{{total, number}}）",
+    "cancelling": "正在停止…",
+    "found": "找到人脸：{{faces, number}} 张，分布在 {{photos, number}} 张照片中。",
+    "stopped": "已停止查找人脸。",
+    "failed": "无法检查的照片：{{failed, number}} 张。",
+    "nothingToDo": "这些照片中的人脸已经找过了。",
+    "loadFailed": "无法开始查找人脸：{{message}}",
+    "noReferenceTitle": "还没有可供比较的 {{name}} 的人脸",
+    "noReferenceHint": "对 {{name}} 的照片运行“查找人脸”，然后再回到这里。",
+    "noSimilarTitle": "没有相似的人脸",
+    "noSimilarHint": "对更多文件夹运行“查找人脸”，以找到 {{name}} 的更多照片。",
+    "selectAll": "全选",
+    "selectNone": "取消全选",
+    "selected": "已选：{{count, number}}",
+    "assignTo": "这是 {{name}}",
+    "notPerson": "不是 {{name}}",
+    "face": "人脸 {{index, number}}",
+    "faceHint": "单击选择；双击打开照片",
+    "unrecognizedTitle": "未识别的人脸",
+    "noUnrecognizedTitle": "没有未识别的人脸",
+    "noUnrecognizedHint": "目前找到的每张人脸都已属于某人。对更多文件夹运行“查找人脸”以找到新的人脸。",
+    "shownOf": "显示 {{shown, number}}/{{total, number}}",
+    "assignFailed": "无法保存的人脸：{{failed, number}} 张。无法写入其文件夹。"
   }
 }

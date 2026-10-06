@@ -8,7 +8,7 @@ import { geoPlaces, photos } from '../db/schema.js';
 import { apiError } from './apiError.js';
 import { getApiPhoto, type ApiResult } from './photoApi.js';
 import { shownAlbumTexts } from './albumApi.js';
-import { peopleOnPhoto } from './people.js';
+import { peopleOnPhoto, unassignedFaces } from './people.js';
 import { normalizeLang } from './placeCache.js';
 import { SidecarService } from './SidecarService.js';
 import { readPicasaIni } from './picasaIni.js';
@@ -112,6 +112,7 @@ export async function getPhotoInfo(photoId: number, lang: unknown): Promise<ApiR
       file,
       albums: photo.albums.map((token) => ({ token, name: albumTexts.get(token)?.name ?? null })),
       people: peopleOnPhoto(photoId),
+      faces: unassignedFaces(photoId),
       place,
       exif: await readExifFields(photo.filePath),
       entry: sidecarEntry(path.dirname(photo.filePath), photo.filename),

@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import type {
-  EditStep, Geotag, PalomaAlbumDefinition, PalomaFace, PalomaFolderFile, PalomaPerson, PalomaPhotoEntry,
+  EditStep, Geotag, PalomaAlbumDefinition, PalomaFace, PalomaFolderFile, PalomaPerson, PalomaPhotoEntry, RelativeRect,
 } from '../../../shared/types.js';
 import { ALBUM_KEYS, readPicasaIni, type IniAlbum, type PhotoFields, type PicasaIniRead } from './picasaIni.js';
 import { isGeotag, roundGeotag } from './location.js';
@@ -44,6 +44,16 @@ export interface FieldPatch {
   geotag?: Geotag | null | false;
   /** The whole edit chain; `[]` removes the edits */
   edits?: EditStep[];
+  /** Adds a person's mark to `faces`, see `withMark` */
+  addMark?: FaceMark;
+  /** Removes every face of this contact id from `faces` */
+  removePerson?: string;
+}
+
+/** A person's mark on a photo: their contact id and, when known, the rectangle of their face. */
+export interface FaceMark {
+  person: string;
+  rect?: RelativeRect;
 }
 
 export class SidecarUnreadableError extends Error {
@@ -71,16 +81,52 @@ function stringList(value: unknown): string[] | undefined {
   return list.length > 0 ? list : undefined;
 }
 
-const CONTACT_ID = /^[0-9a-f]{16}$/;
+export const CONTACT_ID = /^[0-9a-f]{16}$/;
 
 const isFraction = (value: unknown): value is number => typeof value === 'number' && value >= 0 && value <= 1;
 
+export function isRelativeRect(value: unknown): value is RelativeRect {
+  if (!isPlainObject(value)) return false;
+  const { left, top, right, bottom } = value;
+  return [left, top, right, bottom].every(isFraction);
+}
+
+/** A person's face, with or without a rectangle, or an ignored face, which needs one. */
 function isFace(value: unknown): value is PalomaFace {
-  if (!isPlainObject(value) || !isPlainObject(value.rect)) return false;
-  const { left, top, right, bottom } = value.rect;
-  if (![left, top, right, bottom].every(isFraction)) return false;
-  if (value.ignored === true) return value.person === undefined;
+  if (!isPlainObject(value)) return false;
+  if (value.rect !== undefined && !isRelativeRect(value.rect)) return false;
+  if (value.ignored === true) return value.rect !== undefined && value.person === undefined;
   return typeof value.person === 'string' && CONTACT_ID.test(value.person) && value.ignored === undefined;
+}
+
+const RECT_EPSILON = 1e-6;
+
+export function sameRect(a: RelativeRect, b: RelativeRect): boolean {
+  return Math.abs(a.left - b.left) < RECT_EPSILON && Math.abs(a.top - b.top) < RECT_EPSILON
+    && Math.abs(a.right - b.right) < RECT_EPSILON && Math.abs(a.bottom - b.bottom) < RECT_EPSILON;
+}
+
+/**
+ * An entry's `faces` with a person's mark added; undefined when the mark is already there. A mark without a
+ * rectangle is there when the person has any face; one with a rectangle replaces the person's faces without
+ * one. Faces Paloma does not understand are kept.
+ */
+export function withMark(faces: unknown, mark: FaceMark): unknown[] | undefined {
+  const list: unknown[] = Array.isArray(faces) ? faces : [];
+  const own = list.filter((face): face is PalomaFace => isFace(face) && face.person === mark.person);
+  if (!mark.rect) {
+    return own.length > 0 ? undefined : [...structuredClone(list), { person: mark.person }];
+  }
+  if (own.some((face) => face.rect && sameRect(face.rect, mark.rect!))) return undefined;
+  const kept = list.filter((face) => !(isFace(face) && face.person === mark.person && !face.rect));
+  return [...structuredClone(kept), { rect: { ...mark.rect }, person: mark.person }];
+}
+
+/** An entry's `faces` without any face of the person; undefined when it has none. */
+export function withoutPerson(faces: unknown, person: string): unknown[] | undefined {
+  if (!Array.isArray(faces)) return undefined;
+  const kept = faces.filter((face) => !(isFace(face) && face.person === person));
+  return kept.length < faces.length ? structuredClone(kept) : undefined;
 }
 
 /** The valid faces of an entry's `faces`; undefined when it is not an array or none is valid. */
@@ -440,4 +486,12 @@ function applyPatch(entry: PalomaPhotoEntry, patch: FieldPatch): void {
   if (patch.edits !== undefined) {
     if (patch.edits.length > 0) entry.edits = structuredClone(patch.edits); else delete entry.edits;
   }
+  if (patch.removePerson !== undefined) setFaces(entry, withoutPerson(entry.faces, patch.removePerson));
+  if (patch.addMark !== undefined) setFaces(entry, withMark(entry.faces, patch.addMark));
+}
+
+/** Stores changed faces; an empty list removes the key, undefined leaves the entry as it is. */
+function setFaces(entry: PalomaPhotoEntry, faces: unknown[] | undefined): void {
+  if (faces === undefined) return;
+  if (faces.length > 0) entry.faces = faces as PalomaFace[]; else delete entry.faces;
 }

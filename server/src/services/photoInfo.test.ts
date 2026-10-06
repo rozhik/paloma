@@ -66,9 +66,10 @@ describe('getPhotoInfo', () => {
     const body = result.body as import('../../../shared/types.js').PhotoInfo;
     expect(body.file).toMatchObject({ path: path.join(dir, 'a.jpg'), size: fs.statSync(path.join(dir, 'a.jpg')).size });
     expect(body.albums).toEqual([{ token: 'c9ea', name: 'Birds' }]);
-    expect(body.people).toEqual([{ id: 'b8e4117cf1d6615b', name: 'Roy Avery' }]);
+    expect(body.people).toEqual([{ id: 'b8e4117cf1d6615b', name: 'Roy Avery', avatarVersion: null, rects: [] }]);
     expect(body.exif?.Image).toMatchObject({ Make: 'Canon', Model: 'Canon EOS 80D' });
     expect(body.entry).toEqual({ source: 'none' });
+    expect(body.faces).toEqual([]);
     expect(listing()).toEqual(before);
   });
 

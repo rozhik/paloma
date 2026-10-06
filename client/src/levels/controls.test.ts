@@ -27,6 +27,13 @@ describe('control levels', () => {
     expect(CONTROL_LEVELS['tray.removeTag']).toBe('easy');
   });
 
+  it('let Easy see people and only Normal change them; Child sees none', () => {
+    const seeing = ['sidebar.people', 'people.choose', 'info.people', 'viewer.faces'] as const;
+    const changing = ['view.people', 'people.edit', 'info.people.edit', 'viewer.faces.assign', 'faces.detect', 'faces.similar', 'faces.unrecognized'] as const;
+    for (const id of seeing) expect([allows('child', id), allows('easy', id)], id).toEqual([false, true]);
+    for (const id of changing) expect([allows('easy', id), allows('normal', id)], id).toEqual([false, true]);
+  });
+
   it('show the Info panel at Easy, its EXIF from Professional and its JSON only at Developer', () => {
     expect(['child', 'easy', 'normal', 'pro', 'developer'].map((level) => [
       allows(level as never, 'viewer.info'), allows(level as never, 'info.exif'), allows(level as never, 'info.json'),

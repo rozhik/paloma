@@ -87,7 +87,7 @@ describe('people', () => {
     definePerson('/photos/a', ROY, null);
     definePerson('/photos/b', ROY, 'Roy Avery');
 
-    expect(people.peopleOnPhoto(id)).toEqual([{ id: ROY, name: 'Roy Avery' }]);
+    expect(people.peopleOnPhoto(id)).toEqual([{ id: ROY, name: 'Roy Avery', avatarVersion: null, rects: [] }]);
   });
 
   it('prefers the first folder by path and gives null for an unknown contact', () => {

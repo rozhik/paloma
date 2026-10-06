@@ -165,7 +165,7 @@ export function getApiPhoto(photoId: number): Photo | undefined {
  * Writes a field change to the photo's folder sidecar, then updates the library from disk.
  * Returns the error result when the sidecar is unreadable or cannot be written, leaving the library unchanged.
  */
-function savePhotoPatch(photo: Photo, patch: FieldPatch): ApiResult<never> | null {
+export function savePhotoPatch(photo: Photo, patch: FieldPatch): ApiResult<never> | null {
   const dir = photo.folderPath!;
   try {
     SidecarService.updatePhotoFields(dir, photo.filename, patch);

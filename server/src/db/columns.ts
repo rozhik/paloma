@@ -130,3 +130,60 @@ export function createTextTables(sqlite: Database.Database): void {
     CREATE INDEX IF NOT EXISTS photo_people_contact ON photo_people(contact_id);
   `);
 }
+
+/**
+ * People and face detection: person profiles keyed by contact id, and the faces found on photos with their
+ * hidden descriptors. Drops the MVP database-only `people` and `face_annotations`, which nothing real used.
+ */
+export function createPeopleTables(sqlite: Database.Database): void {
+  sqlite.exec(`
+    DROP TABLE IF EXISTS face_annotations;
+    DROP TABLE IF EXISTS people;
+
+    CREATE TABLE IF NOT EXISTS persons (
+      contact_id TEXT PRIMARY KEY,
+      name TEXT,
+      alias TEXT,
+      comment TEXT,
+      links TEXT,
+      birth TEXT,
+      gender TEXT,
+      avatar_folder TEXT,
+      avatar_file TEXT,
+      avatar_rect TEXT,
+      edited INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS photo_faces (
+      photo_id INTEGER NOT NULL REFERENCES photos(id) ON DELETE CASCADE,
+      position INTEGER NOT NULL,
+      contact_id TEXT NOT NULL,
+      rect TEXT,
+      PRIMARY KEY (photo_id, position)
+    );
+    CREATE INDEX IF NOT EXISTS photo_faces_contact ON photo_faces(contact_id);
+
+    CREATE TABLE IF NOT EXISTS face_detections (
+      photo_id INTEGER PRIMARY KEY REFERENCES photos(id) ON DELETE CASCADE,
+      detector TEXT NOT NULL,
+      file_hash TEXT NOT NULL,
+      detected_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS detected_faces (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      photo_id INTEGER NOT NULL REFERENCES photos(id) ON DELETE CASCADE,
+      rect TEXT NOT NULL,
+      score REAL NOT NULL,
+      descriptor BLOB NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS detected_faces_photo ON detected_faces(photo_id);
+
+    CREATE TABLE IF NOT EXISTS face_dismissals (
+      face_id INTEGER NOT NULL REFERENCES detected_faces(id) ON DELETE CASCADE,
+      contact_id TEXT NOT NULL,
+      PRIMARY KEY (face_id, contact_id)
+    );
+  `);
+}

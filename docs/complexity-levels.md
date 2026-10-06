@@ -19,12 +19,12 @@ The levels of the controls are kept in one table, `CONTROL_LEVELS` in [`client/s
 | Lowest level | Controls |
 | :--- | :--- |
 | Child | Library view; the Albums list in the sidebar; opening a photo in the viewer, with its previous/next and zoom; the slideshow; the Settings view (behind the PIN) |
-| Easy | The shortcuts, Tags and Folders lists in the sidebar; search; selecting photos; starring; the tray's Add to album, Add tags, Remove tag (only while a tag is open), Remove from album, Make cover, Clear, Export and Print; the language switcher in the top bar; the viewer's edit bar; the viewer's Info button and panel, with editing the description and tags |
-| Normal | The People, Map, Collage and Plugins views; the tray's Remove location, Collage and Movie; album properties and Delete; placing photos on the map and removing their location |
+| Easy | The shortcuts, Tags, People and Folders lists in the sidebar; choosing a person to see their photos; search; selecting photos; starring; the tray's Add to album, Add tags, Remove tag (only while a tag is open), Remove from album, Make cover, Clear, Export and Print; the language switcher in the top bar; the viewer's edit bar; the viewer's Info button and panel, with editing the description and tags and the list of people on the photo; the viewer's Faces toggle with the face frames |
+| Normal | The People, Map, Collage and Plugins views; the tray's Remove location, Collage and Movie; album properties and Delete; placing photos on the map and removing their location; adding, editing and deleting people; adding, assigning and removing people on a photo, in the Info panel and on face frames; Find faces; Similar faces; the Unrecognized entry of the People list and naming the faces there |
 | Professional | The EXIF section of the Info panel |
 | Developer | The JSON section of the Info panel |
 
-At Child the library shows only the photos of the chosen album, and asks for an album until one is chosen. Photo cards only open the viewer. Switching to Child clears the selection, the search, the folder, the tag and the shortcut; an open album stays.
+At Child the library shows only the photos of the chosen album, and asks for an album until one is chosen. Photo cards only open the viewer. Switching to Child clears the selection, the search, the folder, the tag, the person and the shortcut; an open album stays.
 
 The edit bar offers a plugin's filter only when the level reaches both the plugin's level and the filter's own level. The bundled `basic-effects` plugin (brightness, contrast, black & white, sepia) is `easy`; `basic-transforms` (crop, rotate, flip, straighten) is `normal`. Steps of filters the level hides are still rendered everywhere and are kept when other steps are edited. Plugin authors set levels as described in [Writing Paloma plugins](plugins.md#levels).
 

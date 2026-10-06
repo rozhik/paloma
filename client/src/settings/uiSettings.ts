@@ -13,7 +13,7 @@ export type ThemeChoice = 'system' | ThemeId;
 export const THEME_CHOICES: readonly ThemeChoice[] = ['system', ...THEME_IDS];
 
 /** The lists in the sidebar that can be collapsed. */
-export const SIDEBAR_LISTS = ['shortcuts', 'albums', 'tags', 'folders'] as const;
+export const SIDEBAR_LISTS = ['shortcuts', 'albums', 'tags', 'people', 'folders'] as const;
 export type SidebarListId = typeof SIDEBAR_LISTS[number];
 
 /** Seconds a slideshow shows each photo. */
@@ -37,11 +37,13 @@ export interface UiSettings {
   /** The PIN that unlocks Settings at the Child level; null at every other level */
   pin: PinRecord | null;
   slideshowInterval: SlideshowInterval;
+  /** Face frames drawn over the photo in the viewer */
+  showFaces: boolean;
 }
 
 export const DEFAULT_UI_SETTINGS: UiSettings = {
   navBar: 'top', editBar: 'left', skin: 'classic', theme: 'system', sidebarCollapsed: false, collapsedSidebarLists: [],
-  level: DEFAULT_LEVEL, pin: null, slideshowInterval: 5,
+  level: DEFAULT_LEVEL, pin: null, slideshowInterval: 5, showFaces: false,
 };
 
 /** Key under which the settings are kept in `localStorage`, as JSON. */
@@ -89,6 +91,7 @@ export function parseUiSettings(raw: string | null): UiSettings {
     slideshowInterval: isSlideshowInterval(stored.slideshowInterval)
       ? stored.slideshowInterval
       : DEFAULT_UI_SETTINGS.slideshowInterval,
+    showFaces: typeof stored.showFaces === 'boolean' ? stored.showFaces : DEFAULT_UI_SETTINGS.showFaces,
   };
 }
 
@@ -134,6 +137,7 @@ const settingsOf = (state: UiSettings): UiSettings => ({
   collapsedSidebarLists: state.collapsedSidebarLists,
   ...normalizeLevel(state.level, state.pin),
   slideshowInterval: state.slideshowInterval,
+  showFaces: state.showFaces,
 });
 
 /** The current UI settings; changes are remembered at once, so open views follow without a reload. */

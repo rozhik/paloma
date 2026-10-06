@@ -3,6 +3,7 @@ import { Tag } from 'lucide-react';
 import type { Photo } from '../../../shared/types.js';
 import { useFormat } from '../i18n/format.js';
 import { SlideshowButton } from './slideshow/SlideshowButton.js';
+import { FaceDetectionButton } from '../faces/FaceDetectionButton.js';
 
 interface TagHeaderProps {
   tag: string;
@@ -10,7 +11,7 @@ interface TagHeaderProps {
   photos: Photo[];
 }
 
-/** Above the grid of a tag: its name, its number of photos and the slideshow. */
+/** Above the grid of a tag: its name, its number of photos, face detection and the slideshow. */
 export const TagHeader: React.FC<TagHeaderProps> = ({ tag, photos }) => {
   const { formatNumber } = useFormat();
   return (
@@ -20,7 +21,10 @@ export const TagHeader: React.FC<TagHeaderProps> = ({ tag, photos }) => {
         <span dir="auto" className="text-truncate">{tag}</span>
         <span className="badge pal-badge fs-6">{formatNumber(photos.length)}</span>
       </h4>
-      <SlideshowButton photos={photos} />
+      <div className="d-flex gap-2 flex-wrap">
+        <FaceDetectionButton photos={photos} />
+        <SlideshowButton photos={photos} />
+      </div>
     </div>
   );
 };

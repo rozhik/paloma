@@ -14,8 +14,9 @@ export type ControlId =
   | `sidebar.${SidebarListId}`
   | `tray.${TrayControl}`
   | 'photo.open' | 'photo.select' | 'photo.star'
-  | 'viewer.navigate' | 'viewer.zoom' | 'viewer.editBar' | 'viewer.info'
-  | 'info.exif' | 'info.json'
+  | 'viewer.navigate' | 'viewer.zoom' | 'viewer.editBar' | 'viewer.info' | 'viewer.faces' | 'viewer.faces.assign'
+  | 'info.exif' | 'info.json' | 'info.people' | 'info.people.edit'
+  | 'people.choose' | 'people.edit' | 'faces.detect' | 'faces.similar' | 'faces.unrecognized'
   | 'search' | 'languageSwitcher' | 'slideshow'
   | 'album.editProperties' | 'album.delete'
   | 'map.placePhotos' | 'map.removeLocation';
@@ -51,6 +52,11 @@ export const CONTROL_LEVELS: Record<ControlId, Level> = {
   'viewer.editBar': 'easy',
   // The Info panel with editing the description and tags
   'viewer.info': 'easy',
+  // Seeing people: the sidebar list, a person's photos, the people on a photo and face frames in the viewer
+  'sidebar.people': 'easy',
+  'people.choose': 'easy',
+  'info.people': 'easy',
+  'viewer.faces': 'easy',
 
   'view.people': 'normal',
   'view.map': 'normal',
@@ -63,6 +69,14 @@ export const CONTROL_LEVELS: Record<ControlId, Level> = {
   'album.delete': 'normal',
   'map.placePhotos': 'normal',
   'map.removeLocation': 'normal',
+  // Changing people: profiles, marks on photos, face detection and similar faces
+  'people.edit': 'normal',
+  'info.people.edit': 'normal',
+  'viewer.faces.assign': 'normal',
+  'faces.detect': 'normal',
+  'faces.similar': 'normal',
+  // The Unrecognized entry of the People list and naming the faces there
+  'faces.unrecognized': 'normal',
 
   'info.exif': 'pro',
 

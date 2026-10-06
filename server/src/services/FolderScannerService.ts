@@ -2,7 +2,10 @@ import chokidar, { FSWatcher } from 'chokidar';
 import path from 'node:path';
 import fs from 'node:fs';
 import { db } from '../db/index.js';
-import { folders, photos, edits, faceAnnotations, photoKeywords, photoPeople, albumPhotos, folderAlbums, folderPeople } from '../db/schema.js';
+import {
+  folders, photos, edits, photoKeywords, photoPeople, albumPhotos, folderAlbums, folderPeople,
+  detectedFaces, faceDetections, faceDismissals, persons, photoFaces,
+} from '../db/schema.js';
 import { eq, and, inArray } from 'drizzle-orm';
 import { METADATA_VERSION, MetadataService } from './MetadataService.js';
 import { effectiveLocation } from './location.js';
@@ -111,10 +114,21 @@ function setPhotoKeywords(tx: Tx | typeof db, photoId: number, keywordsJson: str
   }
 }
 
+/**
+ * Indexes the people of the photo's faces and every face of a person with its rectangle; a contact id seen for
+ * the first time becomes a person.
+ */
 function setPhotoPeople(tx: Tx | typeof db, photoId: number, fields: PhotoFields | undefined): void {
   tx.delete(photoPeople).where(eq(photoPeople.photoId, photoId)).run();
+  tx.delete(photoFaces).where(eq(photoFaces.photoId, photoId)).run();
   peopleOfFaces(fields?.faces).forEach((contactId, position) => {
     tx.insert(photoPeople).values({ photoId, contactId, position }).run();
+    tx.insert(persons).values({ contactId, createdAt: new Date().toISOString() }).onConflictDoNothing().run();
+  });
+  (fields?.faces ?? []).filter((face) => !face.ignored && face.person).forEach((face, position) => {
+    tx.insert(photoFaces).values({
+      photoId, position, contactId: face.person!, rect: face.rect ? JSON.stringify(face.rect) : null,
+    }).run();
   });
 }
 
@@ -292,9 +306,13 @@ export class FolderScannerService {
 
     db.transaction((tx) => {
       tx.delete(edits).where(inArray(edits.photoId, photoIds)).run();
-      tx.delete(faceAnnotations).where(inArray(faceAnnotations.photoId, photoIds)).run();
+      const faceIds = tx.select({ id: detectedFaces.id }).from(detectedFaces).where(inArray(detectedFaces.photoId, photoIds));
+      tx.delete(faceDismissals).where(inArray(faceDismissals.faceId, faceIds)).run();
+      tx.delete(detectedFaces).where(inArray(detectedFaces.photoId, photoIds)).run();
+      tx.delete(faceDetections).where(inArray(faceDetections.photoId, photoIds)).run();
       tx.delete(photoKeywords).where(inArray(photoKeywords.photoId, photoIds)).run();
       tx.delete(photoPeople).where(inArray(photoPeople.photoId, photoIds)).run();
+      tx.delete(photoFaces).where(inArray(photoFaces.photoId, photoIds)).run();
       tx.delete(albumPhotos).where(inArray(albumPhotos.photoId, photoIds)).run();
       tx.delete(photos).where(inArray(photos.id, photoIds)).run();
     });

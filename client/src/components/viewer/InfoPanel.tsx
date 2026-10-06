@@ -1,10 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Spinner } from 'react-bootstrap';
 import { useTranslation } from 'react-i18next';
-import { X } from 'lucide-react';
-import type { ExifValue, Photo, PhotoInfo } from '../../../../shared/types.js';
+import { UserPlus, X } from 'lucide-react';
+import type { ExifValue, Photo, PhotoInfo, PhotoPeople } from '../../../../shared/types.js';
 import { describeError } from '../../api/http.js';
 import { fetchPhotoInfo, fetchTags, updatePhotoText } from '../../api/tags.js';
+import { addPersonToPhoto, faceCropUrl, fetchPhotoPeople, removePersonFromPhoto } from '../../api/people.js';
+import { PersonAvatar } from '../../people/PersonAvatar.js';
+import { PersonPicker } from '../../people/PersonPicker.js';
 import { useFormat } from '../../i18n/format.js';
 import { useAllows } from '../../levels/controls.js';
 import { usePalomaStore } from '../../store/usePalomaStore.js';
@@ -33,6 +36,76 @@ const Fact: React.FC<{ label: string; children: React.ReactNode }> = ({ label, c
   </>
 );
 
+interface PeopleSectionProps {
+  people: PhotoPeople;
+  photoId: number;
+  saving: boolean;
+  /** Adds a person to the photo; without these, the section only lists people */
+  onAdd?: () => void;
+  onRemove?: (personId: string) => void;
+  onAssign?: (faceId: number) => void;
+}
+
+/** The people on the photo and, for editing, its detected faces that belong to no one. */
+export const PeopleSection: React.FC<PeopleSectionProps> = ({ people, photoId, saving, onAdd, onRemove, onAssign }) => {
+  const { t } = useTranslation();
+  return (
+    <>
+      {people.people.length === 0 ? <p className="mb-2 opacity-75">{t('info.noPeople')}</p> : (
+        <ul className="list-unstyled mb-2 info-people">
+          {people.people.map((person) => {
+            const name = person.name ?? t('info.unknownPerson');
+            return (
+              <li key={person.id} className="d-flex align-items-center gap-2 mb-1">
+                <PersonAvatar id={person.id} version={person.avatarVersion} size={28} />
+                <span dir="auto" className={`flex-grow-1 text-truncate ${person.name === null ? 'fst-italic' : ''}`}>{name}</span>
+                {onRemove && (
+                  <button
+                    type="button"
+                    className="btn btn-sm viewer-btn"
+                    disabled={saving}
+                    aria-label={t('info.removePerson', { name })}
+                    title={t('info.removePerson', { name })}
+                    onClick={() => onRemove(person.id)}
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {onAssign && people.faces.length > 0 && (
+        <>
+          <p className="mb-1 small opacity-75">{t('info.unassignedFaces')}</p>
+          <ul className="list-unstyled d-flex flex-wrap gap-2 mb-2">
+            {people.faces.map((face, index) => (
+              <li key={face.id}>
+                <button
+                  type="button"
+                  className="btn p-0 info-face"
+                  disabled={saving}
+                  aria-label={t('info.whoIsThis', { index: index + 1 })}
+                  title={t('info.whoIsThis', { index: index + 1 })}
+                  onClick={() => onAssign(face.id)}
+                >
+                  <img src={faceCropUrl(photoId, face.rect, 96)} alt="" width={48} height={48} className="person-avatar" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {onAdd && (
+        <button type="button" className="btn btn-sm btn-outline-secondary" disabled={saving} onClick={onAdd}>
+          <UserPlus size={16} aria-hidden="true" /> {t('info.addPerson')}
+        </button>
+      )}
+    </>
+  );
+};
+
 /** The Info panel's content for a loaded photo; the same in every skin. */
 export const InfoContent: React.FC<{
   info: PhotoInfo;
@@ -40,11 +113,15 @@ export const InfoContent: React.FC<{
   saving: boolean;
   onCaption: (caption: string) => void;
   onKeywords: (keywords: string[]) => void;
-}> = ({ info, knownTags, saving, onCaption, onKeywords }) => {
+  onAddPerson?: () => void;
+  onRemovePerson?: (personId: string) => void;
+  onAssignFace?: (faceId: number) => void;
+}> = ({ info, knownTags, saving, onCaption, onKeywords, onAddPerson, onRemovePerson, onAssignFace }) => {
   const { t, i18n } = useTranslation();
   const { formatDateTime } = useFormat();
   const showExif = useAllows('info.exif');
   const showJson = useAllows('info.json');
+  const editPeople = useAllows('info.people.edit');
   const { photo, file } = info;
   const saved = photo.caption ?? '';
   const [caption, setCaption] = useState(saved);
@@ -111,13 +188,14 @@ export const InfoContent: React.FC<{
       </Section>
 
       <Section title={t('info.people')}>
-        {info.people.length === 0 ? <p className="mb-0 opacity-75">{t('info.noPeople')}</p> : (
-          <ul className="list-unstyled mb-0">
-            {info.people.map((person) => (
-              <li key={person.id} dir="auto" className={person.name === null ? 'fst-italic' : ''}>{person.name ?? t('info.unknownPerson')}</li>
-            ))}
-          </ul>
-        )}
+        <PeopleSection
+          people={{ people: info.people, faces: info.faces }}
+          photoId={photo.id}
+          saving={saving}
+          onAdd={editPeople ? onAddPerson : undefined}
+          onRemove={editPeople ? onRemovePerson : undefined}
+          onAssign={editPeople ? onAssignFace : undefined}
+        />
       </Section>
 
       <Section title={t('info.location')}>
@@ -171,8 +249,10 @@ export const InfoContent: React.FC<{
  */
 export const InfoPanel: React.FC<InfoPanelProps> = ({ photo, style, className, onClose }) => {
   const { t, i18n } = useTranslation();
-  const { replaceViewerPhoto, bumpLibrary } = usePalomaStore();
+  const { replaceViewerPhoto, bumpLibrary, libraryVersion } = usePalomaStore();
   const [info, setInfo] = useState<PhotoInfo | null>(null);
+  /** Choosing a person to add to the photo, or to assign a detected face to */
+  const [picking, setPicking] = useState<{ faceId?: number } | null>(null);
   const [knownTags, setKnownTags] = useState<string[]>([]);
   const [error, setError] = useState<unknown>(null);
   const [saving, setSaving] = useState(false);
@@ -193,6 +273,30 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ photo, style, className, o
   useEffect(() => {
     fetchTags().then((tags) => setKnownTags(tags.map((tag) => tag.name))).catch(() => setKnownTags([]));
   }, []);
+
+  // People changed elsewhere, e.g. on a face frame: refresh them without reloading the panel
+  useEffect(() => {
+    const photoId = photo.id;
+    fetchPhotoPeople(photoId)
+      .then((people) => { if (current.current === photoId) setInfo((shown) => shown && { ...shown, ...people }); })
+      .catch(() => {});
+  }, [libraryVersion]);
+
+  /** Changes the people on the photo and shows the result */
+  const changePeople = async (change: () => Promise<PhotoPeople>) => {
+    const photoId = photo.id;
+    setSaving(true);
+    setError(null);
+    try {
+      const people = await change();
+      if (current.current === photoId) setInfo((shown) => shown && { ...shown, ...people });
+      bumpLibrary();
+    } catch (err) {
+      if (current.current === photoId) setError(err);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   /** Saves a change; shows it at once and puts the saved values back if it fails */
   const save = async (change: { caption?: string; keywords?: string[] }) => {
@@ -236,8 +340,18 @@ export const InfoPanel: React.FC<InfoPanelProps> = ({ photo, style, className, o
             saving={saving}
             onCaption={(caption) => save({ caption })}
             onKeywords={(keywords) => save({ keywords })}
+            onAddPerson={() => setPicking({})}
+            onRemovePerson={(personId) => changePeople(() => removePersonFromPhoto(photo.id, personId))}
+            onAssignFace={(faceId) => setPicking({ faceId })}
           />
         )}
+      <PersonPicker
+        show={picking !== null}
+        title={picking?.faceId !== undefined ? t('info.whoIsThisTitle') : t('info.addPerson')}
+        exclude={picking?.faceId === undefined ? info?.people.map((person) => person.id) : undefined}
+        onHide={() => setPicking(null)}
+        onPick={(personId) => changePeople(() => addPersonToPhoto(photo.id, personId, picking?.faceId))}
+      />
     </aside>
   );
 };

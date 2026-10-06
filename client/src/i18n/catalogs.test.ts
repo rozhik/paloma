@@ -49,7 +49,7 @@ describe('catalogs', () => {
       sidecar_unreadable: true, sidecar_write_failed: true, album_empty: true, export_params_required: true,
       person_name_required: true, internal: true, invalid_location: true, query_required: true, geocoder_disabled: true,
       geocoder_failed: true, plugin_not_found: true, plugin_unavailable: true, plugin_invalid_body: true, filter_not_found: true, edits_invalid: true,
-      render_failed: true,
+      render_failed: true, person_not_found: true, face_not_found: true,
     };
     for (const code of Object.keys(codes)) expect(english.has(`errors.${code}`), code).toBe(true);
   });

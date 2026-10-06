@@ -32,7 +32,10 @@ const info: PhotoInfo = {
   photo,
   file: { path: '/photos/trip/IMG_0042.JPG', size: 3524812, modifiedAt: null },
   albums: [{ token: 'c9ea', name: 'Birds' }, { token: '7f01', name: 'Trip' }],
-  people: [{ id: 'b8e4117cf1d6615b', name: 'Roy Avery' }, { id: '0123456789abcdef', name: null }],
+  people: [
+    { id: 'b8e4117cf1d6615b', name: 'Roy Avery', avatarVersion: 'v1', rects: [] }, { id: '0123456789abcdef', name: null, avatarVersion: null, rects: [] },
+  ],
+  faces: [{ id: 5, photoId: 7, rect: { left: 0.1, top: 0.2, right: 0.3, bottom: 0.5 } }],
   place: 'Yaremche',
   exif: { Image: { Model: 'Canon EOS 80D', MakerNote: { binary: 4000 } }, Photo: { FNumber: '5.6' } },
   entry: { source: 'paloma', json: { star: true, rotate: 90, modified: '2026-10-01T10:00:00.000Z' } },
@@ -40,8 +43,12 @@ const info: PhotoInfo = {
 
 const render = (level: UiSettings['level'], data: PhotoInfo = info) => {
   setSettings({ level });
-  return renderToStaticMarkup(<InfoContent info={data} knownTags={[]} saving={false} onCaption={() => {}} onKeywords={() => {}} />)
-    .replace(/&quot;/g, '"');
+  return renderToStaticMarkup(
+    <InfoContent
+      info={data} knownTags={[]} saving={false} onCaption={() => {}} onKeywords={() => {}}
+      onAddPerson={() => {}} onRemovePerson={() => {}} onAssignFace={() => {}}
+    />,
+  ).replace(/&quot;/g, '"').replace(/&#x27;/g, "'");
 };
 
 describe('Info panel content', () => {
@@ -80,6 +87,28 @@ describe('Info panel content', () => {
       ...info, albums: [], people: [], exif: null, photo: { ...photo, latitude: null, longitude: null, locationSource: null },
     });
     for (const key of ['info.noAlbums', 'info.noPeople', 'info.noLocation', 'info.noExif'] as const) expect(markup).toContain(i18n.t(key));
+  });
+});
+
+describe('Info panel people', () => {
+  const remove = () => i18n.t('info.removePerson', { name: 'Roy Avery' });
+  const who = () => i18n.t('info.whoIsThis', { index: 1 });
+
+  it('lists people with avatars but offers no changes at Easy', () => {
+    const markup = render('easy');
+    expect(markup).toContain('Roy Avery');
+    expect(markup).toContain('/api/people/b8e4117cf1d6615b/avatar?v=v1');
+    expect(markup).not.toContain(remove());
+    expect(markup).not.toContain(i18n.t('info.addPerson'));
+    expect(markup).not.toContain(who());
+  });
+
+  it('offers adding and removing people and assigning unassigned faces at Normal', () => {
+    const markup = render('normal');
+    expect(markup).toContain(remove());
+    expect(markup).toContain(i18n.t('info.addPerson'));
+    expect(markup).toContain(who());
+    expect(markup).toContain('/api/photos/7/face?rect=0.100000,0.200000,0.300000,0.500000&amp;size=96');
   });
 });
 

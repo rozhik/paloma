@@ -62,8 +62,9 @@ beforeAll(async () => {
 beforeEach(() => {
   photosRoot = fs.mkdtempSync(path.join(tmpDir, 'photos_'));
   for (const table of [
-    schema.edits, schema.faceAnnotations, schema.photoKeywords, schema.photoPeople, schema.albumPhotos,
-    schema.folderAlbums, schema.folderPeople, schema.photos, schema.folders,
+    schema.edits, schema.faceDismissals, schema.detectedFaces, schema.faceDetections, schema.photoKeywords,
+    schema.photoPeople, schema.photoFaces, schema.albumPhotos, schema.folderAlbums, schema.folderPeople, schema.persons,
+    schema.photos, schema.folders,
   ]) {
     db.delete(table).run();
   }
@@ -240,16 +241,22 @@ describe('FolderScannerService', () => {
     const now = new Date().toISOString();
     db.insert(schema.edits).values({ photoId: photo.id, editInstructionsJson: '{}', updatedAt: now }).run();
     db.insert(schema.albumPhotos).values({ photoId: photo.id, token: 'c9ea' }).run();
-    db.insert(schema.faceAnnotations).values({ photoId: photo.id, boundingBox: '[0,0,1,1]' }).run();
+    db.insert(schema.faceDetections).values({ photoId: photo.id, detector: 'd', fileHash: photo.fileHash, detectedAt: now }).run();
+    const faceId = db.insert(schema.detectedFaces)
+      .values({ photoId: photo.id, rect: '{}', score: 1, descriptor: Buffer.alloc(512) })
+      .returning({ id: schema.detectedFaces.id }).get().id;
+    db.insert(schema.faceDismissals).values({ faceId, contactId: 'b8e4117cf1d6615b' }).run();
     db.insert(schema.photoKeywords).values({ photoId: photo.id, keyword: 'Old', key: 'old' }).run();
     db.insert(schema.photoPeople).values({ photoId: photo.id, contactId: 'b8e4117cf1d6615b', position: 0 }).run();
+    db.insert(schema.photoFaces).values({ photoId: photo.id, contactId: 'b8e4117cf1d6615b', position: 0 }).run();
 
     fs.rmSync(file);
 
     await vi.waitFor(() => expect(indexedPaths()).toEqual([path.join(photosRoot, 'stays.jpg')]), WAIT);
-    for (const table of [schema.edits, schema.albumPhotos, schema.faceAnnotations, schema.photoKeywords, schema.photoPeople]) {
+    for (const table of [schema.edits, schema.albumPhotos, schema.faceDetections, schema.detectedFaces, schema.photoKeywords, schema.photoPeople, schema.photoFaces]) {
       expect(db.select().from(table).where(eq(table.photoId, photo.id)).all()).toEqual([]);
     }
+    expect(db.select().from(schema.faceDismissals).all()).toEqual([]);
   });
 
   describe('library follows the configured folders', () => {
@@ -802,5 +809,32 @@ describe('description, tags and people in the library', () => {
     expect(db.select().from(schema.folderPeople).all())
       .toEqual([expect.objectContaining({ contactId: 'b8e4117cf1d6615b', name: 'Roy Avery', email: null })]);
     expect(fs.readdirSync(photosRoot).sort()).toEqual(['.picasa.ini', 'a.jpg']);
+  });
+
+  it('adds the contacts named by faces as persons without writing files', async () => {
+    await makeImage(path.join(photosRoot, 'a.jpg'));
+    writeIni(photosRoot, '[Contacts2]', 'b8e4117cf1d6615b=Roy Avery;;', '0123456789abcdef=No Faces;;', '[a.jpg]',
+      'faces=rect64(579922efa1cce2aa),b8e4117cf1d6615b;rect64(2),ffffffffffffffff');
+
+    await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
+
+    expect(db.select({ id: schema.persons.contactId, edited: schema.persons.edited }).from(schema.persons).all())
+      .toEqual([{ id: 'b8e4117cf1d6615b', edited: false }]);
+    expect(db.select({ contactId: schema.photoFaces.contactId, rect: schema.photoFaces.rect }).from(schema.photoFaces).all())
+      .toEqual([{ contactId: 'b8e4117cf1d6615b', rect: expect.stringContaining('"left"') }]);
+    expect(fs.readdirSync(photosRoot).sort()).toEqual(['.picasa.ini', 'a.jpg']);
+  });
+
+  it('adds a person for a mark without a rectangle and keeps persons when their photos go', async () => {
+    const file = path.join(photosRoot, 'a.jpg');
+    await makeImage(file);
+    writeSidecar(photosRoot, { 'a.jpg': { faces: [{ person: '0123456789abcdef' }] } });
+    await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
+    expect(peopleOf('a.jpg')).toEqual(['0123456789abcdef']);
+
+    fs.rmSync(file);
+
+    await vi.waitFor(() => expect(indexedPaths()).toEqual([]), WAIT);
+    expect(db.select({ id: schema.persons.contactId }).from(schema.persons).all()).toEqual([{ id: '0123456789abcdef' }]);
   });
 });

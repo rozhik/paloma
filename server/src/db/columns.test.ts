@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import Database from 'better-sqlite3';
-import { addMissingPhotoColumns, createTextTables, dropMvpEdits, migrateAlbumTables } from './columns.js';
+import { addMissingPhotoColumns, createPeopleTables, createTextTables, dropMvpEdits, migrateAlbumTables } from './columns.js';
 
 describe('addMissingPhotoColumns', () => {
   it('adds caption, keywords and is_hidden to an old photos table and keeps its rows', () => {
@@ -118,5 +118,40 @@ describe('createTextTables', () => {
     }]);
     const indexes = (sqlite.pragma('index_list(photo_keywords)') as Array<{ name: string }>).map((i) => i.name);
     expect(indexes).toContain('photo_keywords_key');
+  });
+});
+
+describe('createPeopleTables', () => {
+  const tables = (sqlite: Database.Database) =>
+    (sqlite.prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name").all() as Array<{ name: string }>)
+      .map((t) => t.name);
+
+  it('creates the people and face tables on an empty database', () => {
+    const sqlite = new Database(':memory:');
+    sqlite.exec('CREATE TABLE photos (id INTEGER PRIMARY KEY AUTOINCREMENT, filename TEXT NOT NULL)');
+
+    createPeopleTables(sqlite);
+    createPeopleTables(sqlite); // idempotent
+
+    expect(tables(sqlite)).toEqual(expect.arrayContaining(['persons', 'photo_faces', 'face_detections', 'detected_faces', 'face_dismissals']));
+  });
+
+  it('drops the MVP people and face_annotations tables and keeps persons across restarts', () => {
+    const sqlite = new Database(':memory:');
+    sqlite.exec(`
+      CREATE TABLE photos (id INTEGER PRIMARY KEY AUTOINCREMENT, filename TEXT NOT NULL);
+      CREATE TABLE people (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, avatar_crop_path TEXT);
+      CREATE TABLE face_annotations (id INTEGER PRIMARY KEY AUTOINCREMENT, photo_id INTEGER NOT NULL, bounding_box TEXT NOT NULL);
+      INSERT INTO people (name) VALUES ('Demo');
+    `);
+
+    createPeopleTables(sqlite);
+    sqlite.exec("INSERT INTO persons (contact_id, name, created_at) VALUES ('b8e4117cf1d6615b', 'Roy', '')");
+    createPeopleTables(sqlite);
+
+    expect(tables(sqlite)).not.toContain('people');
+    expect(tables(sqlite)).not.toContain('face_annotations');
+    expect(sqlite.prepare('SELECT contact_id, name, edited FROM persons').all())
+      .toEqual([{ contact_id: 'b8e4117cf1d6615b', name: 'Roy', edited: 0 }]);
   });
 });

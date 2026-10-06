@@ -1,7 +1,7 @@
 import React from 'react';
 import { Spinner } from 'react-bootstrap';
 import { useTranslation } from 'react-i18next';
-import { ChevronLeft, ChevronRight, Info, Maximize, X, ZoomIn, ZoomOut } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Info, Maximize, ScanFace, X, ZoomIn, ZoomOut } from 'lucide-react';
 import { inwardSide, type BarPlacement } from './barLayout.js';
 import { ViewerButton } from './ViewerButton.js';
 
@@ -29,9 +29,12 @@ interface NavBarProps {
   /** Opens or closes the Info panel; without it the bar has no Info button (the level does not offer it) */
   onInfo?: () => void;
   infoOpen?: boolean;
+  /** Turns face frames on or off; without it the bar has no Faces toggle (the level does not offer it) */
+  onFaces?: () => void;
+  facesOn?: boolean;
 }
 
-/** The viewer's navigation bar: close, previous, next, file name, position, zoom and Info. */
+/** The viewer's navigation bar: close, previous, next, file name, position, zoom, face frames and Info. */
 export const NavBar: React.FC<NavBarProps> = (props) => {
   const { t, i18n } = useTranslation();
   const { placement } = props;
@@ -59,6 +62,11 @@ export const NavBar: React.FC<NavBarProps> = (props) => {
       <span className="viewer-nav-zoom" aria-live="polite">{percent}</span>
       <ViewerButton label={t('viewer.zoomIn')} tip={tip} onClick={props.onZoomIn} disabled={props.zoomLocked}><ZoomIn size={24} /></ViewerButton>
       <ViewerButton label={t('viewer.fit')} tip={tip} onClick={props.onFit} disabled={props.zoomLocked}><Maximize size={22} /></ViewerButton>
+      {props.onFaces && (
+        <ViewerButton label={t('viewer.faces')} tip={tip} onClick={props.onFaces} active={props.facesOn} aria-pressed={!!props.facesOn}>
+          <ScanFace size={24} />
+        </ViewerButton>
+      )}
       {props.onInfo && (
         <ViewerButton label={t('viewer.info')} tip={tip} onClick={props.onInfo} active={props.infoOpen} aria-pressed={!!props.infoOpen}>
           <Info size={24} />

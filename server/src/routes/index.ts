@@ -2,7 +2,7 @@ import { Router, type Response } from 'express';
 import path from 'node:path';
 import fs from 'node:fs';
 import { db } from '../db/index.js';
-import { folders, photos, edits, people, faceAnnotations } from '../db/schema.js';
+import { folders, photos, edits } from '../db/schema.js';
 import { eq, inArray } from 'drizzle-orm';
 import { ThumbnailService } from '../services/ThumbnailService.js';
 import { changePhotosKeywords, listFolders, listPhotos, saveEdits, setPhotosLocation, updatePhoto } from '../services/photoApi.js';
@@ -19,6 +19,12 @@ import { parseEditsJson } from '../services/photoImages.js';
 import { apiError } from '../services/apiError.js';
 import { listTags } from '../services/tagApi.js';
 import { getPhotoInfo } from '../services/photoInfo.js';
+import { personAvatar, photoFace, photoFaceSource } from '../services/faceImages.js';
+import { assignFaces, dismissFaces, pendingPhotos, saveDetectedFaces, similarFaces, unassignedFaces } from '../services/faceDetectionApi.js';
+import {
+  addPersonToPhoto, createPerson, deletePerson, getPerson, getPhotoPeople, listPeople, listPersonFaces, removePersonFromPhoto,
+  updatePerson,
+} from '../services/peopleApi.js';
 import { movieFilename, resolveInside } from '../services/outputPaths.js';
 import { config } from '../config.js';
 import sharp from 'sharp';
@@ -95,8 +101,8 @@ function sendImage(res: Response, result: ImageResult): void {
     res.send(result.image);
   } else {
     // The URL carries the render key, so a changed look always gets a new URL
-    res.setHeader('Content-Type', 'image/webp');
-    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    res.setHeader('Content-Type', result.type ?? 'image/webp');
+    res.setHeader('Cache-Control', result.cacheControl ?? 'public, max-age=31536000, immutable');
     res.sendFile(result.file);
   }
 }
@@ -252,34 +258,104 @@ router.post('/creation/movie', async (req, res) => {
     .run();
 });
 
-// --- People & Face Recognition API ---
+// --- People API ---
 router.get('/people', (req, res) => {
-  const allPeople = db.select().from(people).all();
-  res.json(allPeople);
+  res.json(listPeople());
 });
 
 router.post('/people', (req, res) => {
-  const { name } = req.body;
-  if (typeof name !== 'string' || name.trim() === '') {
-    return res.status(400).json(apiError('person_name_required', 'Name is required'));
-  }
-
-  const inserted = db.insert(people).values({ name }).returning().get();
-  res.json(inserted);
+  const result = createPerson(req.body);
+  res.status(result.status).json(result.body);
 });
 
-router.post('/faces/annotate', (req, res) => {
-  const { photoId, personId, boundingBox, descriptorVector, isConfirmed } = req.body;
+router.get('/people/:id', (req, res) => {
+  const result = getPerson(req.params.id);
+  res.status(result.status).json(result.body);
+});
 
-  const inserted = db.insert(faceAnnotations).values({
-    photoId,
-    personId,
-    boundingBox: JSON.stringify(boundingBox),
-    descriptorVector: descriptorVector ? JSON.stringify(descriptorVector) : null,
-    isConfirmed: Boolean(isConfirmed),
-  }).returning().get();
+router.patch('/people/:id', (req, res) => {
+  const result = updatePerson(req.params.id, req.body);
+  res.status(result.status).json(result.body);
+});
 
-  res.json(inserted);
+router.delete('/people/:id', (req, res) => {
+  const result = deletePerson(req.params.id);
+  res.status(result.status).json(result.body);
+});
+
+router.get('/people/:id/avatar', async (req, res, next) => {
+  try {
+    sendImage(res, await personAvatar(req.params.id));
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/photos/:id/face', async (req, res, next) => {
+  try {
+    sendImage(res, await photoFace(Number(req.params.id), req.query));
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/photos/:id/face-source', async (req, res, next) => {
+  try {
+    sendImage(res, await photoFaceSource(Number(req.params.id)));
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get('/people/:id/faces', (req, res) => {
+  const result = listPersonFaces(req.params.id);
+  res.status(result.status).json(result.body);
+});
+
+router.get('/people/:id/similar', (req, res) => {
+  const result = similarFaces(req.params.id, req.query.limit);
+  res.status(result.status).json(result.body);
+});
+
+router.post('/people/:id/faces', (req, res) => {
+  const result = assignFaces(req.params.id, req.body);
+  res.status(result.status).json(result.body);
+});
+
+router.post('/people/:id/dismissals', (req, res) => {
+  const result = dismissFaces(req.params.id, req.body);
+  res.status(result.status).json(result.body);
+});
+
+// --- Face detection API (detection itself runs in the browser) ---
+router.post('/faces/pending', (req, res) => {
+  const result = pendingPhotos(req.body);
+  res.status(result.status).json(result.body);
+});
+
+router.get('/faces/unassigned', (req, res) => {
+  const result = unassignedFaces(req.query.limit);
+  res.status(result.status).json(result.body);
+});
+
+router.put('/photos/:id/detected-faces', (req, res) => {
+  const result = saveDetectedFaces(Number(req.params.id), req.body);
+  res.status(result.status).json(result.body);
+});
+
+router.get('/photos/:id/people', (req, res) => {
+  const result = getPhotoPeople(Number(req.params.id));
+  res.status(result.status).json(result.body);
+});
+
+router.post('/photos/:id/people', (req, res) => {
+  const result = addPersonToPhoto(Number(req.params.id), req.body);
+  res.status(result.status).json(result.body);
+});
+
+router.delete('/photos/:id/people/:personId', (req, res) => {
+  const result = removePersonFromPhoto(Number(req.params.id), req.params.personId);
+  res.status(result.status).json(result.body);
 });
 
 // --- Geo API ---

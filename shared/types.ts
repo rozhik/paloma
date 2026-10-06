@@ -106,21 +106,93 @@ export interface Photo {
   previewUrl?: string;
 }
 
-export interface Person {
-  id: number;
-  name: string;
-  avatarCropPath: string | null;
-  photoCount?: number;
+export type Gender = 'female' | 'male';
+
+/** `GET /api/people`: one person of the library. Known people have a name; unknown people have none. */
+export interface PersonSummary {
+  /** Contact id: 16 lowercase hex digits */
+  id: string;
+  /** Shown name; null for an unknown person */
+  name: string | null;
+  alias: string | null;
+  /** Changes whenever the avatar changes; null when the person has no avatar */
+  avatarVersion: string | null;
+  /** Photos with a face of the person that are not hidden */
+  photoCount: number;
 }
 
-export interface FaceAnnotation {
+/** `GET /api/people/:id`: a person with the whole profile. Hidden face data is never sent. */
+export interface Person extends PersonSummary {
+  comment: string | null;
+  links: string[];
+  /** `YYYY` or `YYYY-MM-DD` */
+  birth: string | null;
+  gender: Gender | null;
+  /** The face the user chose as avatar while it is still theirs; null for the default, their first face with a rectangle */
+  avatar: PersonFace | null;
+}
+
+/** Body of `POST /api/people` and `PATCH /api/people/:id`; `null` clears a field. */
+export interface PersonInput {
+  name?: string;
+  alias?: string | null;
+  comment?: string | null;
+  links?: string[];
+  birth?: string | null;
+  gender?: Gender | null;
+  /** A face of the person with a rectangle on that photo; null goes back to the default avatar */
+  avatar?: { photoId: number; rect: RelativeRect } | null;
+}
+
+/** A face of a person with a rectangle, as offered by the avatar picker (`GET /api/people/:id/faces`). */
+export interface PersonFace {
+  photoId: number;
+  rect: RelativeRect;
+}
+
+/** A face found by face detection that belongs to no person, on a photo (`PhotoInfo.faces`). */
+export interface DetectedFaceInfo {
   id: number;
   photoId: number;
-  personId: number | null;
-  personName?: string | null;
-  boundingBox: [number, number, number, number]; // [x, y, width, height]
-  descriptorVector: number[] | null;
-  isConfirmed: boolean;
+  rect: RelativeRect;
+}
+
+/** One face of `GET /api/people/:id/similar`, the most similar first. */
+export interface SimilarFace extends DetectedFaceInfo {
+  distance: number;
+}
+
+export interface SimilarFaces {
+  /** The person has no detected face to compare with */
+  noReference: boolean;
+  faces: SimilarFace[];
+}
+
+/** `GET /api/faces/unassigned`: detected faces that belong to no person, newest photos first. */
+export interface UnassignedFaces {
+  /** All of them, also beyond the faces listed */
+  total: number;
+  faces: DetectedFaceInfo[];
+}
+
+/** One detected face sent by the browser in `PUT /api/photos/:id/detected-faces`. */
+export interface DetectedFaceInput {
+  rect: RelativeRect;
+  score: number;
+  /** 128 numbers from the face recognition model */
+  descriptor: number[];
+}
+
+/** The people and unassigned faces of a photo, as returned after a mark changes. */
+export interface PhotoPeople {
+  people: PhotoPerson[];
+  faces: DetectedFaceInfo[];
+}
+
+/** Result of assigning faces in bulk (`POST /api/people/:id/faces`). */
+export interface AssignFacesResult {
+  assigned: number[];
+  failed: number[];
 }
 
 /** `GET /api/tags`: a tag of at least one photo that is not hidden, under its most used spelling. */
@@ -130,11 +202,14 @@ export interface TagSummary {
   photoCount: number;
 }
 
-/** A person named on a photo; `name` is null when no folder names the contact. */
+/** A person on a photo; `name` is null for an unknown person. */
 export interface PhotoPerson {
   /** Contact id: 16 lowercase hex digits */
   id: string;
   name: string | null;
+  avatarVersion: string | null;
+  /** Rectangles of the person's faces on the photo, as fractions of the unedited photo */
+  rects: RelativeRect[];
 }
 
 /** An EXIF value as text, or the size of a binary value (maker note, thumbnail). */
@@ -149,6 +224,8 @@ export interface PhotoInfo {
   file: { path: string; size: number; modifiedAt: string | null };
   albums: { token: string; name: string | null }[];
   people: PhotoPerson[];
+  /** Detected faces that belong to no person */
+  faces: DetectedFaceInfo[];
   /** Place name in the requested language; null when unknown */
   place: string | null;
   /** EXIF fields by group (`Image`, `Photo`, `GPSInfo`, `Iop`, ...); null without EXIF */
@@ -201,7 +278,7 @@ export interface PalomaPhotoEntry {
   keywords?: string[];
   /** Tokens of the albums this photo is in */
   albums?: string[];
-  /** People's faces, read from Picasa; read-only in Paloma */
+  /** People's faces: marks from Picasa or made in Paloma */
   faces?: PalomaFace[];
   /** Location set in Paloma or imported from Picasa; null means the location was removed */
   geotag?: Geotag | null;
@@ -212,10 +289,14 @@ export interface PalomaPhotoEntry {
   [key: string]: unknown;
 }
 
-/** A face on a photo in `.paloma.json` `faces`: a contact's, or one marked as ignored. */
+/**
+ * A face on a photo in `.paloma.json` `faces`: a contact's, with or without a rectangle, or one marked as
+ * ignored, which always has a rectangle.
+ */
 export interface PalomaFace {
-  rect: RelativeRect;
-  /** Contact id: 16 lowercase hex digits, a key of `people` */
+  /** As fractions of the unedited photo */
+  rect?: RelativeRect;
+  /** Contact id: 16 lowercase hex digits */
   person?: string;
   ignored?: true;
 }
@@ -256,6 +337,8 @@ export type ApiErrorCode =
   | 'album_empty'
   | 'export_params_required'
   | 'person_name_required'
+  | 'person_not_found'
+  | 'face_not_found'
   | 'invalid_location'
   | 'query_required'
   | 'geocoder_disabled'

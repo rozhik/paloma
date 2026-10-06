@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import crypto from 'node:crypto';
-import { SidecarService, SidecarUnreadableError } from './SidecarService.js';
+import { SidecarService, SidecarUnreadableError, withMark, withoutPerson } from './SidecarService.js';
 import type { PalomaFolderFile, PalomaPhotoEntry } from '../../../shared/types.js';
 
 let dir: string;
@@ -530,13 +530,22 @@ describe('faces and people', () => {
     expect(SidecarService.getFolderState(dir).photos).toEqual({ 'a.jpg': { caption: '', keywords: [] } });
   });
 
-  it('ignores a malformed face for the library and keeps it in the file', () => {
+  it.each([
+    [[{ person: 5 }]],
+    [[{ ignored: true }]],
+    [[{ person: 'b8e4117cf1d6615b', rect: { left: 2, top: 0, right: 1, bottom: 1 } }]],
+  ])('ignores a malformed face %j for the library and keeps it in the file', (faces) => {
     touch('a.jpg', 'b.jpg');
-    writeJson({ format: 'paloma-folder', version: 2, photos: { 'a.jpg': { faces: [{ person: 5 }] } } });
+    writeJson({ format: 'paloma-folder', version: 2, photos: { 'a.jpg': { faces } } });
 
     expect(SidecarService.getFolderState(dir).photos).toEqual({});
     SidecarService.updatePhotoFields(dir, 'b.jpg', { star: true });
-    expect(readJson().photos['a.jpg']).toEqual({ faces: [{ person: 5 }] });
+    expect(readJson().photos['a.jpg']).toEqual({ faces });
+  });
+
+  it('reads a mark without a rectangle', () => {
+    writeJson({ format: 'paloma-folder', version: 2, photos: { 'a.jpg': { faces: [{ person: 'b8e4117cf1d6615b' }] } } });
+    expect(SidecarService.getFolderState(dir).photos['a.jpg']).toEqual({ faces: [{ person: 'b8e4117cf1d6615b' }] });
   });
 
   it('keeps faces when the photo is starred', () => {
@@ -621,5 +630,64 @@ describe('clearing embedded text', () => {
   it('drops later duplicates ignoring case', () => {
     SidecarService.updatePhotoFields(dir, 'a.jpg', { keywords: ['Київ', 'київ', 'Lviv'] });
     expect(entry().keywords).toEqual(['Київ', 'Lviv']);
+  });
+});
+
+const ANN = '0123456789abcdef';
+const RECT = { left: 0.1, top: 0.2, right: 0.3, bottom: 0.5 };
+const IGNORED = { rect: { left: 0.5, top: 0.5, right: 0.6, bottom: 0.6 }, ignored: true };
+
+describe('marks', () => {
+  beforeEach(() => touch('a.jpg'));
+  const entry = () => readJson().photos['a.jpg'];
+
+  it('adds a person without a rectangle', () => {
+    SidecarService.updatePhotoFields(dir, 'a.jpg', { addMark: { person: ANN } });
+    expect(entry()).toEqual({ faces: [{ person: ANN }], modified: expect.any(String) });
+  });
+
+  it('adds a detected face with its rectangle', () => {
+    SidecarService.updatePhotoFields(dir, 'a.jpg', { addMark: { person: ANN, rect: RECT } });
+    expect(entry().faces).toEqual([{ rect: RECT, person: ANN }]);
+  });
+
+  it('treats a mark that is already there as no change', () => {
+    expect(withMark([FACE], { person: FACE.person })).toBeUndefined();
+    expect(withMark([FACE], { person: FACE.person, rect: { ...FACE.rect } })).toBeUndefined();
+  });
+
+  it('replaces a mark without a rectangle by one with a rectangle', () => {
+    expect(withMark([{ person: ANN }, IGNORED], { person: ANN, rect: RECT })).toEqual([IGNORED, { rect: RECT, person: ANN }]);
+  });
+
+  it('keeps faces it does not understand', () => {
+    expect(withMark([{ person: 5 }], { person: ANN })).toEqual([{ person: 5 }, { person: ANN }]);
+  });
+
+  it('removes every face of a person and keeps ignored faces', () => {
+    writeJson({ format: 'paloma-folder', version: 2, photos: { 'a.jpg': { faces: [FACE, IGNORED, { ...FACE, rect: RECT }] } } });
+
+    SidecarService.updatePhotoFields(dir, 'a.jpg', { removePerson: FACE.person });
+
+    expect(entry()).toEqual({ faces: [IGNORED], modified: expect.any(String) });
+    expect(withoutPerson([IGNORED], FACE.person)).toBeUndefined();
+  });
+
+  it('removes the faces key when the last face goes', () => {
+    writeJson({ format: 'paloma-folder', version: 2, photos: { 'a.jpg': { faces: [FACE], star: true } } });
+    SidecarService.updatePhotoFields(dir, 'a.jpg', { removePerson: FACE.person });
+    expect(entry()).not.toHaveProperty('faces');
+  });
+
+  it('imports the Picasa .ini on the first mark in a Picasa folder', () => {
+    writeIni('[Contacts2]', 'b8e4117cf1d6615b=Roy Avery;;', '[b.jpg]', 'star=yes');
+
+    SidecarService.updatePhotoFields(dir, 'a.jpg', { addMark: { person: ANN } });
+
+    const saved = readJson();
+    expect(saved.iniHash).toEqual(expect.any(String));
+    expect(saved.people).toEqual({ b8e4117cf1d6615b: ROY });
+    expect(saved.photos['b.jpg']).toEqual({ star: true });
+    expect(saved.photos['a.jpg']).toEqual({ faces: [{ person: ANN }], modified: expect.any(String) });
   });
 });

@@ -7,6 +7,7 @@ import { usePalomaStore, type ViewerState } from '../../store/usePalomaStore.js'
 import { CropOverlay, StraightenGrid } from '../CropOverlay.js';
 import { usePhotoViewer } from './usePhotoViewer.js';
 import { ZoomStage } from './ZoomStage.js';
+import { FaceFrames } from './FaceFrames.js';
 
 /** The photo viewer, shown over the library while a photo is open. */
 export const PhotoViewer: React.FC = () => {
@@ -52,6 +53,9 @@ const ViewerScreen: React.FC<{ viewer: ViewerState }> = ({ viewer }) => {
           />
         )}
         {v.showGrid && <StraightenGrid />}
+        {v.showFaces && !frame && !preview.loading && (
+          <FaceFrames photoId={photo.id} steps={v.previewSteps} canAssign={v.canAssignFaces} />
+        )}
       </ZoomStage>
 
       <ViewerChrome model={v} />
