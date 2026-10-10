@@ -1,5 +1,6 @@
 import { and, count, desc, eq, inArray, isNotNull, max, min, notInArray } from 'drizzle-orm';
 import { db } from '../db/index.js';
+import { all } from '../db/query.js';
 import { edits, geoPlaces, photos } from '../db/schema.js';
 import { config } from '../config.js';
 import { photoFilters, type PhotoFilterQuery } from './photoFilters.js';
@@ -25,15 +26,14 @@ export function getGeoSettings(): GeoSettings {
 }
 
 /** `GET /api/geo/points`: every geotagged photo of a library selection, without paging, for the map. */
-export function listGeoPoints(query: PhotoFilterQuery): GeoPoint[] {
-  return db.select({
+export async function listGeoPoints(query: PhotoFilterQuery): Promise<GeoPoint[]> {
+  return (await all(db.select({
     id: photos.id, lat: photos.latitude, lon: photos.longitude, fileHash: photos.fileHash, editsJson: edits.editInstructionsJson,
   })
     .from(photos)
     .leftJoin(edits, eq(photos.id, edits.photoId))
-    .where(and(photoFilters(query), isNotNull(photos.latitude), isNotNull(photos.longitude)))
-    .orderBy(desc(photos.dateTaken), photos.id)
-    .all()
+    .where(and(await photoFilters(query), isNotNull(photos.latitude), isNotNull(photos.longitude)))
+    .orderBy(desc(photos.dateTaken), photos.id)))
     .map(({ id, lat, lon, fileHash, editsJson }) => ({
       id, lat: lat!, lon: lon!, thumbnailUrl: libraryImageUrls({ id, fileHash }, editsJson).thumbnailUrl,
     }));
@@ -47,12 +47,12 @@ export async function searchPlaces(q: unknown, lang: unknown): Promise<GeoResult
     return { status: 400, body: apiError('query_required', 'q must be a non-empty search text') };
   }
   const language = normalizeLang(lang);
-  const cached = getCachedSearch(language, q);
+  const cached = await getCachedSearch(language, q);
   if (cached) return { status: 200, body: cached };
 
   try {
     const results = await geocoder.search(q.trim(), language);
-    saveSearch(language, q, results);
+    await saveSearch(language, q, results);
     return { status: 200, body: results };
   } catch (err) {
     if (!(err instanceof GeocoderError)) throw err;
@@ -65,13 +65,13 @@ export async function searchPlaces(q: unknown, lang: unknown): Promise<GeoResult
  * `GET /api/geo/places`: the places of the geotagged photos of a library selection, with photo counts and
  * bounds, most photos first, and how many of those photos have no place name yet.
  */
-export function listPlaces(query: PhotoFilterQuery & { lang?: unknown }): GeoResult<GeoPlaces> {
+export async function listPlaces(query: PhotoFilterQuery & { lang?: unknown }): Promise<GeoResult<GeoPlaces>> {
   if (!getGeocoder()) return disabled();
   const lang = normalizeLang(query.lang);
   placeResolver.noteLanguage(lang);
-  const selection = and(photoFilters(query), isNotNull(photos.latitude), isNotNull(photos.longitude));
+  const selection = and(await photoFilters(query), isNotNull(photos.latitude), isNotNull(photos.longitude));
 
-  const places = db.select({
+  const places = (await all(db.select({
     name: geoPlaces.name,
     count: count(),
     south: min(photos.latitude),
@@ -83,8 +83,7 @@ export function listPlaces(query: PhotoFilterQuery & { lang?: unknown }): GeoRes
     .innerJoin(geoPlaces, and(eq(geoPlaces.cell, photos.geoCell), eq(geoPlaces.lang, lang), eq(geoPlaces.status, 'ok')))
     .where(selection)
     .groupBy(geoPlaces.name)
-    .orderBy(desc(count()), geoPlaces.name)
-    .all()
+    .orderBy(desc(count()), geoPlaces.name)))
     .map(({ name, count: photoCount, south, west, north, east }) => ({
       name: name!, count: photoCount, bounds: { south: south!, west: west!, north: north!, east: east! },
     }));
@@ -93,9 +92,8 @@ export function listPlaces(query: PhotoFilterQuery & { lang?: unknown }): GeoRes
   const answered = db.select({ cell: geoPlaces.cell })
     .from(geoPlaces)
     .where(and(eq(geoPlaces.lang, lang), inArray(geoPlaces.status, ['ok', 'none'])));
-  const [{ pending }] = db.select({ pending: count() })
+  const [{ pending }] = await all(db.select({ pending: count() })
     .from(photos)
-    .where(and(selection, notInArray(photos.geoCell, answered)))
-    .all();
+    .where(and(selection, notInArray(photos.geoCell, answered))));
   return { status: 200, body: { places, pending } };
 }

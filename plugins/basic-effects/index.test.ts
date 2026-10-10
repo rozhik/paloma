@@ -54,8 +54,8 @@ afterAll(() => {
 const render = (steps: Parameters<typeof RenderService.render>[1]) => RenderService.render(photo, steps, { lookup });
 
 describe('basic-effects manifest', () => {
-  it('is valid and has a name and description in every UI language', () => {
-    const read = readManifest(__dirname);
+  it('is valid and has a name and description in every UI language', async () => {
+    const read = await readManifest(__dirname);
     expect(read.kind).toBe('ok');
     if (read.kind !== 'ok') return;
     expect(read.manifest.id).toBe('basic-effects');
@@ -129,11 +129,11 @@ describe('basic-effects icons', () => {
   const host: PluginHost = { apiVersion: PLUGIN_API_VERSION, sharp, log: { info() {}, warn() {}, error() {} } };
   const iconsOf = async (folder: string, module: { activate: (host: PluginHost) => unknown }) => {
     const { filters } = await module.activate(host) as { filters: { name: string; icon?: string }[] };
-    return filters.map((filter) => {
-      const resolved = resolveFilterIcon(folder, filter.icon ?? '');
+    return Promise.all(filters.map(async (filter) => {
+      const resolved = await resolveFilterIcon(folder, filter.icon ?? '');
       if (!('file' in resolved)) throw new Error(`${filter.name}: ${resolved.problem}`);
       return [filter.name, fs.readFileSync(resolved.file, 'utf-8')] as const;
-    });
+    }));
   };
 
   it('gives every filter its own usable SVG icon, distinct across both bundled plugins', async () => {

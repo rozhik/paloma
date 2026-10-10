@@ -22,6 +22,7 @@ beforeAll(async () => {
   vi.stubEnv('PALOMA_PHOTOS_DIRS', '');
   vi.stubEnv('PALOMA_EXCLUDE_DIRS', '');
 
+  await (await import('../db/index.js')).openDatabase();
   api = await import('./peopleApi.js');
   photoInfo = await import('./photoInfo.js');
   photoApi = await import('./photoApi.js');
@@ -33,7 +34,7 @@ beforeAll(async () => {
   schema = await import('../db/schema.js');
 });
 
-afterAll(() => {
+afterAll(async () => {
   vi.unstubAllEnvs();
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
@@ -61,9 +62,9 @@ function addFolder(name: string, files: string[]): string {
   return dir;
 }
 
-const writeSidecar = (dir: string, photos: Record<string, unknown>, extra: Record<string, unknown> = {}) => {
+const writeSidecar = async (dir: string, photos: Record<string, unknown>, extra: Record<string, unknown> = {}) => {
   fs.writeFileSync(path.join(dir, '.paloma.json'), JSON.stringify({ format: 'paloma-folder', version: 2, ...extra, photos }));
-  Scanner.applyFolderState(dir, Sidecar.getFolderState(dir));
+  await Scanner.applyFolderState(dir, await Sidecar.getFolderState(dir));
 };
 const readSidecar = (dir: string) => JSON.parse(fs.readFileSync(path.join(dir, '.paloma.json'), 'utf-8'));
 const ok = <T>(result: { status: number; body: T | unknown }): T => {
@@ -81,7 +82,7 @@ function detect(photoId: number, rect = FACE_RECT, descriptor: number[] = new Ar
     .returning({ id: schema.detectedFaces.id }).get().id;
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   for (const table of [
     schema.faceDismissals, schema.detectedFaces, schema.faceDetections, schema.photoFaces, schema.photoPeople,
     schema.folderPeople, schema.persons, schema.edits, schema.albumPhotos, schema.photoKeywords, schema.photos, schema.folders,
@@ -91,143 +92,143 @@ beforeEach(() => {
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
-afterEach(() => {
+afterEach(async () => {
   vi.restoreAllMocks();
   fs.chmodSync(dirA, 0o755);
 });
 
 describe('people records', () => {
-  it('creates an unknown person with a new contact id and writes no files', () => {
-    const person = ok<import('../../../shared/types.js').Person>(api.createPerson({}));
+  it('creates an unknown person with a new contact id and writes no files', async () => {
+    const person = ok<import('../../../shared/types.js').Person>(await api.createPerson({}));
 
     expect(person.id).toMatch(/^[0-9a-f]{16}$/);
     expect(person).toMatchObject({ name: null, photoCount: 0, links: [] });
     expect(fs.readdirSync(dirA).sort()).toEqual(['a.jpg', 'b.jpg']);
   });
 
-  it('names an unknown person and then accepts the other profile fields', () => {
-    const { id } = ok<{ id: string }>(api.createPerson({}));
-    expect(api.updatePerson(id, { alias: 'Annie' }).status).toBe(400);
+  it('names an unknown person and then accepts the other profile fields', async () => {
+    const { id } = ok<{ id: string }>(await api.createPerson({}));
+    expect((await api.updatePerson(id, { alias: 'Annie' })).status).toBe(400);
 
-    ok(api.updatePerson(id, { name: 'Ann' }));
+    ok(await api.updatePerson(id, { name: 'Ann' }));
     const ann = ok<{ name: string; alias: string; links: string[]; birth: string; gender: string }>(
-      api.updatePerson(id, { alias: 'Annie', links: ['https://example.com/ann'], birth: '1990-05-01', gender: 'female' }),
+      await api.updatePerson(id, { alias: 'Annie', links: ['https://example.com/ann'], birth: '1990-05-01', gender: 'female' }),
     );
 
     expect(ann).toMatchObject({ name: 'Ann', alias: 'Annie', links: ['https://example.com/ann'], birth: '1990-05-01', gender: 'female' });
-    expect(api.listPeople()).toEqual([expect.objectContaining({ id, name: 'Ann', alias: 'Annie', photoCount: 0 })]);
+    expect(await api.listPeople()).toEqual([expect.objectContaining({ id, name: 'Ann', alias: 'Annie', photoCount: 0 })]);
   });
 
-  it('shows the folder name until the person is edited in Paloma, then the Paloma name', () => {
-    writeSidecar(dirA, { 'a.jpg': { faces: [ROY_FACE] } }, { people: { [ROY]: { name: 'Roy Avery', email: null, googleId: null } } });
-    expect(api.findPerson(ROY)).toMatchObject({ name: 'Roy Avery', photoCount: 1 });
+  it('shows the folder name until the person is edited in Paloma, then the Paloma name', async () => {
+    await writeSidecar(dirA, { 'a.jpg': { faces: [ROY_FACE] } }, { people: { [ROY]: { name: 'Roy Avery', email: null, googleId: null } } });
+    expect(await api.findPerson(ROY)).toMatchObject({ name: 'Roy Avery', photoCount: 1 });
 
-    ok(api.updatePerson(ROY, { alias: 'Bear' }));
-    writeSidecar(dirA, { 'a.jpg': { faces: [ROY_FACE] } }, { people: { [ROY]: { name: 'Roy A.', email: null, googleId: null } } });
+    ok(await api.updatePerson(ROY, { alias: 'Bear' }));
+    await writeSidecar(dirA, { 'a.jpg': { faces: [ROY_FACE] } }, { people: { [ROY]: { name: 'Roy A.', email: null, googleId: null } } });
 
-    expect(api.findPerson(ROY)).toMatchObject({ name: 'Roy Avery', alias: 'Bear' });
+    expect(await api.findPerson(ROY)).toMatchObject({ name: 'Roy Avery', alias: 'Bear' });
     expect(readSidecar(dirA).people[ROY].name).toBe('Roy A.');
   });
 
-  it('rejects clearing the name of a known person', () => {
-    const { id } = ok<{ id: string }>(api.createPerson({ name: 'Ann' }));
-    expect(api.updatePerson(id, { name: '  ' })).toMatchObject({ status: 400, body: { code: 'person_name_required' } });
-    expect(api.findPerson(id)!.name).toBe('Ann');
+  it('rejects clearing the name of a known person', async () => {
+    const { id } = ok<{ id: string }>(await api.createPerson({ name: 'Ann' }));
+    expect(await api.updatePerson(id, { name: '  ' })).toMatchObject({ status: 400, body: { code: 'person_name_required' } });
+    expect((await api.findPerson(id))!.name).toBe('Ann');
   });
 
-  it('responds 404 for an unknown id', () => {
-    expect(api.getPerson('ffffffffffffff00').status).toBe(404);
-    expect(api.updatePerson('ffffffffffffff00', { name: 'x' }).status).toBe(404);
-    expect(api.deletePerson('nothex').status).toBe(404);
+  it('responds 404 for an unknown id', async () => {
+    expect((await api.getPerson('ffffffffffffff00')).status).toBe(404);
+    expect((await api.updatePerson('ffffffffffffff00', { name: 'x' })).status).toBe(404);
+    expect((await api.deletePerson('nothex')).status).toBe(404);
   });
 
-  it('counts photos that are not hidden', () => {
-    writeSidecar(dirA, { 'a.jpg': { faces: [ROY_FACE] }, 'b.jpg': { faces: [ROY_FACE], hidden: true } });
-    writeSidecar(dirB, { 'c.jpg': { faces: [{ person: ROY }] } });
+  it('counts photos that are not hidden', async () => {
+    await writeSidecar(dirA, { 'a.jpg': { faces: [ROY_FACE] }, 'b.jpg': { faces: [ROY_FACE], hidden: true } });
+    await writeSidecar(dirB, { 'c.jpg': { faces: [{ person: ROY }] } });
 
-    expect(api.listPeople()).toEqual([expect.objectContaining({ id: ROY, name: null, photoCount: 2 })]);
+    expect(await api.listPeople()).toEqual([expect.objectContaining({ id: ROY, name: null, photoCount: 2 })]);
   });
 
-  it('never creates a new id equal to Picasa\'s ignored contact or an existing one', () => {
+  it('never creates a new id equal to Picasa\'s ignored contact or an existing one', async () => {
     const taken = new Set(['ffffffffffffffff']);
-    const id = api.newContactId((candidate) => taken.has(candidate));
+    const id = await api.newContactId((candidate) => taken.has(candidate));
     expect(id).toMatch(/^[0-9a-f]{16}$/);
     expect(id).not.toBe('ffffffffffffffff');
   });
 });
 
 describe('marks on a photo', () => {
-  it('adds a person without a rectangle', () => {
-    const { id: ann } = ok<{ id: string }>(api.createPerson({ name: 'Ann' }));
+  it('adds a person without a rectangle', async () => {
+    const { id: ann } = ok<{ id: string }>(await api.createPerson({ name: 'Ann' }));
 
-    const result = ok<{ people: Array<{ id: string; name: string }> }>(api.addPersonToPhoto(ids['a/a.jpg'], { person: ann }));
+    const result = ok<{ people: Array<{ id: string; name: string }> }>(await api.addPersonToPhoto(ids['a/a.jpg'], { person: ann }));
 
     expect(result.people).toEqual([expect.objectContaining({ id: ann, name: 'Ann', rects: [] })]);
     expect(readSidecar(dirA).photos['a.jpg']).toEqual({ faces: [{ person: ann }], modified: expect.any(String) });
   });
 
-  it('changes nothing when the person is already on the photo', () => {
-    writeSidecar(dirA, { 'a.jpg': { faces: [ROY_FACE] } });
+  it('changes nothing when the person is already on the photo', async () => {
+    await writeSidecar(dirA, { 'a.jpg': { faces: [ROY_FACE] } });
     const before = fs.readFileSync(path.join(dirA, '.paloma.json'), 'utf-8');
 
-    ok(api.addPersonToPhoto(ids['a/a.jpg'], { person: ROY }));
+    ok(await api.addPersonToPhoto(ids['a/a.jpg'], { person: ROY }));
 
     expect(fs.readFileSync(path.join(dirA, '.paloma.json'), 'utf-8')).toBe(before);
   });
 
   it('assigns a detected face with its rectangle, after which it is no longer unassigned', async () => {
-    const { id: ann } = ok<{ id: string }>(api.createPerson({ name: 'Ann' }));
+    const { id: ann } = ok<{ id: string }>(await api.createPerson({ name: 'Ann' }));
     const faceId = detect(ids['a/a.jpg']);
     expect((await photoInfo.getPhotoInfo(ids['a/a.jpg'], undefined)).body).toMatchObject({ faces: [{ id: faceId, rect: FACE_RECT }] });
 
-    const result = ok<{ people: unknown[]; faces: unknown[] }>(api.addPersonToPhoto(ids['a/a.jpg'], { person: ann, faceId }));
+    const result = ok<{ people: unknown[]; faces: unknown[] }>(await api.addPersonToPhoto(ids['a/a.jpg'], { person: ann, faceId }));
 
     expect(readSidecar(dirA).photos['a.jpg'].faces).toEqual([{ rect: FACE_RECT, person: ann }]);
     expect(result.faces).toEqual([]);
     expect(result.people).toEqual([expect.objectContaining({ id: ann, rects: [FACE_RECT] })]);
-    expect(api.getPhotoPeople(ids['a/a.jpg']).body).toEqual(result);
-    expect(api.getPhotoPeople(99999).status).toBe(404);
+    expect((await api.getPhotoPeople(ids['a/a.jpg'])).body).toEqual(result);
+    expect((await api.getPhotoPeople(99999)).status).toBe(404);
   });
 
-  it('rejects an unknown person, photo or face', () => {
-    const { id: ann } = ok<{ id: string }>(api.createPerson({ name: 'Ann' }));
-    expect(api.addPersonToPhoto(ids['a/a.jpg'], { person: 'ffffffffffffff00' }).status).toBe(404);
-    expect(api.addPersonToPhoto(99999, { person: ann }).status).toBe(404);
-    expect(api.addPersonToPhoto(ids['a/a.jpg'], { person: ann, faceId: 99999 })).toMatchObject({ status: 404, body: { code: 'face_not_found' } });
-    expect(api.addPersonToPhoto(ids['a/a.jpg'], { person: 5 }).status).toBe(400);
+  it('rejects an unknown person, photo or face', async () => {
+    const { id: ann } = ok<{ id: string }>(await api.createPerson({ name: 'Ann' }));
+    expect((await api.addPersonToPhoto(ids['a/a.jpg'], { person: 'ffffffffffffff00' })).status).toBe(404);
+    expect((await api.addPersonToPhoto(99999, { person: ann })).status).toBe(404);
+    expect(await api.addPersonToPhoto(ids['a/a.jpg'], { person: ann, faceId: 99999 })).toMatchObject({ status: 404, body: { code: 'face_not_found' } });
+    expect((await api.addPersonToPhoto(ids['a/a.jpg'], { person: 5 })).status).toBe(400);
   });
 
-  it('fails in a read-only folder and leaves the library unchanged', () => {
-    const { id: ann } = ok<{ id: string }>(api.createPerson({ name: 'Ann' }));
+  it('fails in a read-only folder and leaves the library unchanged', async () => {
+    const { id: ann } = ok<{ id: string }>(await api.createPerson({ name: 'Ann' }));
     fs.chmodSync(dirA, 0o555);
 
-    expect(api.addPersonToPhoto(ids['a/a.jpg'], { person: ann }).status).toBe(500);
-    expect(api.findPerson(ann)!.photoCount).toBe(0);
+    expect((await api.addPersonToPhoto(ids['a/a.jpg'], { person: ann })).status).toBe(500);
+    expect((await api.findPerson(ann))!.photoCount).toBe(0);
   });
 
-  it('removes every face of a person and keeps ignored faces', () => {
+  it('removes every face of a person and keeps ignored faces', async () => {
     const ignored = { rect: FACE_RECT, ignored: true };
-    writeSidecar(dirA, { 'a.jpg': { faces: [ROY_FACE, ignored, { person: ROY }] } });
+    await writeSidecar(dirA, { 'a.jpg': { faces: [ROY_FACE, ignored, { person: ROY }] } });
 
-    const result = ok<{ people: unknown[] }>(api.removePersonFromPhoto(ids['a/a.jpg'], ROY));
+    const result = ok<{ people: unknown[] }>(await api.removePersonFromPhoto(ids['a/a.jpg'], ROY));
 
     expect(result.people).toEqual([]);
     expect(readSidecar(dirA).photos['a.jpg']).toEqual({ faces: [ignored], modified: expect.any(String) });
   });
 
-  it('makes a renamed person and a new mark searchable at once', () => {
-    const { id: ann } = ok<{ id: string }>(api.createPerson({ name: 'Ann' }));
-    ok(api.addPersonToPhoto(ids['b/c.jpg'], { person: ann }));
-    ok(api.updatePerson(ann, { alias: 'Sunny' }));
+  it('makes a renamed person and a new mark searchable at once', async () => {
+    const { id: ann } = ok<{ id: string }>(await api.createPerson({ name: 'Ann' }));
+    ok(await api.addPersonToPhoto(ids['b/c.jpg'], { person: ann }));
+    ok(await api.updatePerson(ann, { alias: 'Sunny' }));
 
-    expect(photoApi.listPhotos({ query: 'sunny' }).map((p) => p.filename)).toEqual(['c.jpg']);
-    expect(photoApi.listPhotos({ person: ann }).map((p) => p.filename)).toEqual(['c.jpg']);
+    expect((await photoApi.listPhotos({ query: 'sunny' })).map((p) => p.filename)).toEqual(['c.jpg']);
+    expect((await photoApi.listPhotos({ person: ann })).map((p) => p.filename)).toEqual(['c.jpg']);
   });
 });
 
 describe('photo info', () => {
   it('lists the people with their rectangles and only the detected faces that match no mark, without descriptors', async () => {
-    writeSidecar(dirA, { 'a.jpg': { faces: [ROY_FACE] } }, ROY_NAMED);
+    await writeSidecar(dirA, { 'a.jpg': { faces: [ROY_FACE] } }, ROY_NAMED);
     detect(ids['a/a.jpg'], { left: 0.35, top: 0.13, right: 0.63, bottom: 0.87 });
     const free = detect(ids['a/a.jpg']);
 
@@ -248,61 +249,61 @@ describe('photo info', () => {
 });
 
 describe('deleting a person', () => {
-  it('removes their faces in every folder and keeps the people definitions', () => {
+  it('removes their faces in every folder and keeps the people definitions', async () => {
     const people = { [ROY]: { name: 'Roy Avery', email: null, googleId: null } };
-    writeSidecar(dirA, { 'a.jpg': { faces: [ROY_FACE], star: true } }, { people });
-    writeSidecar(dirB, { 'c.jpg': { faces: [{ person: ROY }] } });
+    await writeSidecar(dirA, { 'a.jpg': { faces: [ROY_FACE], star: true } }, { people });
+    await writeSidecar(dirB, { 'c.jpg': { faces: [{ person: ROY }] } });
 
-    ok(api.deletePerson(ROY));
+    ok(await api.deletePerson(ROY));
 
     expect(readSidecar(dirA).photos['a.jpg']).toEqual({ star: true, modified: expect.any(String) });
     expect(readSidecar(dirA).people).toEqual(people);
     expect(readSidecar(dirB).photos).toEqual({});
-    expect(api.listPeople()).toEqual([]);
+    expect(await api.listPeople()).toEqual([]);
   });
 
-  it('keeps the person when a folder cannot be written', () => {
-    writeSidecar(dirA, { 'a.jpg': { faces: [ROY_FACE] } });
-    writeSidecar(dirB, { 'c.jpg': { faces: [{ person: ROY }] } });
+  it('keeps the person when a folder cannot be written', async () => {
+    await writeSidecar(dirA, { 'a.jpg': { faces: [ROY_FACE] } });
+    await writeSidecar(dirB, { 'c.jpg': { faces: [{ person: ROY }] } });
     fs.chmodSync(dirA, 0o555);
 
-    expect(api.deletePerson(ROY).status).toBe(500);
-    expect(api.findPerson(ROY)).toMatchObject({ photoCount: 1 });
+    expect((await api.deletePerson(ROY)).status).toBe(500);
+    expect(await api.findPerson(ROY)).toMatchObject({ photoCount: 1 });
   });
 
-  it('deletes a person who is on no photo without changing files', () => {
-    const { id } = ok<{ id: string }>(api.createPerson({ name: 'Ann' }));
-    ok(api.deletePerson(id));
-    expect(api.findPerson(id)).toBeUndefined();
+  it('deletes a person who is on no photo without changing files', async () => {
+    const { id } = ok<{ id: string }>(await api.createPerson({ name: 'Ann' }));
+    ok(await api.deletePerson(id));
+    expect(await api.findPerson(id)).toBeUndefined();
     expect(fs.existsSync(path.join(dirA, '.paloma.json'))).toBe(false);
   });
 });
 
 describe('avatar', () => {
-  it('is the first face with a rectangle, a chosen face, and falls back when the chosen face goes', () => {
+  it('is the first face with a rectangle, a chosen face, and falls back when the chosen face goes', async () => {
     const other = { rect: FACE_RECT, person: ROY };
-    writeSidecar(dirA, { 'a.jpg': { faces: [ROY_FACE] }, 'b.jpg': { faces: [other] } }, ROY_NAMED);
-    const first = api.findPerson(ROY)!.avatarVersion;
+    await writeSidecar(dirA, { 'a.jpg': { faces: [ROY_FACE] }, 'b.jpg': { faces: [other] } }, ROY_NAMED);
+    const first = (await api.findPerson(ROY))!.avatarVersion;
     expect(first).toEqual(expect.any(String));
-    expect(ok<Array<{ photoId: number }>>(api.listPersonFaces(ROY)).map((f) => f.photoId)).toEqual([ids['a/a.jpg'], ids['a/b.jpg']]);
+    expect(ok<Array<{ photoId: number }>>(await api.listPersonFaces(ROY)).map((f) => f.photoId)).toEqual([ids['a/a.jpg'], ids['a/b.jpg']]);
 
     const chosen = ok<{ avatarVersion: string; avatar: unknown }>(
-      api.updatePerson(ROY, { avatar: { photoId: ids['a/b.jpg'], rect: FACE_RECT } }),
+      await api.updatePerson(ROY, { avatar: { photoId: ids['a/b.jpg'], rect: FACE_RECT } }),
     );
     expect(chosen.avatar).toEqual({ photoId: ids['a/b.jpg'], rect: FACE_RECT });
     expect(chosen.avatarVersion).not.toBe(first);
 
-    ok(api.removePersonFromPhoto(ids['a/b.jpg'], ROY));
-    expect(api.findPerson(ROY)).toMatchObject({ avatarVersion: first, avatar: null });
+    ok(await api.removePersonFromPhoto(ids['a/b.jpg'], ROY));
+    expect(await api.findPerson(ROY)).toMatchObject({ avatarVersion: first, avatar: null });
   });
 
   it('rejects a face that is not the person\'s and has none without rectangles', async () => {
-    writeSidecar(dirA, { 'a.jpg': { faces: [{ person: ROY }] } }, ROY_NAMED);
-    expect(api.findPerson(ROY)!.avatarVersion).toBeNull();
+    await writeSidecar(dirA, { 'a.jpg': { faces: [{ person: ROY }] } }, ROY_NAMED);
+    expect((await api.findPerson(ROY))!.avatarVersion).toBeNull();
     const { personAvatar } = await import('./faceImages.js');
     expect((await personAvatar(ROY)).status).toBe(404);
     expect((await personAvatar('ffffffffffffff00')).status).toBe(404);
-    expect(api.updatePerson(ROY, { avatar: { photoId: ids['a/a.jpg'], rect: FACE_RECT } }))
+    expect(await api.updatePerson(ROY, { avatar: { photoId: ids['a/a.jpg'], rect: FACE_RECT } }))
       .toMatchObject({ status: 400, body: { params: { field: 'avatar' } } });
   });
 });

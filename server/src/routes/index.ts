@@ -1,7 +1,8 @@
-import { Router, type Response } from 'express';
+import { Router, type NextFunction, type Response } from 'express';
 import path from 'node:path';
 import fs from 'node:fs';
 import { db } from '../db/index.js';
+import { all, BATCH_SIZE, chunked, get } from '../db/query.js';
 import { folders, photos, edits } from '../db/schema.js';
 import { eq, inArray } from 'drizzle-orm';
 import { ThumbnailService } from '../services/ThumbnailService.js';
@@ -29,6 +30,7 @@ import {
 } from '../services/peopleApi.js';
 import { movieFilename, resolveInside } from '../services/outputPaths.js';
 import { config } from '../config.js';
+import { asyncRoute, sendFileOr404 } from './asyncRoute.js';
 import sharp from 'sharp';
 import ffmpeg from 'fluent-ffmpeg';
 import ffmpegStatic from 'ffmpeg-static';
@@ -39,60 +41,53 @@ if (ffmpegStatic) {
 
 const router = Router();
 
+/** Sends an API result: its status with its body. */
+const send = (res: Response, result: { status: number; body: unknown }) => res.status(result.status).json(result.body);
+
 // --- Folders API ---
-router.get('/folders', (req, res) => {
-  res.json(listFolders());
-});
+router.get('/folders', asyncRoute(async (req, res) => {
+  res.json(await listFolders());
+}));
 
 // --- Photos API ---
-router.get('/photos', (req, res) => {
+router.get('/photos', asyncRoute(async (req, res) => {
   const field = invalidDateFilter(req.query);
   if (field) return res.status(400).json(apiError('invalid_date', `${field} must be a YYYY-MM-DD date`, { field }));
-  res.json(listPhotos(req.query));
-});
+  res.json(await listPhotos(req.query));
+}));
 
-router.post('/photos/location', (req, res) => {
-  const result = setPhotosLocation(req.body);
-  res.status(result.status).json(result.body);
-});
+router.post('/photos/location', asyncRoute(async (req, res) => {
+  send(res, await setPhotosLocation(req.body));
+}));
 
-router.post('/photos/keywords', (req, res) => {
-  const result = changePhotosKeywords(req.body);
-  res.status(result.status).json(result.body);
-});
+router.post('/photos/keywords', asyncRoute(async (req, res) => {
+  send(res, await changePhotosKeywords(req.body));
+}));
 
-router.get('/photos/:id/info', async (req, res, next) => {
-  try {
-    const result = await getPhotoInfo(Number(req.params.id), req.query.lang);
-    res.status(result.status).json(result.body);
-  } catch (err) {
-    next(err);
-  }
-});
+router.get('/photos/:id/info', asyncRoute(async (req, res) => {
+  send(res, await getPhotoInfo(Number(req.params.id), req.query.lang));
+}));
 
 // --- Tags API ---
-router.get('/tags', (req, res) => {
-  res.json(listTags());
-});
+router.get('/tags', asyncRoute(async (req, res) => {
+  res.json(await listTags());
+}));
 
-router.patch('/photos/:id', (req, res) => {
-  const result = updatePhoto(Number(req.params.id), req.body);
-  res.status(result.status).json(result.body);
-});
+router.patch('/photos/:id', asyncRoute(async (req, res) => {
+  send(res, await updatePhoto(Number(req.params.id), req.body));
+}));
 
 // Shortcut kept for the client's star toggle
-router.patch('/photos/:id/star', (req, res) => {
-  const result = updatePhoto(Number(req.params.id), { isStarred: req.body?.isStarred });
-  res.status(result.status).json(result.body);
-});
+router.patch('/photos/:id/star', asyncRoute(async (req, res) => {
+  send(res, await updatePhoto(Number(req.params.id), { isStarred: req.body?.isStarred }));
+}));
 
 // --- Edits API ---
-router.put('/photos/:id/edits', (req, res) => {
-  const result = saveEdits(Number(req.params.id), req.body);
-  res.status(result.status).json(result.body);
-});
+router.put('/photos/:id/edits', asyncRoute(async (req, res) => {
+  send(res, await saveEdits(Number(req.params.id), req.body));
+}));
 
-function sendImage(res: Response, result: ImageResult): void {
+function sendImage(res: Response, next: NextFunction, result: ImageResult): void {
   if (result.status !== 200) {
     res.status(result.status).json(result.body);
   } else if (result.kind === 'buffer') {
@@ -107,61 +102,41 @@ function sendImage(res: Response, result: ImageResult): void {
     // The URL carries the render key, so a changed look always gets a new URL
     res.setHeader('Content-Type', result.type ?? 'image/webp');
     res.setHeader('Cache-Control', result.cacheControl ?? 'public, max-age=31536000, immutable');
-    res.sendFile(result.file);
+    sendFileOr404(res, next, result.file, 'file_not_found', 'Image not found');
   }
 }
 
-router.post('/photos/:id/preview', async (req, res, next) => {
-  try {
-    sendImage(res, await renderPreview(Number(req.params.id), req.body));
-  } catch (err) {
-    next(err);
-  }
-});
+router.post('/photos/:id/preview', asyncRoute(async (req, res, next) => {
+  sendImage(res, next, await renderPreview(Number(req.params.id), req.body));
+}));
 
-router.get('/photos/:id/:size(thumbnail|preview)', async (req, res, next) => {
-  try {
-    sendImage(res, await photoImage(Number(req.params.id), req.params.size === 'thumbnail' ? 'thumb' : 'preview'));
-  } catch (err) {
-    next(err);
-  }
-});
+router.get('/photos/:id/:size(thumbnail|preview)', asyncRoute(async (req, res, next) => {
+  sendImage(res, next, await photoImage(Number(req.params.id), req.params.size === 'thumbnail' ? 'thumb' : 'preview'));
+}));
 
 // --- Cache & File Media Endpoints ---
-router.get('/cache/thumbnail/:fileHash', (req, res) => {
-  const thumbPath = ThumbnailService.getThumbnailPath(req.params.fileHash, 'thumb');
-  if (fs.existsSync(thumbPath)) {
-    res.setHeader('Content-Type', 'image/webp');
-    return res.sendFile(thumbPath);
-  }
-  res.status(404).json(apiError('file_not_found', 'Thumbnail not found'));
+router.get('/cache/thumbnail/:fileHash', (req, res, next) => {
+  res.setHeader('Content-Type', 'image/webp');
+  sendFileOr404(res, next, ThumbnailService.getThumbnailPath(req.params.fileHash, 'thumb'), 'file_not_found', 'Thumbnail not found');
 });
 
-router.get('/cache/preview/:fileHash', (req, res) => {
-  const previewPath = ThumbnailService.getThumbnailPath(req.params.fileHash, 'preview');
-  if (fs.existsSync(previewPath)) {
-    res.setHeader('Content-Type', 'image/webp');
-    return res.sendFile(previewPath);
-  }
-  res.status(404).json(apiError('file_not_found', 'Preview not found'));
+router.get('/cache/preview/:fileHash', (req, res, next) => {
+  res.setHeader('Content-Type', 'image/webp');
+  sendFileOr404(res, next, ThumbnailService.getThumbnailPath(req.params.fileHash, 'preview'), 'file_not_found', 'Preview not found');
 });
 
-router.get('/raw/:photoId', (req, res) => {
-  const photo = db.select().from(photos).where(eq(photos.id, Number(req.params.photoId))).get();
+router.get('/raw/:photoId', asyncRoute(async (req, res, next) => {
+  const photo = await get(db.select().from(photos).where(eq(photos.id, Number(req.params.photoId))));
   if (!photo) return res.status(404).json(apiError('photo_not_found', 'Photo not found'));
 
-  const folder = db.select().from(folders).where(eq(folders.id, photo.folderId)).get();
+  const folder = await get(db.select().from(folders).where(eq(folders.id, photo.folderId)));
   if (!folder) return res.status(404).json(apiError('file_not_found', 'Folder not found'));
 
-  const fullPath = path.join(folder.path, photo.filename);
-  if (fs.existsSync(fullPath)) {
-    return res.sendFile(fullPath);
-  }
-  res.status(404).json(apiError('file_not_found', 'File missing'));
-});
+  sendFileOr404(res, next, path.join(folder.path, photo.filename), 'file_not_found', 'File missing');
+}));
 
 // --- Export API ---
-router.post('/export', async (req, res) => {
+router.post('/export', asyncRoute(async (req, res) => {
   const { photoIds, outputDir, quality = 85, resizeWidth } = req.body ?? {};
 
   if (!photoIds || !Array.isArray(photoIds) || !outputDir) {
@@ -173,9 +148,9 @@ router.post('/export', async (req, res) => {
   if (destination === null) {
     return res.status(400).json(apiError('invalid_field', 'outputDir must be a folder inside the export folder', { field: 'outputDir' }));
   }
-  fs.mkdirSync(destination, { recursive: true });
+  await fs.promises.mkdir(destination, { recursive: true });
 
-  const selectedPhotos = db.select({
+  const selectedPhotos = await chunked(photoIds, BATCH_SIZE, (ids) => all(db.select({
     photo: photos,
     folder: folders,
     edit: edits,
@@ -183,8 +158,7 @@ router.post('/export', async (req, res) => {
     .from(photos)
     .innerJoin(folders, eq(photos.folderId, folders.id))
     .leftJoin(edits, eq(photos.id, edits.photoId))
-    .where(inArray(photos.id, photoIds))
-    .all();
+    .where(inArray(photos.id, ids))));
 
   const exportedFiles: string[] = [];
 
@@ -207,26 +181,25 @@ router.post('/export', async (req, res) => {
   }
 
   res.json({ success: true, count: exportedFiles.length, exportedFiles });
-});
+}));
 
 // --- Movie Maker API ---
-router.post('/creation/movie', async (req, res) => {
+router.post('/creation/movie', asyncRoute(async (req, res) => {
   const { photoIds, durationPerSlide = 3, outputFilename } = req.body ?? {};
 
   if (!Array.isArray(photoIds) || photoIds.length === 0) {
     return res.status(400).json(apiError('photo_ids_required', 'At least one photoId is required'));
   }
 
-  const selectedPhotos = db.select({
+  const selectedPhotos = await chunked(photoIds, BATCH_SIZE, (ids) => all(db.select({
     photo: photos,
     folder: folders,
   })
     .from(photos)
     .innerJoin(folders, eq(photos.folderId, folders.id))
-    .where(inArray(photos.id, photoIds))
-    .all();
+    .where(inArray(photos.id, ids))));
 
-  fs.mkdirSync(config.exportDir, { recursive: true });
+  await fs.promises.mkdir(config.exportDir, { recursive: true });
   // The duration goes into ffmpeg's options, so it must be a plain number
   const slideSeconds = Number(durationPerSlide);
   if (!Number.isFinite(slideSeconds) || slideSeconds <= 0 || slideSeconds > 60) {
@@ -234,7 +207,7 @@ router.post('/creation/movie', async (req, res) => {
   }
 
   const tmpDir = path.join(config.dataDir, 'tmp_movie');
-  if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+  await fs.promises.mkdir(tmpDir, { recursive: true });
 
   const tempFiles: string[] = [];
   for (let i = 0; i < selectedPhotos.length; i++) {
@@ -259,198 +232,147 @@ router.post('/creation/movie', async (req, res) => {
       console.error('Failed to make a movie:', err);
       res.status(500).json(apiError('internal', err.message, { message: err.message }));
     })
-    .run();
-});
+    .run(); // ffmpeg, not a query
+}));
 
 // --- People API ---
-router.get('/people', (req, res) => {
-  res.json(listPeople());
-});
+router.get('/people', asyncRoute(async (req, res) => {
+  res.json(await listPeople());
+}));
 
-router.post('/people', (req, res) => {
-  const result = createPerson(req.body);
-  res.status(result.status).json(result.body);
-});
+router.post('/people', asyncRoute(async (req, res) => {
+  send(res, await createPerson(req.body));
+}));
 
-router.get('/people/:id', (req, res) => {
-  const result = getPerson(req.params.id);
-  res.status(result.status).json(result.body);
-});
+router.get('/people/:id', asyncRoute(async (req, res) => {
+  send(res, await getPerson(req.params.id));
+}));
 
-router.patch('/people/:id', (req, res) => {
-  const result = updatePerson(req.params.id, req.body);
-  res.status(result.status).json(result.body);
-});
+router.patch('/people/:id', asyncRoute(async (req, res) => {
+  send(res, await updatePerson(req.params.id, req.body));
+}));
 
-router.delete('/people/:id', (req, res) => {
-  const result = deletePerson(req.params.id);
-  res.status(result.status).json(result.body);
-});
+router.delete('/people/:id', asyncRoute(async (req, res) => {
+  send(res, await deletePerson(req.params.id));
+}));
 
-router.get('/people/:id/avatar', async (req, res, next) => {
-  try {
-    sendImage(res, await personAvatar(req.params.id));
-  } catch (err) {
-    next(err);
-  }
-});
+router.get('/people/:id/avatar', asyncRoute(async (req, res, next) => {
+  sendImage(res, next, await personAvatar(req.params.id));
+}));
 
-router.get('/photos/:id/face', async (req, res, next) => {
-  try {
-    sendImage(res, await photoFace(Number(req.params.id), req.query));
-  } catch (err) {
-    next(err);
-  }
-});
+router.get('/photos/:id/face', asyncRoute(async (req, res, next) => {
+  sendImage(res, next, await photoFace(Number(req.params.id), req.query));
+}));
 
-router.get('/photos/:id/face-source', async (req, res, next) => {
-  try {
-    sendImage(res, await photoFaceSource(Number(req.params.id)));
-  } catch (err) {
-    next(err);
-  }
-});
+router.get('/photos/:id/face-source', asyncRoute(async (req, res, next) => {
+  sendImage(res, next, await photoFaceSource(Number(req.params.id)));
+}));
 
-router.get('/people/:id/faces', (req, res) => {
-  const result = listPersonFaces(req.params.id);
-  res.status(result.status).json(result.body);
-});
+router.get('/people/:id/faces', asyncRoute(async (req, res) => {
+  send(res, await listPersonFaces(req.params.id));
+}));
 
-router.get('/people/:id/similar', (req, res) => {
-  const result = similarFaces(req.params.id, req.query.limit);
-  res.status(result.status).json(result.body);
-});
+router.get('/people/:id/similar', asyncRoute(async (req, res) => {
+  send(res, await similarFaces(req.params.id, req.query.limit));
+}));
 
-router.post('/people/:id/faces', (req, res) => {
-  const result = assignFaces(req.params.id, req.body);
-  res.status(result.status).json(result.body);
-});
+router.post('/people/:id/faces', asyncRoute(async (req, res) => {
+  send(res, await assignFaces(req.params.id, req.body));
+}));
 
-router.post('/people/:id/dismissals', (req, res) => {
-  const result = dismissFaces(req.params.id, req.body);
-  res.status(result.status).json(result.body);
-});
+router.post('/people/:id/dismissals', asyncRoute(async (req, res) => {
+  send(res, await dismissFaces(req.params.id, req.body));
+}));
 
 // --- Face detection API (detection itself runs in the browser) ---
-router.post('/faces/pending', (req, res) => {
-  const result = pendingPhotos(req.body);
-  res.status(result.status).json(result.body);
-});
+router.post('/faces/pending', asyncRoute(async (req, res) => {
+  send(res, await pendingPhotos(req.body));
+}));
 
-router.get('/faces/unassigned', (req, res) => {
-  const result = unassignedFaces(req.query.limit);
-  res.status(result.status).json(result.body);
-});
+router.get('/faces/unassigned', asyncRoute(async (req, res) => {
+  send(res, await unassignedFaces(req.query.limit));
+}));
 
-router.put('/photos/:id/detected-faces', (req, res) => {
-  const result = saveDetectedFaces(Number(req.params.id), req.body);
-  res.status(result.status).json(result.body);
-});
+router.put('/photos/:id/detected-faces', asyncRoute(async (req, res) => {
+  send(res, await saveDetectedFaces(Number(req.params.id), req.body));
+}));
 
-router.get('/photos/:id/people', (req, res) => {
-  const result = getPhotoPeople(Number(req.params.id));
-  res.status(result.status).json(result.body);
-});
+router.get('/photos/:id/people', asyncRoute(async (req, res) => {
+  send(res, await getPhotoPeople(Number(req.params.id)));
+}));
 
-router.post('/photos/:id/people', (req, res) => {
-  const result = addPersonToPhoto(Number(req.params.id), req.body);
-  res.status(result.status).json(result.body);
-});
+router.post('/photos/:id/people', asyncRoute(async (req, res) => {
+  send(res, await addPersonToPhoto(Number(req.params.id), req.body));
+}));
 
-router.delete('/photos/:id/people/:personId', (req, res) => {
-  const result = removePersonFromPhoto(Number(req.params.id), req.params.personId);
-  res.status(result.status).json(result.body);
-});
+router.delete('/photos/:id/people/:personId', asyncRoute(async (req, res) => {
+  send(res, await removePersonFromPhoto(Number(req.params.id), req.params.personId));
+}));
 
 // --- Geo API ---
 router.get('/geo/settings', (req, res) => {
   res.json(getGeoSettings());
 });
 
-router.get('/geo/points', (req, res) => {
-  res.json(listGeoPoints(req.query));
-});
+router.get('/geo/points', asyncRoute(async (req, res) => {
+  res.json(await listGeoPoints(req.query));
+}));
 
-router.get('/geo/places', (req, res) => {
-  const result = listPlaces(req.query);
-  res.status(result.status).json(result.body);
-});
+router.get('/geo/places', asyncRoute(async (req, res) => {
+  send(res, await listPlaces(req.query));
+}));
 
-router.get('/geo/search', async (req, res, next) => {
-  try {
-    const result = await searchPlaces(req.query.q, req.query.lang);
-    res.status(result.status).json(result.body);
-  } catch (err) {
-    next(err);
-  }
-});
+router.get('/geo/search', asyncRoute(async (req, res) => {
+  send(res, await searchPlaces(req.query.q, req.query.lang));
+}));
+
+// --- Memories API ---
+router.get('/memories', asyncRoute(async (req, res) => {
+  send(res, await listMemories(req.query.date));
+}));
 
 // --- Albums API ---
-// --- Memories API ---
-router.get('/memories', (req, res) => {
-  const result = listMemories(req.query.date);
-  res.status(result.status).json(result.body);
-});
+router.get('/albums', asyncRoute(async (req, res) => {
+  res.json(await listAlbums());
+}));
 
-router.get('/albums', (req, res) => {
-  res.json(listAlbums());
-});
+router.post('/albums', asyncRoute(async (req, res) => {
+  send(res, await createAlbumFromPhotos(req.body));
+}));
 
-router.post('/albums', (req, res) => {
-  const result = createAlbumFromPhotos(req.body);
-  res.status(result.status).json(result.body);
-});
+router.patch('/albums/:token', asyncRoute(async (req, res) => {
+  send(res, await editAlbumProperties(req.params.token, req.body));
+}));
 
-router.patch('/albums/:token', (req, res) => {
-  const result = editAlbumProperties(req.params.token, req.body);
-  res.status(result.status).json(result.body);
-});
+router.delete('/albums/:token', asyncRoute(async (req, res) => {
+  send(res, await deleteAlbumEverywhere(req.params.token));
+}));
 
-router.delete('/albums/:token', (req, res) => {
-  const result = deleteAlbumEverywhere(req.params.token);
-  res.status(result.status).json(result.body);
-});
+router.post('/albums/:token/photos', asyncRoute(async (req, res) => {
+  send(res, await addAlbumPhotos(req.params.token, req.body));
+}));
 
-router.post('/albums/:token/photos', (req, res) => {
-  const result = addAlbumPhotos(req.params.token, req.body);
-  res.status(result.status).json(result.body);
-});
-
-router.delete('/albums/:token/photos', (req, res) => {
-  const result = removeAlbumPhotos(req.params.token, req.body);
-  res.status(result.status).json(result.body);
-});
+router.delete('/albums/:token/photos', asyncRoute(async (req, res) => {
+  send(res, await removeAlbumPhotos(req.params.token, req.body));
+}));
 
 // --- Plugins API ---
-router.get('/plugins', async (req, res, next) => {
-  try {
-    res.json(await listPlugins(req.query.lang));
-  } catch (err) {
-    next(err);
-  }
-});
+router.get('/plugins', asyncRoute(async (req, res) => {
+  res.json(await listPlugins(req.query.lang));
+}));
 
-router.get('/plugins/:id/filters/:name/icon', async (req, res, next) => {
-  try {
-    const result = await filterIcon(req.params.id, req.params.name);
-    if (result.status !== 200) return res.status(result.status).json(result.body);
-    res.setHeader('Content-Type', 'image/svg+xml');
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    // The URL carries the plugin version; a day is enough for an edited icon to show up without a version bump
-    res.setHeader('Cache-Control', 'public, max-age=86400');
-    res.sendFile(result.file);
-  } catch (err) {
-    next(err);
-  }
-});
+router.get('/plugins/:id/filters/:name/icon', asyncRoute(async (req, res, next) => {
+  const result = await filterIcon(req.params.id, req.params.name);
+  if (result.status !== 200) return res.status(result.status).json(result.body);
+  res.setHeader('Content-Type', 'image/svg+xml');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  // The URL carries the plugin version; a day is enough for an edited icon to show up without a version bump
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  sendFileOr404(res, next, result.file, 'file_not_found', 'Icon not found');
+}));
 
-router.patch('/plugins/:id', async (req, res, next) => {
-  try {
-    const result = await switchPlugin(req.params.id, req.body, req.query.lang);
-    res.status(result.status).json(result.body);
-  } catch (err) {
-    next(err);
-  }
-});
+router.patch('/plugins/:id', asyncRoute(async (req, res) => {
+  send(res, await switchPlugin(req.params.id, req.body, req.query.lang));
+}));
 
 export default router;

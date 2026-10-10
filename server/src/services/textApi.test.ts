@@ -20,6 +20,7 @@ beforeAll(async () => {
   vi.stubEnv('PALOMA_PHOTOS_DIRS', '');
   vi.stubEnv('PALOMA_EXCLUDE_DIRS', '');
 
+  await (await import('../db/index.js')).openDatabase();
   ({ db } = await import('../db/index.js'));
   schema = await import('../db/schema.js');
   photoApi = await import('./photoApi.js');
@@ -28,14 +29,14 @@ beforeAll(async () => {
   libraryText = await import('./libraryText.js');
 });
 
-afterAll(() => {
+afterAll(async () => {
   vi.unstubAllEnvs();
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
 const folderIds: Record<string, number> = {};
 
-beforeEach(() => {
+beforeEach(async () => {
   for (const table of [
     schema.photoKeywords, schema.photoPeople, schema.albumPhotos, schema.folderAlbums, schema.folderPeople,
     schema.geoPlaces, schema.photos, schema.folders,
@@ -82,108 +83,108 @@ const definePerson = (folder: string, contactId: string, name: string | null) =>
 const ROY = 'b8e4117cf1d6615b';
 
 describe('people', () => {
-  it('takes a name defined only in another folder', () => {
+  it('takes a name defined only in another folder', async () => {
     const id = addPhoto('a.jpg', { people: [ROY] });
     definePerson('/photos/a', ROY, null);
     definePerson('/photos/b', ROY, 'Roy Avery');
 
-    expect(people.peopleOnPhoto(id)).toEqual([{ id: ROY, name: 'Roy Avery', avatarVersion: null, rects: [] }]);
+    expect(await people.peopleOnPhoto(id)).toEqual([{ id: ROY, name: 'Roy Avery', avatarVersion: null, rects: [] }]);
   });
 
-  it('prefers the first folder by path and gives null for an unknown contact', () => {
+  it('prefers the first folder by path and gives null for an unknown contact', async () => {
     definePerson('/photos/b', ROY, 'Roy B');
     definePerson('/photos/a', ROY, 'Roy A');
-    expect(people.personNames([ROY, '0123456789abcdef'])).toEqual(new Map([[ROY, 'Roy A'], ['0123456789abcdef', null]]));
+    expect(await people.personNames([ROY, '0123456789abcdef'])).toEqual(new Map([[ROY, 'Roy A'], ['0123456789abcdef', null]]));
   });
 });
 
 describe('tags', () => {
-  it('groups spellings under the most used one and counts photos', () => {
+  it('groups spellings under the most used one and counts photos', async () => {
     addPhoto('1.jpg', { keywords: ['Dawn'] });
     addPhoto('2.jpg', { keywords: ['Dawn', 'hills'] });
     addPhoto('3.jpg', { keywords: ['dawn'] });
 
-    expect(tagApi.listTags()).toEqual([{ name: 'Dawn', photoCount: 3 }, { name: 'hills', photoCount: 1 }]);
+    expect(await tagApi.listTags()).toEqual([{ name: 'Dawn', photoCount: 3 }, { name: 'hills', photoCount: 1 }]);
   });
 
-  it('breaks a tie by code-point order', () => {
+  it('breaks a tie by code-point order', async () => {
     addPhoto('1.jpg', { keywords: ['dawn'] });
     addPhoto('2.jpg', { keywords: ['Dawn'] });
-    expect(tagApi.listTags()).toEqual([{ name: 'Dawn', photoCount: 2 }]);
+    expect(await tagApi.listTags()).toEqual([{ name: 'Dawn', photoCount: 2 }]);
   });
 
-  it('leaves out a tag only on hidden photos', () => {
+  it('leaves out a tag only on hidden photos', async () => {
     addPhoto('1.jpg', { keywords: ['secret'], hidden: true });
-    expect(tagApi.listTags()).toEqual([]);
+    expect(await tagApi.listTags()).toEqual([]);
   });
 
-  it('filters photos by tag ignoring case, combined with an album', () => {
+  it('filters photos by tag ignoring case, combined with an album', async () => {
     const a = addPhoto('1.jpg', { keywords: ['Dawn'], albums: ['c9ea'] });
     const b = addPhoto('2.jpg', { keywords: ['dawn'] });
     addPhoto('3.jpg', { keywords: ['dusk'] });
 
-    expect(photoApi.listPhotos({ tag: 'DAWN' }).map((p) => p.id).sort()).toEqual([a, b].sort());
-    expect(photoApi.listPhotos({ tag: 'dawn', album: 'c9ea' }).map((p) => p.id)).toEqual([a]);
+    expect((await photoApi.listPhotos({ tag: 'DAWN' })).map((p) => p.id).sort()).toEqual([a, b].sort());
+    expect((await photoApi.listPhotos({ tag: 'dawn', album: 'c9ea' })).map((p) => p.id)).toEqual([a]);
   });
 });
 
 describe('search', () => {
-  const found = (query: string, extra: Record<string, string> = {}) =>
-    photoApi.listPhotos({ query, ...extra }).map((p) => p.filename).sort();
+  const found = async (query: string, extra: Record<string, string> = {}) =>
+    (await photoApi.listPhotos({ query, ...extra })).map((p) => p.filename).sort();
 
-  it('needs every word, in any of the texts, ignoring case', () => {
+  it('needs every word, in any of the texts, ignoring case', async () => {
     addPhoto('a.jpg', { folder: '/photos/b', keywords: ['bridge'] });
     addPhoto('c.jpg', { keywords: ['bridge'] });
 
-    expect(found('photos/b BRIDGE')).toEqual(['a.jpg']);
-    expect(found('bridge river')).toEqual([]);
-    expect(found('   ')).toEqual(['a.jpg', 'c.jpg']);
+    expect(await found('photos/b BRIDGE')).toEqual(['a.jpg']);
+    expect(await found('bridge river')).toEqual([]);
+    expect(await found('   ')).toEqual(['a.jpg', 'c.jpg']);
   });
 
-  it('matches part of a word and Cyrillic in another case', () => {
+  it('matches part of a word and Cyrillic in another case', async () => {
     addPhoto('a.jpg', { caption: 'Sunrise over hills', keywords: ['Київ'] });
-    expect(found('rise')).toEqual(['a.jpg']);
-    expect(found('київ')).toEqual(['a.jpg']);
+    expect(await found('rise')).toEqual(['a.jpg']);
+    expect(await found('київ')).toEqual(['a.jpg']);
   });
 
-  it('finds album names and descriptions, people and camera models', () => {
+  it('finds album names and descriptions, people and camera models', async () => {
     addPhoto('a.jpg', { albums: ['c9ea'] });
     addPhoto('b.jpg', { people: [ROY] });
     addPhoto('c.jpg', { model: 'Canon EOS 80D' });
     defineAlbum('/photos/a', 'c9ea', 'Birds of Ukraine', 'Spring migration');
     definePerson('/photos/a', ROY, 'Roy Avery');
 
-    expect(found('birds')).toEqual(['a.jpg']);
-    expect(found('migration')).toEqual(['a.jpg']);
-    expect(found('avery')).toEqual(['b.jpg']);
-    expect(found('80d')).toEqual(['c.jpg']);
+    expect(await found('birds')).toEqual(['a.jpg']);
+    expect(await found('migration')).toEqual(['a.jpg']);
+    expect(await found('avery')).toEqual(['b.jpg']);
+    expect(await found('80d')).toEqual(['c.jpg']);
   });
 
-  it('finds place names', () => {
+  it('finds place names', async () => {
     addPhoto('a.jpg', { geoCell: '4816:2450' });
     db.insert(schema.geoPlaces).values({ cell: '4816:2450', lang: 'uk', name: 'Яремче', searchText: 'яремче', status: 'ok', updatedAt: '' }).run();
-    expect(found('ЯРЕМЧЕ')).toEqual(['a.jpg']);
+    expect(await found('ЯРЕМЧЕ')).toEqual(['a.jpg']);
   });
 
-  it('treats % and _ literally', () => {
+  it('treats % and _ literally', async () => {
     addPhoto('a_b.jpg');
     addPhoto('axb.jpg');
-    expect(found('a_b')).toEqual(['a_b.jpg']);
-    expect(found('%')).toEqual([]);
+    expect(await found('a_b')).toEqual(['a_b.jpg']);
+    expect(await found('%')).toEqual([]);
   });
 
-  it('does not find a removed embedded description', () => {
+  it('does not find a removed embedded description', async () => {
     const { searchText } = libraryText.effectiveText({ caption: '' }, {
       filename: 'a.jpg', folderPath: '/photos/a', embeddedCaption: 'Market day', embeddedKeywords: [], cameraMake: null, cameraModel: null,
     });
     expect(searchText).not.toContain('market');
   });
 
-  it('searches inside an album and leaves hidden photos out', () => {
+  it('searches inside an album and leaves hidden photos out', async () => {
     addPhoto('a.jpg', { keywords: ['bridge'], albums: ['trip'] });
     addPhoto('b.jpg', { keywords: ['bridge'] });
     addPhoto('c.jpg', { keywords: ['bridge'], albums: ['trip'], hidden: true });
 
-    expect(found('bridge', { album: 'trip' })).toEqual(['a.jpg']);
+    expect(await found('bridge', { album: 'trip' })).toEqual(['a.jpg']);
   });
 });

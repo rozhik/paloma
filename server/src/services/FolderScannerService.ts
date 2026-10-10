@@ -1,12 +1,13 @@
 import chokidar, { FSWatcher } from 'chokidar';
 import path from 'node:path';
 import fs from 'node:fs';
-import { db } from '../db/index.js';
+import { db, type Db } from '../db/index.js';
+import { all, BATCH_SIZE, chunked, eachBatch, get, run, withTransaction } from '../db/query.js';
 import {
   folders, photos, edits, photoKeywords, photoPeople, albumPhotos, folderAlbums, folderPeople,
   detectedFaces, faceDetections, faceDismissals, persons, photoFaces,
 } from '../db/schema.js';
-import { eq, and, inArray } from 'drizzle-orm';
+import { eq, and, asc, gt, inArray } from 'drizzle-orm';
 import { METADATA_VERSION, MetadataService } from './MetadataService.js';
 import { effectiveLocation } from './location.js';
 import { ThumbnailService } from './ThumbnailService.js';
@@ -15,6 +16,7 @@ import type { PalomaAlbumDefinition, PalomaPerson } from '../../../shared/types.
 import { effectiveText, parseKeywords, peopleOfFaces, textKey, type FileText } from './libraryText.js';
 import { config } from '../config.js';
 import { isIgnoredName, isExcluded, isPathCovered, collapseRoots, isFolderMetaFile } from './scanPaths.js';
+import { withFolderLock } from './folderLock.js';
 
 const SUPPORTED_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.tiff', '.bmp', '.heic']);
 
@@ -75,8 +77,6 @@ function toPhotoColumns(fields: PhotoFields | undefined, exif: ExifLocation, fil
   };
 }
 
-type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
-
 const str = (value: unknown): string | null => (typeof value === 'string' ? value : null);
 
 function folderAlbumRow(folderId: number, token: string, definition: PalomaAlbumDefinition) {
@@ -92,25 +92,25 @@ function folderAlbumRow(folderId: number, token: string, definition: PalomaAlbum
   };
 }
 
-function setFolderAlbums(tx: Tx | typeof db, folderId: number, albums: FolderState['albums']): void {
-  tx.delete(folderAlbums).where(eq(folderAlbums.folderId, folderId)).run();
+async function setFolderAlbums(tx: Db, folderId: number, albums: FolderState['albums']): Promise<void> {
+  await run(tx.delete(folderAlbums).where(eq(folderAlbums.folderId, folderId)));
   for (const [token, definition] of Object.entries(albums)) {
-    tx.insert(folderAlbums).values(folderAlbumRow(folderId, token, definition)).run();
+    await run(tx.insert(folderAlbums).values(folderAlbumRow(folderId, token, definition)));
   }
 }
 
-function setPhotoAlbums(tx: Tx | typeof db, photoId: number, fields: PhotoFields | undefined): void {
-  tx.delete(albumPhotos).where(eq(albumPhotos.photoId, photoId)).run();
+async function setPhotoAlbums(tx: Db, photoId: number, fields: PhotoFields | undefined): Promise<void> {
+  await run(tx.delete(albumPhotos).where(eq(albumPhotos.photoId, photoId)));
   for (const token of fields?.albums ?? []) {
-    tx.insert(albumPhotos).values({ photoId, token }).run();
+    await run(tx.insert(albumPhotos).values({ photoId, token }));
   }
 }
 
 /** Indexes the photo's tags by their lowercased spelling; the columns hold the effective tags as JSON. */
-function setPhotoKeywords(tx: Tx | typeof db, photoId: number, keywordsJson: string | null): void {
-  tx.delete(photoKeywords).where(eq(photoKeywords.photoId, photoId)).run();
+async function setPhotoKeywords(tx: Db, photoId: number, keywordsJson: string | null): Promise<void> {
+  await run(tx.delete(photoKeywords).where(eq(photoKeywords.photoId, photoId)));
   for (const keyword of parseKeywords(keywordsJson)) {
-    tx.insert(photoKeywords).values({ photoId, keyword, key: textKey(keyword) }).onConflictDoNothing().run();
+    await run(tx.insert(photoKeywords).values({ photoId, keyword, key: textKey(keyword) }).onConflictDoNothing());
   }
 }
 
@@ -118,39 +118,47 @@ function setPhotoKeywords(tx: Tx | typeof db, photoId: number, keywordsJson: str
  * Indexes the people of the photo's faces and every face of a person with its rectangle; a contact id seen for
  * the first time becomes a person.
  */
-function setPhotoPeople(tx: Tx | typeof db, photoId: number, fields: PhotoFields | undefined): void {
-  tx.delete(photoPeople).where(eq(photoPeople.photoId, photoId)).run();
-  tx.delete(photoFaces).where(eq(photoFaces.photoId, photoId)).run();
-  peopleOfFaces(fields?.faces).forEach((contactId, position) => {
-    tx.insert(photoPeople).values({ photoId, contactId, position }).run();
-    tx.insert(persons).values({ contactId, createdAt: new Date().toISOString() }).onConflictDoNothing().run();
-  });
-  (fields?.faces ?? []).filter((face) => !face.ignored && face.person).forEach((face, position) => {
-    tx.insert(photoFaces).values({
+async function setPhotoPeople(tx: Db, photoId: number, fields: PhotoFields | undefined): Promise<void> {
+  await run(tx.delete(photoPeople).where(eq(photoPeople.photoId, photoId)));
+  await run(tx.delete(photoFaces).where(eq(photoFaces.photoId, photoId)));
+  for (const [position, contactId] of peopleOfFaces(fields?.faces).entries()) {
+    await run(tx.insert(photoPeople).values({ photoId, contactId, position }));
+    await run(tx.insert(persons).values({ contactId, createdAt: new Date().toISOString() }).onConflictDoNothing());
+  }
+  for (const [position, face] of (fields?.faces ?? []).filter((f) => !f.ignored && f.person).entries()) {
+    await run(tx.insert(photoFaces).values({
       photoId, position, contactId: face.person!, rect: face.rect ? JSON.stringify(face.rect) : null,
-    }).run();
-  });
+    }));
+  }
 }
 
-function setFolderPeople(tx: Tx | typeof db, folderId: number, people: Record<string, PalomaPerson>): void {
-  tx.delete(folderPeople).where(eq(folderPeople.folderId, folderId)).run();
+async function setFolderPeople(tx: Db, folderId: number, people: Record<string, PalomaPerson>): Promise<void> {
+  await run(tx.delete(folderPeople).where(eq(folderPeople.folderId, folderId)));
   for (const [contactId, person] of Object.entries(people)) {
-    tx.insert(folderPeople).values({ folderId, contactId, ...person }).run();
+    await run(tx.insert(folderPeople).values({ folderId, contactId, ...person }));
   }
 }
 
 /** Stores the photo's edit chain from its folder files: one row with the chain, none without edits. */
-function setPhotoEdits(tx: Tx | typeof db, photoId: number, fields: PhotoFields | undefined): void {
+async function setPhotoEdits(tx: Db, photoId: number, fields: PhotoFields | undefined): Promise<void> {
   if (!fields?.edits?.length) {
-    tx.delete(edits).where(eq(edits.photoId, photoId)).run();
+    await run(tx.delete(edits).where(eq(edits.photoId, photoId)));
     return;
   }
   const json = JSON.stringify(fields.edits);
-  const existing = tx.select({ json: edits.editInstructionsJson }).from(edits).where(eq(edits.photoId, photoId)).get();
+  const existing = await get(tx.select({ json: edits.editInstructionsJson }).from(edits).where(eq(edits.photoId, photoId)));
   if (existing?.json === json) return;
   const updatedAt = new Date().toISOString();
-  if (existing) tx.update(edits).set({ editInstructionsJson: json, updatedAt }).where(eq(edits.photoId, photoId)).run();
-  else tx.insert(edits).values({ photoId, editInstructionsJson: json, updatedAt }).run();
+  if (existing) await run(tx.update(edits).set({ editInstructionsJson: json, updatedAt }).where(eq(edits.photoId, photoId)));
+  else await run(tx.insert(edits).values({ photoId, editInstructionsJson: json, updatedAt }));
+}
+
+/** Sets a library photo's user fields, albums, edits, tags and people from its folder files. */
+async function setPhotoFields(tx: Db, photoId: number, fields: PhotoFields | undefined, keywordsJson: string | null): Promise<void> {
+  await setPhotoAlbums(tx, photoId, fields);
+  await setPhotoEdits(tx, photoId, fields);
+  await setPhotoKeywords(tx, photoId, keywordsJson);
+  await setPhotoPeople(tx, photoId, fields);
 }
 
 export class FolderScannerService {
@@ -162,7 +170,7 @@ export class FolderScannerService {
    */
   public static async startConfiguredFolders(options: ScanOptions = config): Promise<void> {
     excludeDirs = options.excludeDirs;
-    this.pruneFolders(options);
+    await this.pruneFolders(options);
 
     // Only outer roots get a watcher, so nested roots don't index the same files twice
     await Promise.all(collapseRoots(options.photosDirs).map((dir) =>
@@ -175,43 +183,55 @@ export class FolderScannerService {
   private static async scanAndWatchFolder(folderPath: string): Promise<number> {
     const absPath = path.resolve(folderPath);
 
-    if (!fs.existsSync(absPath)) {
+    try {
+      await fs.promises.access(absPath);
+    } catch {
       throw new Error(`Directory does not exist: ${absPath}`);
     }
 
-    const rootFolderId = this.upsertFolder(absPath);
+    const rootFolderId = await this.upsertFolder(absPath);
 
     // Each subdirectory with photos becomes its own folder, with its own sidecar
     const folderIds = new Map<string, number>([[absPath, rootFolderId]]);
     const folderStates = new Map<string, FolderState>();
     let ready = false;
-    const getFolderId = (dir: string): number => {
+    const getFolderId = async (dir: string): Promise<number> => {
       let id = folderIds.get(dir);
       if (id === undefined) {
-        id = this.upsertFolder(dir);
+        id = await this.upsertFolder(dir);
         folderIds.set(dir, id);
       }
       return id;
     };
     // Photo fields per folder from .paloma.json or the Picasa .ini; refreshed when either file changes
-    const getFolderState = (dir: string): FolderState => {
+    const getFolderState = async (dir: string): Promise<FolderState> => {
       let state = folderStates.get(dir);
       if (!state) {
-        state = SidecarService.getFolderState(dir);
+        state = await SidecarService.getFolderState(dir);
         folderStates.set(dir, state);
         // The folder's album definitions enter the library with the first look at its files
         const folderId = folderIds.get(dir);
         if (folderId !== undefined) {
-          setFolderAlbums(db, folderId, state.albums);
-          setFolderPeople(db, folderId, state.people);
+          const { albums, people } = state;
+          await withTransaction(async (tx) => {
+            await setFolderAlbums(tx, folderId, albums);
+            await setFolderPeople(tx, folderId, people);
+          });
         }
       }
       return state;
     };
+    // Reads the folder files afresh and applies them, under the folder's lock so a change saved meanwhile is not undone
+    const refreshFolder = (dir: string): Promise<void> => withFolderLock(dir, async () => {
+      folderStates.delete(dir);
+      const state = await SidecarService.getFolderState(dir);
+      folderStates.set(dir, state);
+      await this.applyFolderState(dir, state);
+    });
 
     // Watch folder using chokidar
     if (this.watchers.has(absPath)) {
-      this.watchers.get(absPath)?.close();
+      await this.watchers.get(absPath)?.close();
     }
 
     const watcher = chokidar.watch(absPath, {
@@ -222,6 +242,9 @@ export class FolderScannerService {
 
     // Index files one at a time so a large tree doesn't spawn thousands of concurrent sharp jobs
     let queue: Promise<void> = Promise.resolve();
+    const later = (job: () => Promise<void>): void => {
+      queue = queue.then(job).catch((err) => console.error(`Failed to update the library from ${absPath}:`, err));
+    };
 
     // Live events can arrive while a file is still being copied; index it once writing stops.
     // Initial-scan events go straight to the queue so large libraries aren't slowed down.
@@ -230,10 +253,9 @@ export class FolderScannerService {
     const onFolderMetaFile = (filePath: string): void => {
       if (!ready) return;
       const dir = path.dirname(filePath);
-      queue = queue.then(() => {
+      later(async () => {
         if (this.watchers.get(absPath) !== watcher) return;
-        folderStates.delete(dir);
-        this.applyFolderState(dir, getFolderState(dir));
+        await refreshFolder(dir);
       });
     };
     const enqueue = (event: IndexEvent) => async (filePath: string) => {
@@ -253,7 +275,7 @@ export class FolderScannerService {
       }
 
       // A closed or replaced watcher drops work that was still pending
-      queue = queue.then(async () => {
+      later(async () => {
         if (this.watchers.get(absPath) !== watcher) return;
         await this.indexPhoto(filePath, event, getFolderId, getFolderState);
       });
@@ -266,14 +288,7 @@ export class FolderScannerService {
         onFolderMetaFile(filePath);
         return;
       }
-      const folder = db.select().from(folders).where(eq(folders.path, path.dirname(filePath))).get();
-      if (!folder) return;
-
-      const removed = db.select({ id: photos.id })
-        .from(photos)
-        .where(and(eq(photos.folderId, folder.id), eq(photos.filename, path.basename(filePath))))
-        .all();
-      this.removePhotos(removed.map((p) => p.id));
+      this.removeFile(filePath).catch((err) => console.error(`Failed to remove ${filePath} from the library:`, err));
     });
 
     this.watchers.set(absPath, watcher);
@@ -281,78 +296,90 @@ export class FolderScannerService {
     await new Promise<void>((resolve) => watcher.once('ready', resolve));
     await queue;
     // Photos already in the library skip indexing; bring their fields and albums in line with the folder files
-    for (const dir of folderIds.keys()) this.applyFolderState(dir, getFolderState(dir));
+    for (const dir of folderIds.keys()) await refreshFolder(dir);
     ready = true;
     return rootFolderId;
   }
 
-  // Only touches the catalog; files on disk are never modified
-  private static pruneFolders({ photosDirs, excludeDirs }: ScanOptions): void {
-    for (const folder of db.select().from(folders).all()) {
-      if (isPathCovered(folder.path, photosDirs, excludeDirs)) continue;
+  /** Removes a deleted file's photo from the library. */
+  private static async removeFile(filePath: string): Promise<void> {
+    const folder = await get(db.select().from(folders).where(eq(folders.path, path.dirname(filePath))));
+    if (!folder) return;
 
-      const folderPhotos = db.select({ id: photos.id }).from(photos).where(eq(photos.folderId, folder.id)).all();
-      this.removePhotos(folderPhotos.map((p) => p.id));
-      db.delete(folderAlbums).where(eq(folderAlbums.folderId, folder.id)).run();
-      db.delete(folderPeople).where(eq(folderPeople.folderId, folder.id)).run();
-      db.delete(folders).where(eq(folders.id, folder.id)).run();
-      console.log(`Removed folder from library (not in PALOMA_PHOTOS_DIRS or excluded): ${folder.path}`);
+    const removed = await all(db.select({ id: photos.id })
+      .from(photos)
+      .where(and(eq(photos.folderId, folder.id), eq(photos.filename, path.basename(filePath)))));
+    await this.removePhotos(removed.map((p) => p.id));
+  }
+
+  // Only touches the catalog; files on disk are never modified
+  private static async pruneFolders({ photosDirs, excludeDirs }: ScanOptions): Promise<void> {
+    const pages = eachBatch(BATCH_SIZE, (afterId, size) =>
+      db.select().from(folders).where(gt(folders.id, afterId)).orderBy(asc(folders.id)).limit(size));
+    for await (const page of pages) {
+      for (const folder of page) {
+        if (isPathCovered(folder.path, photosDirs, excludeDirs)) continue;
+
+        const folderPhotos = await all(db.select({ id: photos.id }).from(photos).where(eq(photos.folderId, folder.id)));
+        await this.removePhotos(folderPhotos.map((p) => p.id));
+        await withTransaction(async (tx) => {
+          await run(tx.delete(folderAlbums).where(eq(folderAlbums.folderId, folder.id)));
+          await run(tx.delete(folderPeople).where(eq(folderPeople.folderId, folder.id)));
+          await run(tx.delete(folders).where(eq(folders.id, folder.id)));
+        });
+        console.log(`Removed folder from library (not in PALOMA_PHOTOS_DIRS or excluded): ${folder.path}`);
+      }
     }
   }
 
   // Dependent rows are deleted explicitly so removal does not rely on the foreign_keys pragma
-  private static removePhotos(photoIds: number[]): void {
-    if (photoIds.length === 0) return;
-
-    db.transaction((tx) => {
-      tx.delete(edits).where(inArray(edits.photoId, photoIds)).run();
-      const faceIds = tx.select({ id: detectedFaces.id }).from(detectedFaces).where(inArray(detectedFaces.photoId, photoIds));
-      tx.delete(faceDismissals).where(inArray(faceDismissals.faceId, faceIds)).run();
-      tx.delete(detectedFaces).where(inArray(detectedFaces.photoId, photoIds)).run();
-      tx.delete(faceDetections).where(inArray(faceDetections.photoId, photoIds)).run();
-      tx.delete(photoKeywords).where(inArray(photoKeywords.photoId, photoIds)).run();
-      tx.delete(photoPeople).where(inArray(photoPeople.photoId, photoIds)).run();
-      tx.delete(photoFaces).where(inArray(photoFaces.photoId, photoIds)).run();
-      tx.delete(albumPhotos).where(inArray(albumPhotos.photoId, photoIds)).run();
-      tx.delete(photos).where(inArray(photos.id, photoIds)).run();
-    });
+  private static async removePhotos(photoIds: number[]): Promise<void> {
+    await chunked(photoIds, BATCH_SIZE, (ids) => withTransaction(async (tx) => {
+      await run(tx.delete(edits).where(inArray(edits.photoId, ids)));
+      const faceIds = tx.select({ id: detectedFaces.id }).from(detectedFaces).where(inArray(detectedFaces.photoId, ids));
+      await run(tx.delete(faceDismissals).where(inArray(faceDismissals.faceId, faceIds)));
+      await run(tx.delete(detectedFaces).where(inArray(detectedFaces.photoId, ids)));
+      await run(tx.delete(faceDetections).where(inArray(faceDetections.photoId, ids)));
+      await run(tx.delete(photoKeywords).where(inArray(photoKeywords.photoId, ids)));
+      await run(tx.delete(photoPeople).where(inArray(photoPeople.photoId, ids)));
+      await run(tx.delete(photoFaces).where(inArray(photoFaces.photoId, ids)));
+      await run(tx.delete(albumPhotos).where(inArray(albumPhotos.photoId, ids)));
+      await run(tx.delete(photos).where(inArray(photos.id, ids)));
+    }));
   }
 
-  private static upsertFolder(dirPath: string): number {
-    const existing = db.select().from(folders).where(eq(folders.path, dirPath)).get();
+  private static async upsertFolder(dirPath: string): Promise<number> {
+    const existing = await get(db.select().from(folders).where(eq(folders.path, dirPath)));
     if (existing) {
-      db.update(folders)
+      await run(db.update(folders)
         .set({ indexedAt: new Date().toISOString() })
-        .where(eq(folders.id, existing.id))
-        .run();
+        .where(eq(folders.id, existing.id)));
       return existing.id;
     }
 
-    return db.insert(folders)
+    return (await get(db.insert(folders)
       .values({
         path: dirPath,
         name: path.basename(dirPath),
         indexedAt: new Date().toISOString(),
       })
-      .returning({ id: folders.id })
-      .get().id;
+      .returning({ id: folders.id }))).id;
   }
 
   // 'add' indexes new files only; 'change' also refreshes an indexed photo whose content changed
   private static async indexPhoto(
     filePath: string,
     event: IndexEvent,
-    getFolderId: (dir: string) => number,
-    getFolderState: (dir: string) => FolderState,
+    getFolderId: (dir: string) => Promise<number>,
+    getFolderState: (dir: string) => Promise<FolderState>,
   ): Promise<void> {
     const dir = path.dirname(filePath);
     const filename = path.basename(filePath);
     try {
-      const folderId = getFolderId(dir);
-      const existingPhoto = db.select()
+      const folderId = await getFolderId(dir);
+      const existingPhoto = await get(db.select()
         .from(photos)
-        .where(and(eq(photos.folderId, folderId), eq(photos.filename, filename)))
-        .get();
+        .where(and(eq(photos.folderId, folderId), eq(photos.filename, filename))));
       const outdated = existingPhoto !== undefined && existingPhoto.metadataVersion < METADATA_VERSION;
       if (existingPhoto && event === 'add' && !outdated) return;
 
@@ -377,71 +404,73 @@ export class FolderScannerService {
         metadataVersion: METADATA_VERSION,
       };
       // User fields come from the folder's sidecar (or Picasa .ini), so they survive a content change
-      const fields = getFolderState(dir).photos[filename];
+      const fields = (await getFolderState(dir)).photos[filename];
       const fromSidecar = toPhotoColumns(fields, exif, {
         filename, folderPath: dir, embeddedCaption: meta.caption, embeddedKeywords: meta.keywords,
         cameraMake: meta.cameraMake, cameraModel: meta.cameraModel,
       });
 
-      db.transaction((tx) => {
+      await withTransaction(async (tx) => {
         let photoId: number;
         if (existingPhoto) {
-          tx.update(photos).set({ ...fromContent, ...fromSidecar }).where(eq(photos.id, existingPhoto.id)).run();
+          await run(tx.update(photos).set({ ...fromContent, ...fromSidecar }).where(eq(photos.id, existingPhoto.id)));
           photoId = existingPhoto.id;
         } else {
-          photoId = tx.insert(photos).values({
+          photoId = (await get(tx.insert(photos).values({
             folderId,
             filename,
             ...fromContent,
             ...fromSidecar,
             createdAt: new Date().toISOString(),
-          }).returning({ id: photos.id }).get().id;
+          }).returning({ id: photos.id }))).id;
         }
-        setPhotoAlbums(tx, photoId, fields);
-        setPhotoEdits(tx, photoId, fields);
-        setPhotoKeywords(tx, photoId, fromSidecar.keywords);
-        setPhotoPeople(tx, photoId, fields);
+        await setPhotoFields(tx, photoId, fields, fromSidecar.keywords);
       });
     } catch (err) {
       console.error(`Error scanning ${filePath}:`, err);
     }
   }
 
-  /** Sets the user fields and albums of every library photo in a folder; a folder not in the library is left alone. */
-  public static applyFolderState(dir: string, state: FolderState): void {
-    const folder = db.select().from(folders).where(eq(folders.path, dir)).get();
+  /**
+   * Sets the user fields and albums of every library photo in a folder; a folder not in the library is left
+   * alone. Works through the folder's photos in batches, letting other requests run between them.
+   */
+  public static async applyFolderState(dir: string, state: FolderState): Promise<void> {
+    const folder = await get(db.select().from(folders).where(eq(folders.path, dir)));
     if (!folder) return;
 
-    const folderPhotos = db.select({
+    const pages = eachBatch(BATCH_SIZE, (afterId, size) => db.select({
       id: photos.id, filename: photos.filename, latitude: photos.exifLatitude, longitude: photos.exifLongitude,
       embeddedCaption: photos.embeddedCaption, embeddedKeywords: photos.embeddedKeywords,
       cameraMake: photos.cameraMake, cameraModel: photos.cameraModel,
     })
       .from(photos)
-      .where(eq(photos.folderId, folder.id))
-      .all();
-    db.transaction((tx) => {
-      for (const photo of folderPhotos) {
-        const fields = state.photos[photo.filename];
-        const columns = toPhotoColumns(fields, photo, {
-          ...photo, folderPath: dir, embeddedKeywords: parseKeywords(photo.embeddedKeywords),
-        });
-        tx.update(photos).set(columns).where(eq(photos.id, photo.id)).run();
-        setPhotoAlbums(tx, photo.id, fields);
-        setPhotoEdits(tx, photo.id, fields);
-        setPhotoKeywords(tx, photo.id, columns.keywords);
-        setPhotoPeople(tx, photo.id, fields);
-      }
-      setFolderAlbums(tx, folder.id, state.albums);
-      setFolderPeople(tx, folder.id, state.people);
+      .where(and(eq(photos.folderId, folder.id), gt(photos.id, afterId)))
+      .orderBy(asc(photos.id))
+      .limit(size));
+    for await (const page of pages) {
+      await withTransaction(async (tx) => {
+        for (const photo of page) {
+          const fields = state.photos[photo.filename];
+          const columns = toPhotoColumns(fields, photo, {
+            ...photo, folderPath: dir, embeddedKeywords: parseKeywords(photo.embeddedKeywords),
+          });
+          await run(tx.update(photos).set(columns).where(eq(photos.id, photo.id)));
+          await setPhotoFields(tx, photo.id, fields, columns.keywords);
+        }
+      });
+    }
+    await withTransaction(async (tx) => {
+      await setFolderAlbums(tx, folder.id, state.albums);
+      await setFolderPeople(tx, folder.id, state.people);
     });
   }
 
-  public static stopWatching(folderPath: string): void {
+  public static async stopWatching(folderPath: string): Promise<void> {
     const watcher = this.watchers.get(folderPath);
     if (watcher) {
-      watcher.close();
       this.watchers.delete(folderPath);
+      await watcher.close();
     }
   }
 

@@ -24,6 +24,7 @@ beforeAll(async () => {
   vi.stubEnv('PALOMA_GEOCODER_URL', '');
   vi.stubEnv('PALOMA_MAP_TILE_URL', 'http://tiles.local/{z}/{x}/{y}.png');
 
+  await (await import('../db/index.js')).openDatabase();
   geo = await import('./geoApi.js');
   cache = await import('./placeCache.js');
   geocoding = await import('./geocoding.js');
@@ -35,7 +36,7 @@ beforeAll(async () => {
   schema = await import('../db/schema.js');
 });
 
-afterAll(() => {
+afterAll(async () => {
   vi.unstubAllEnvs();
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
@@ -64,7 +65,7 @@ function useGeocoder(handler: (url: URL) => Response | Promise<Response>) {
   return fetchMock;
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   geocoding.setGeocoder(null);
   vi.spyOn(console, 'error').mockImplementation(() => {});
   for (const table of [schema.albumPhotos, schema.photos, schema.folders, schema.geoPlaces, schema.geoSearch]) db.delete(table).run();
@@ -72,12 +73,12 @@ beforeEach(() => {
   folderB = db.insert(schema.folders).values({ path: '/b', name: 'b', indexedAt: '' }).returning({ id: schema.folders.id }).get().id;
 });
 
-afterEach(() => {
+afterEach(async () => {
   vi.restoreAllMocks();
 });
 
 describe('getGeoSettings', () => {
-  it('reports the tile server and that geocoding is off', () => {
+  it('reports the tile server and that geocoding is off', async () => {
     expect(geo.getGeoSettings()).toEqual({
       geocoding: false,
       tileUrl: 'http://tiles.local/{z}/{x}/{y}.png',
@@ -87,38 +88,38 @@ describe('getGeoSettings', () => {
 });
 
 describe('listGeoPoints', () => {
-  it('returns only geotagged photos with their thumbnail', () => {
+  it('returns only geotagged photos with their thumbnail', async () => {
     const a = addPhoto('a.jpg', { lat: 49.84, lon: 24.03 });
     addPhoto('b.jpg');
 
-    expect(geo.listGeoPoints({})).toEqual([{ id: a, lat: 49.84, lon: 24.03, thumbnailUrl: '/api/cache/thumbnail/hash-a.jpg' }]);
+    expect(await geo.listGeoPoints({})).toEqual([{ id: a, lat: 49.84, lon: 24.03, thumbnailUrl: '/api/cache/thumbnail/hash-a.jpg' }]);
   });
 
-  it('gives an edited photo its rendered thumbnail', () => {
+  it('gives an edited photo its rendered thumbnail', async () => {
     const a = addPhoto('a.jpg', { lat: 49.84, lon: 24.03 });
     db.insert(schema.edits).values({ photoId: a, editInstructionsJson: '[{"filter":"sepia"}]', updatedAt: '' }).run();
-    expect(geo.listGeoPoints({})[0].thumbnailUrl).toMatch(new RegExp(`^/api/photos/${a}/thumbnail\\?r=[0-9a-f]{12}$`));
+    expect((await geo.listGeoPoints({}))[0].thumbnailUrl).toMatch(new RegExp(`^/api/photos/${a}/thumbnail\\?r=[0-9a-f]{12}$`));
   });
 
-  it('is not limited to one page of the photo list', () => {
+  it('is not limited to one page of the photo list', async () => {
     for (let i = 0; i < 600; i++) addPhoto(`${i}.jpg`, { lat: 10, lon: 20 });
-    expect(geo.listGeoPoints({})).toHaveLength(600);
+    expect(await geo.listGeoPoints({})).toHaveLength(600);
   });
 
-  it('follows the folder, album, starred, hidden and search filters', () => {
+  it('follows the folder, album, starred, hidden and search filters', async () => {
     const a = addPhoto('lviv.jpg', { lat: 49.84, lon: 24.03, starred: true });
     const b = addPhoto('kyiv.jpg', { lat: 50.45, lon: 30.52, folder: folderB });
     addPhoto('hidden.jpg', { lat: 1, lon: 2, hidden: true });
     db.insert(schema.albumPhotos).values({ photoId: b, token: 'c9ea' }).run();
-    const ids = (query: Record<string, string>) => geo.listGeoPoints(query).map((p) => p.id).sort();
+    const ids = async (query: Record<string, string>) => (await geo.listGeoPoints(query)).map((p) => p.id).sort();
 
-    expect(ids({ folderId: String(folderA) })).toEqual([a]);
-    expect(ids({ album: 'c9ea' })).toEqual([b]);
-    expect(ids({ starred: 'true' })).toEqual([a]);
-    expect(ids({ query: 'kyi' })).toEqual([b]);
-    expect(ids({ includeHidden: 'true' })).toHaveLength(3);
-    expect(ids({ ids: `${b},x,${a}` })).toEqual([a, b].sort());
-    expect(ids({ ids: '' })).toEqual([]);
+    expect(await ids({ folderId: String(folderA) })).toEqual([a]);
+    expect(await ids({ album: 'c9ea' })).toEqual([b]);
+    expect(await ids({ starred: 'true' })).toEqual([a]);
+    expect(await ids({ query: 'kyi' })).toEqual([b]);
+    expect(await ids({ includeHidden: 'true' })).toHaveLength(3);
+    expect(await ids({ ids: `${b},x,${a}` })).toEqual([a, b].sort());
+    expect(await ids({ ids: '' })).toEqual([]);
   });
 });
 
@@ -165,61 +166,61 @@ describe('searchPlaces', () => {
 });
 
 describe('place cache', () => {
-  it('stores names, unknown places and failures with a growing retry delay', () => {
+  it('stores names, unknown places and failures with a growing retry delay', async () => {
     const now = new Date('2026-10-05T12:00:00Z');
-    cache.savePlace('4845:2455', 'en', 'Yaremche, Ivano-Frankivsk Oblast, Ukraine', now);
-    cache.savePlace('50:-3000', 'en', null, now);
-    expect(cache.getCachedPlace('4845:2455', 'en')).toMatchObject({ status: 'ok', searchText: 'yaremche, ivano-frankivsk oblast, ukraine' });
-    expect(cache.getCachedPlace('50:-3000', 'en')).toMatchObject({ status: 'none', name: null });
+    await cache.savePlace('4845:2455', 'en', 'Yaremche, Ivano-Frankivsk Oblast, Ukraine', now);
+    await cache.savePlace('50:-3000', 'en', null, now);
+    expect(await cache.getCachedPlace('4845:2455', 'en')).toMatchObject({ status: 'ok', searchText: 'yaremche, ivano-frankivsk oblast, ukraine' });
+    expect(await cache.getCachedPlace('50:-3000', 'en')).toMatchObject({ status: 'none', name: null });
 
-    cache.savePlaceFailure('4984:2403', 'en', now);
-    expect(cache.getCachedPlace('4984:2403', 'en')).toMatchObject({ status: 'failed', attempts: 1, retryAt: '2026-10-05T12:01:00.000Z' });
-    cache.savePlaceFailure('4984:2403', 'en', now);
-    expect(cache.getCachedPlace('4984:2403', 'en')).toMatchObject({ attempts: 2, retryAt: '2026-10-05T12:02:00.000Z' });
+    await cache.savePlaceFailure('4984:2403', 'en', now);
+    expect(await cache.getCachedPlace('4984:2403', 'en')).toMatchObject({ status: 'failed', attempts: 1, retryAt: '2026-10-05T12:01:00.000Z' });
+    await cache.savePlaceFailure('4984:2403', 'en', now);
+    expect(await cache.getCachedPlace('4984:2403', 'en')).toMatchObject({ attempts: 2, retryAt: '2026-10-05T12:02:00.000Z' });
     expect(cache.retryDelayMs(20)).toBe(60 * 60_000);
 
-    cache.savePlace('4984:2403', 'en', 'Lviv', now);
-    expect(cache.getCachedPlace('4984:2403', 'en')).toMatchObject({ status: 'ok', attempts: 0, retryAt: null });
+    await cache.savePlace('4984:2403', 'en', 'Lviv', now);
+    expect(await cache.getCachedPlace('4984:2403', 'en')).toMatchObject({ status: 'ok', attempts: 0, retryAt: null });
   });
 });
 
 describe('place names', () => {
   const now = new Date('2026-10-05T12:00:00Z');
 
-  beforeEach(() => {
-    cache.savePlace(location.geoCell(48.45, 24.55), 'en', 'Yaremche, Ivano-Frankivsk Oblast, Ukraine', now);
-    cache.savePlace(location.geoCell(48.45, 24.55), 'uk', 'Яремче, Івано-Франківська область, Україна', now);
-    cache.savePlace(location.geoCell(49.84, 24.03), 'en', 'Lviv, Lviv Oblast, Ukraine', now);
-    cache.savePlace(location.geoCell(49.85, 24.02), 'en', 'Lviv, Lviv Oblast, Ukraine', now);
-    cache.savePlace(location.geoCell(0.5, -30), 'en', null, now);
+  beforeEach(async () => {
+    await cache.savePlace(location.geoCell(48.45, 24.55), 'en', 'Yaremche, Ivano-Frankivsk Oblast, Ukraine', now);
+    await cache.savePlace(location.geoCell(48.45, 24.55), 'uk', 'Яремче, Івано-Франківська область, Україна', now);
+    await cache.savePlace(location.geoCell(49.84, 24.03), 'en', 'Lviv, Lviv Oblast, Ukraine', now);
+    await cache.savePlace(location.geoCell(49.85, 24.02), 'en', 'Lviv, Lviv Oblast, Ukraine', now);
+    await cache.savePlace(location.geoCell(0.5, -30), 'en', null, now);
   });
 
-  it('returns each photo\'s place in the requested language, or null', () => {
+  it('returns each photo\'s place in the requested language, or null', async () => {
     addPhoto('yaremche.jpg', { lat: 48.4512, lon: 24.5534 });
     addPhoto('kyiv.jpg', { lat: 50.45, lon: 30.52 });
     addPhoto('plain.jpg');
-    const placeOf = (lang?: string) => Object.fromEntries(photoApi.listPhotos(lang ? { lang } : {}).map((p) => [p.filename, p.place]));
+    const placeOf = async (lang?: string) => Object.fromEntries((await photoApi.listPhotos(lang ? { lang } : {})).map((p) => [p.filename, p.place]));
 
-    expect(placeOf('en')).toEqual({
+    expect(await placeOf('en')).toEqual({
       'yaremche.jpg': 'Yaremche, Ivano-Frankivsk Oblast, Ukraine', 'kyiv.jpg': null, 'plain.jpg': null,
     });
-    expect(placeOf('uk')['yaremche.jpg']).toBe('Яремче, Івано-Франківська область, Україна');
-    expect(placeOf()['yaremche.jpg']).toBeNull();
+    expect((await placeOf('uk'))['yaremche.jpg']).toBe('Яремче, Івано-Франківська область, Україна');
+    expect((await placeOf())['yaremche.jpg']).toBeNull();
   });
 
-  it('finds photos by place name in any language, ignoring case beyond ASCII', () => {
+  it('finds photos by place name in any language, ignoring case beyond ASCII', async () => {
     addPhoto('IMG_1.jpg', { lat: 48.45, lon: 24.55 });
     addPhoto('IMG_2.jpg', { lat: 49.84, lon: 24.03 });
-    const found = (query: string) => photoApi.listPhotos({ query }).map((p) => p.filename).sort();
+    const found = async (query: string) => (await photoApi.listPhotos({ query })).map((p) => p.filename).sort();
 
-    expect(found('yaremche')).toEqual(['IMG_1.jpg']);
-    expect(found('ЯРЕМЧЕ')).toEqual(['IMG_1.jpg']);
-    expect(found('ukraine')).toEqual(['IMG_1.jpg', 'IMG_2.jpg']);
-    expect(found('img_2')).toEqual(['IMG_2.jpg']);
-    expect(geo.listGeoPoints({ query: 'lviv' })).toHaveLength(1);
+    expect(await found('yaremche')).toEqual(['IMG_1.jpg']);
+    expect(await found('ЯРЕМЧЕ')).toEqual(['IMG_1.jpg']);
+    expect(await found('ukraine')).toEqual(['IMG_1.jpg', 'IMG_2.jpg']);
+    expect(await found('img_2')).toEqual(['IMG_2.jpg']);
+    expect(await geo.listGeoPoints({ query: 'lviv' })).toHaveLength(1);
   });
 
-  it('groups the selection by place with counts, bounds and pending photos', () => {
+  it('groups the selection by place with counts, bounds and pending photos', async () => {
     useGeocoder(() => json({}));
     addPhoto('l1.jpg', { lat: 49.84, lon: 24.03 });
     addPhoto('l2.jpg', { lat: 49.841, lon: 24.031 });
@@ -230,7 +231,7 @@ describe('place names', () => {
     addPhoto('plain.jpg');
     addPhoto('other.jpg', { lat: 48.45, lon: 24.55, folder: folderB });
 
-    expect(geo.listPlaces({ folderId: String(folderA), lang: 'en' })).toEqual({
+    expect(await geo.listPlaces({ folderId: String(folderA), lang: 'en' })).toEqual({
       status: 200,
       body: {
         places: [
@@ -242,7 +243,7 @@ describe('place names', () => {
     });
   });
 
-  it('responds 503 for places when geocoding is off', () => {
-    expect(geo.listPlaces({ lang: 'en' })).toMatchObject({ status: 503, body: { code: 'geocoder_disabled' } });
+  it('responds 503 for places when geocoding is off', async () => {
+    expect(await geo.listPlaces({ lang: 'en' })).toMatchObject({ status: 503, body: { code: 'geocoder_disabled' } });
   });
 });

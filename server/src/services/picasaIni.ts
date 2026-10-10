@@ -188,13 +188,18 @@ export function parsePicasaIni(bytes: Buffer): PicasaIniData {
 }
 
 /** Reads the folder's Picasa .ini, if any. Paloma never writes these files. */
-export function readPicasaIni(dir: string, names: readonly string[] = fs.readdirSync(dir)): PicasaIniRead {
-  const fileName = findPicasaIni(names);
+export async function readPicasaIni(dir: string, names?: readonly string[]): Promise<PicasaIniRead> {
+  let fileName: string | undefined;
+  try {
+    fileName = findPicasaIni(names ?? await fs.promises.readdir(dir));
+  } catch {
+    return { kind: 'missing' };
+  }
   if (!fileName) return { kind: 'missing' };
 
   let bytes: Buffer;
   try {
-    bytes = fs.readFileSync(path.join(dir, fileName));
+    bytes = await fs.promises.readFile(path.join(dir, fileName));
   } catch {
     return { kind: 'missing' };
   }

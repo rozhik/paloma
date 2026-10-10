@@ -23,88 +23,88 @@ function writePlugin(manifest: unknown, files: Record<string, string> = { 'index
   }
 }
 
-beforeEach(() => {
+beforeEach(async () => {
   dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'paloma_manifest_test_')));
 });
 
-afterEach(() => {
+afterEach(async () => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
 describe('readManifest', () => {
-  it('reads a valid manifest and resolves the module path', () => {
+  it('reads a valid manifest and resolves the module path', async () => {
     writePlugin(VALID);
-    expect(readManifest(dir)).toEqual({
+    expect(await readManifest(dir)).toEqual({
       kind: 'ok',
       manifest: { ...VALID, server: path.join(dir, 'index.js'), level: 'normal' },
     });
   });
 
-  it('reads a declared level', () => {
+  it('reads a declared level', async () => {
     writePlugin({ ...VALID, level: 'pro' });
-    expect(readManifest(dir)).toMatchObject({ kind: 'ok', manifest: { level: 'pro' } });
+    expect(await readManifest(dir)).toMatchObject({ kind: 'ok', manifest: { level: 'pro' } });
   });
 
-  it('rejects an unknown level, naming the allowed ones', () => {
+  it('rejects an unknown level, naming the allowed ones', async () => {
     writePlugin({ ...VALID, level: 'expert' });
-    const read = readManifest(dir);
+    const read = await readManifest(dir);
     expect(read.kind).toBe('invalid');
     if (read.kind === 'invalid') expect(read.reason).toBe('"level" must be one of child, easy, normal, pro, developer');
   });
 
-  it('reports a folder without a manifest as missing', () => {
-    expect(readManifest(dir)).toEqual({ kind: 'missing' });
+  it('reports a folder without a manifest as missing', async () => {
+    expect(await readManifest(dir)).toEqual({ kind: 'missing' });
   });
 
-  it('rejects invalid JSON', () => {
+  it('rejects invalid JSON', async () => {
     writePlugin('{ "id": ');
-    const read = readManifest(dir);
+    const read = await readManifest(dir);
     expect(read.kind).toBe('invalid');
     if (read.kind === 'invalid') expect(read.reason).toMatch(/not valid JSON/);
   });
 
-  it('rejects a manifest without an id, keeping what it could read', () => {
+  it('rejects a manifest without an id, keeping what it could read', async () => {
     const { id, ...rest } = VALID;
     writePlugin(rest);
-    const read = readManifest(dir);
+    const read = await readManifest(dir);
     expect(read).toMatchObject({ kind: 'invalid', partial: { name: VALID.name, version: '1.2.0' } });
     if (read.kind === 'invalid') expect(read.reason).toMatch(/no "id"/);
   });
 
-  it('rejects an id with capitals or spaces', () => {
+  it('rejects an id with capitals or spaces', async () => {
     writePlugin({ ...VALID, id: 'Film Grain' });
-    expect(readManifest(dir).kind).toBe('invalid');
+    expect((await readManifest(dir)).kind).toBe('invalid');
   });
 
-  it('rejects a localized name without English', () => {
+  it('rejects a localized name without English', async () => {
     writePlugin({ ...VALID, name: { uk: 'Зерно' } });
-    expect(readManifest(dir).kind).toBe('invalid');
+    expect((await readManifest(dir)).kind).toBe('invalid');
   });
 
-  it('rejects a module path outside the folder', () => {
+  it('rejects a module path outside the folder', async () => {
     writePlugin({ ...VALID, server: '../other/index.js' });
-    const read = readManifest(dir);
+    const read = await readManifest(dir);
     expect(read.kind).toBe('invalid');
     if (read.kind === 'invalid') expect(read.reason).toMatch(/outside the plugin folder/);
   });
 
-  it('rejects a symlinked module that points outside the folder', () => {
+  it('rejects a symlinked module that points outside the folder', async () => {
     const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'paloma_manifest_outside_'));
     fs.writeFileSync(path.join(outside, 'evil.js'), 'export {}');
     writePlugin({ ...VALID, server: 'link.js' }, {});
     fs.symlinkSync(path.join(outside, 'evil.js'), path.join(dir, 'link.js'));
-    expect(readManifest(dir).kind).toBe('invalid');
+    expect((await readManifest(dir)).kind).toBe('invalid');
     fs.rmSync(outside, { recursive: true, force: true });
   });
 
-  it('rejects a missing module file', () => {
+  it('rejects a missing module file', async () => {
     writePlugin({ ...VALID, server: 'missing.js' }, {});
-    expect(readManifest(dir).kind).toBe('invalid');
+    expect((await readManifest(dir)).kind).toBe('invalid');
   });
 
-  it('rejects a plugin built for a newer API, naming both versions', () => {
+  it('rejects a plugin built for a newer API, naming both versions', async () => {
     writePlugin({ ...VALID, apiVersion: 2 });
-    const read = readManifest(dir);
+    const read = await readManifest(dir);
     expect(read).toMatchObject({ kind: 'invalid', partial: { id: 'film-grain' } });
     if (read.kind === 'invalid') expect(read.reason).toBe('the plugin needs plugin API 2, while Paloma supports 1');
   });
@@ -113,20 +113,20 @@ describe('readManifest', () => {
 describe('localize', () => {
   const name = { en: 'Film grain', uk: 'Плівкове зерно', 'pt-BR': 'Grão' };
 
-  it('uses the requested language when given', () => {
+  it('uses the requested language when given', async () => {
     expect(localize(name, 'uk')).toBe('Плівкове зерно');
     expect(localize(name, 'pt-BR')).toBe('Grão');
   });
 
-  it('falls back to English', () => {
+  it('falls back to English', async () => {
     expect(localize(name, 'de')).toBe('Film grain');
   });
 
-  it('matches the primary subtag', () => {
+  it('matches the primary subtag', async () => {
     expect(localize({ en: 'Grain', zh: '颗粒' }, 'zh-Hans')).toBe('颗粒');
   });
 
-  it('returns a plain string as is', () => {
+  it('returns a plain string as is', async () => {
     expect(localize('Adds grain', 'uk')).toBe('Adds grain');
   });
 });

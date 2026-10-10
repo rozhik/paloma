@@ -4,6 +4,7 @@ import sharp from 'sharp';
 import exifReader from 'exif-reader';
 import { and, eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
+import { get } from '../db/query.js';
 import { geoPlaces, photos } from '../db/schema.js';
 import { apiError } from './apiError.js';
 import { getApiPhoto, type ApiResult } from './photoApi.js';
@@ -63,8 +64,8 @@ export async function readExifFields(filePath: string): Promise<PhotoInfo['exif'
 }
 
 /** The photo's entry as stored in `.paloma.json`, or as read from the Picasa .ini while there is no sidecar. */
-export function sidecarEntry(dir: string, filename: string): PhotoInfo['entry'] {
-  const sidecar = SidecarService.readFolderSidecar(dir);
+export async function sidecarEntry(dir: string, filename: string): Promise<PhotoInfo['entry']> {
+  const sidecar = await SidecarService.readFolderSidecar(dir);
   if (sidecar.kind === 'unreadable') return { source: 'unreadable' };
   if (sidecar.kind === 'ok') {
     const entry = sidecar.data.photos[filename];
@@ -72,11 +73,11 @@ export function sidecarEntry(dir: string, filename: string): PhotoInfo['entry'] 
   }
   let names: string[];
   try {
-    names = fs.readdirSync(dir);
+    names = await fs.promises.readdir(dir);
   } catch {
     return { source: 'none' };
   }
-  const ini = readPicasaIni(dir, names);
+  const ini = await readPicasaIni(dir, names);
   if (ini.kind !== 'ok') return { source: 'none' };
   const fields = SidecarService.matchSections(ini.sections, names)[filename];
   return fields ? { source: 'ini', json: { ...fields } } : { source: 'none' };
@@ -84,25 +85,24 @@ export function sidecarEntry(dir: string, filename: string): PhotoInfo['entry'] 
 
 /** `GET /api/photos/:id/info`: everything the Info panel shows. Reads the photo file and its folder files only. */
 export async function getPhotoInfo(photoId: number, lang: unknown): Promise<ApiResult<PhotoInfo>> {
-  const photo = Number.isInteger(photoId) ? getApiPhoto(photoId) : undefined;
+  const photo = Number.isInteger(photoId) ? await getApiPhoto(photoId) : undefined;
   if (!photo?.folderPath) return { status: 404, body: apiError('photo_not_found', 'Photo not found') };
 
   let file: PhotoInfo['file'] = { path: photo.filePath, size: photo.fileSize, modifiedAt: null };
   try {
-    const stat = fs.statSync(photo.filePath);
+    const stat = await fs.promises.stat(photo.filePath);
     file = { path: photo.filePath, size: stat.size, modifiedAt: stat.mtime.toISOString() };
   } catch {
     // A file that just disappeared keeps the indexed size
   }
 
-  const albumTexts = shownAlbumTexts();
+  const albumTexts = await shownAlbumTexts();
   const language = lang === undefined ? '' : normalizeLang(lang);
   const place = language
-    ? db.select({ name: geoPlaces.name })
+    ? (await get(db.select({ name: geoPlaces.name })
       .from(photos)
       .innerJoin(geoPlaces, and(eq(geoPlaces.cell, photos.geoCell), eq(geoPlaces.lang, language)))
-      .where(eq(photos.id, photoId))
-      .get()?.name ?? null
+      .where(eq(photos.id, photoId))))?.name ?? null
     : null;
 
   return {
@@ -111,11 +111,11 @@ export async function getPhotoInfo(photoId: number, lang: unknown): Promise<ApiR
       photo: { ...photo, place },
       file,
       albums: photo.albums.map((token) => ({ token, name: albumTexts.get(token)?.name ?? null })),
-      people: peopleOnPhoto(photoId),
-      faces: unassignedFaces(photoId),
+      people: await peopleOnPhoto(photoId),
+      faces: await unassignedFaces(photoId),
       place,
       exif: await readExifFields(photo.filePath),
-      entry: sidecarEntry(path.dirname(photo.filePath), photo.filename),
+      entry: await sidecarEntry(path.dirname(photo.filePath), photo.filename),
     },
   };
 }

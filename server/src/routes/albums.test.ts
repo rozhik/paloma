@@ -20,6 +20,7 @@ beforeAll(async () => {
   vi.stubEnv('PALOMA_PHOTOS_DIRS', '');
   vi.stubEnv('PALOMA_EXCLUDE_DIRS', '');
 
+  await (await import('../db/index.js')).openDatabase();
   const { default: express } = await import('express');
   // Typed as the module under CommonJS interop; at runtime `default` is the router
   const router = (await import('./index.js')).default as unknown as import('express').Router;

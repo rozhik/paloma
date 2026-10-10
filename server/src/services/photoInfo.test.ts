@@ -18,12 +18,13 @@ beforeAll(async () => {
   vi.stubEnv('PALOMA_CACHE_DIR', path.join(tmpDir, 'cache'));
   vi.stubEnv('PALOMA_PHOTOS_DIRS', '');
   vi.stubEnv('PALOMA_EXCLUDE_DIRS', '');
+  await (await import('../db/index.js')).openDatabase();
   ({ db } = await import('../db/index.js'));
   schema = await import('../db/schema.js');
   info = await import('./photoInfo.js');
 });
 
-afterAll(() => {
+afterAll(async () => {
   vi.unstubAllEnvs();
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
@@ -91,7 +92,7 @@ describe('getPhotoInfo', () => {
 });
 
 describe('exifValueText', () => {
-  it('shows binary values only with their size and cuts long texts', () => {
+  it('shows binary values only with their size and cuts long texts', async () => {
     expect(info.exifValueText(Buffer.alloc(4000))).toEqual({ binary: 4000 });
     expect(info.exifValueText(new Array(200).fill(1))).toEqual({ binary: 200 });
     expect(info.exifValueText(5.6)).toBe('5.6');

@@ -17,12 +17,13 @@ beforeAll(async () => {
   vi.stubEnv('PALOMA_PHOTOS_DIRS', '');
   vi.stubEnv('PALOMA_EXCLUDE_DIRS', '');
 
+  await (await import('../db/index.js')).openDatabase();
   memories = await import('./memories.js');
   ({ db } = await import('../db/index.js'));
   schema = await import('../db/schema.js');
 });
 
-afterAll(() => {
+afterAll(async () => {
   vi.unstubAllEnvs();
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
@@ -30,7 +31,7 @@ afterAll(() => {
 let folderId: number;
 let serial = 0;
 
-beforeEach(() => {
+beforeEach(async () => {
   for (const table of [schema.albumPhotos, schema.folderAlbums, schema.photos, schema.folders]) db.delete(table).run();
   folderId = db.insert(schema.folders).values({ path: path.join(tmpDir, 'photos'), name: 'photos', indexedAt: '' })
     .returning({ id: schema.folders.id }).get().id;
@@ -51,100 +52,100 @@ function addAlbum(token: string, name: string | null, photoIds: number[]) {
   if (photoIds.length > 0) db.insert(schema.albumPhotos).values(photoIds.map((photoId) => ({ photoId, token }))).run();
 }
 
-const years = (date: string) => memories.memoriesOf(date).map((m) => m.year);
+const years = async (date: string) => (await memories.memoriesOf(date)).map((m) => m.year);
 
 describe('memoryWindow', () => {
-  it('spans three days on each side of the anniversary', () => {
+  it('spans three days on each side of the anniversary', async () => {
     expect(memories.memoryWindow('2026-10-06', 2016)).toEqual({ year: 2016, from: '2016-10-03', to: '2016-10-09' });
   });
 
-  it('crosses New Year', () => {
+  it('crosses New Year', async () => {
     expect(memories.memoryWindow('2026-01-01', 2016)).toEqual({ year: 2016, from: '2015-12-29', to: '2016-01-04' });
   });
 
-  it('counts February 29 as February 28 in a year without it', () => {
+  it('counts February 29 as February 28 in a year without it', async () => {
     expect(memories.memoryWindow('2028-02-29', 2027)).toEqual({ year: 2027, from: '2027-02-25', to: '2027-03-03' });
     expect(memories.memoryWindow('2028-02-29', 2024)).toEqual({ year: 2024, from: '2024-02-26', to: '2024-03-03' });
   });
 });
 
 describe('a memory is a past year around the date', () => {
-  it('takes the photos within three days and leaves the rest out', () => {
+  it('takes the photos within three days and leaves the rest out', async () => {
     const inside = addPhotos(['2016-10-04', '2016-10-06', '2016-10-09']);
     addPhotos(['2016-10-10']);
 
-    const [memory] = memories.memoriesOf('2026-10-06');
+    const [memory] = await memories.memoriesOf('2026-10-06');
     expect(memory).toMatchObject({ year: 2016, yearsAgo: 10, from: '2016-10-03', to: '2016-10-09', photoCount: 3 });
     expect(inside).toContain(memory.coverPhotoId);
   });
 
-  it('needs at least three photos', () => {
+  it('needs at least three photos', async () => {
     addPhotos(['2019-10-03', '2019-10-09']);
-    expect(years('2026-10-06')).toEqual([]);
+    expect(await years('2026-10-06')).toEqual([]);
   });
 
-  it('does not count hidden photos', () => {
+  it('does not count hidden photos', async () => {
     addPhotos(['2020-10-06', '2020-10-06']);
     addPhotos(['2020-10-06'], { isHidden: true });
-    expect(years('2026-10-06')).toEqual([]);
+    expect(await years('2026-10-06')).toEqual([]);
   });
 
-  it('crosses New Year', () => {
+  it('crosses New Year', async () => {
     addPhotos(['2015-12-30', '2016-01-01', '2016-01-03']);
-    expect(memories.memoriesOf('2026-01-01')).toMatchObject([{ year: 2016, photoCount: 3 }]);
+    expect(await memories.memoriesOf('2026-01-01')).toMatchObject([{ year: 2016, photoCount: 3 }]);
   });
 
-  it('treats a leap day as February 28 in other years', () => {
+  it('treats a leap day as February 28 in other years', async () => {
     addPhotos(['2027-02-27', '2027-02-27', '2027-02-27']);
-    expect(years('2028-02-29')).toEqual([2027]);
+    expect(await years('2028-02-29')).toEqual([2027]);
   });
 
-  it('has no memory for the date\'s own year', () => {
+  it('has no memory for the date\'s own year', async () => {
     addPhotos(['2026-10-04', '2026-10-04', '2026-10-04', '2026-10-04', '2026-10-04']);
-    expect(years('2026-10-06')).toEqual([]);
+    expect(await years('2026-10-06')).toEqual([]);
   });
 
-  it('is empty for an empty library', () => {
-    expect(memories.memoriesOf('2026-10-06')).toEqual([]);
+  it('is empty for an empty library', async () => {
+    expect(await memories.memoriesOf('2026-10-06')).toEqual([]);
   });
 });
 
 describe('naming album and cover', () => {
-  it('names a memory after the album that holds all its photos', () => {
+  it('names a memory after the album that holds all its photos', async () => {
     const ids = addPhotos(['1991-10-05', '1991-10-06', '1991-10-06', '1991-10-07', '1991-10-08']);
     addAlbum('c9ea', 'Kyiv', ids);
-    expect(memories.memoriesOf('2026-10-06')[0].album).toEqual({ token: 'c9ea', name: 'Kyiv' });
+    expect((await memories.memoriesOf('2026-10-06'))[0].album).toEqual({ token: 'c9ea', name: 'Kyiv' });
   });
 
-  it('has no album when some photos are outside it', () => {
+  it('has no album when some photos are outside it', async () => {
     const ids = addPhotos(['2016-10-05', '2016-10-06', '2016-10-07', '2016-10-08', '2016-10-08']);
     addAlbum('c9ea', 'Kyiv', ids.slice(0, 3));
-    expect(memories.memoriesOf('2026-10-06')[0].album).toBeNull();
+    expect((await memories.memoriesOf('2026-10-06'))[0].album).toBeNull();
   });
 
-  it('chooses the album with the fewest photos, then the first by name', () => {
+  it('chooses the album with the fewest photos, then the first by name', async () => {
     const ids = addPhotos(['2016-10-05', '2016-10-06', '2016-10-07']);
     const others = addPhotos(['2001-01-01', '2001-01-02']);
     addAlbum('aaaa', 'Trips', [...ids, ...others]);
     addAlbum('bbbb', 'kyiv', ids);
     addAlbum('cccc', 'Lviv', ids);
-    expect(memories.memoriesOf('2026-10-06')[0].album).toEqual({ token: 'bbbb', name: 'kyiv' });
+    expect((await memories.memoriesOf('2026-10-06'))[0].album).toEqual({ token: 'bbbb', name: 'kyiv' });
   });
 
-  it('ignores albums without a name', () => {
+  it('ignores albums without a name', async () => {
     const ids = addPhotos(['2016-10-05', '2016-10-06', '2016-10-07']);
     addAlbum('c9ea', null, ids);
     addAlbum('7f01', '  ', ids);
-    expect(memories.memoriesOf('2026-10-06')[0].album).toBeNull();
+    expect((await memories.memoriesOf('2026-10-06'))[0].album).toBeNull();
   });
 
-  it('lists newest first and covers with the first starred photo, else the first photo', () => {
+  it('lists newest first and covers with the first starred photo, else the first photo', async () => {
     addPhotos(['2016-10-05', '2016-10-06', '2016-10-07']);
     const [, starred] = addPhotos(['2023-10-05', '2023-10-06'], { isStarred: true });
     addPhotos(['2023-10-08']);
     const old = addPhotos(['1991-10-05', '1991-10-06', '1991-10-07']);
 
-    const list = memories.memoriesOf('2026-10-06');
+    const list = await memories.memoriesOf('2026-10-06');
     expect(list.map((m) => m.year)).toEqual([2023, 2016, 1991]);
     // Photo-list order is newest first: 2023-10-06 is the first starred one
     expect(list[0].coverPhotoId).toBe(starred);
@@ -154,12 +155,12 @@ describe('naming album and cover', () => {
 });
 
 describe('listMemories', () => {
-  it.each([undefined, '', '2026-13-40', '2026-02-30', ['2026-10-06']])('rejects date %j with 400', (date) => {
-    expect(memories.listMemories(date)).toMatchObject({ status: 400, body: { code: 'invalid_date', params: { field: 'date' } } });
+  it.each([undefined, '', '2026-13-40', '2026-02-30', ['2026-10-06']])('rejects date %j with 400', async (date) => {
+    expect(await memories.listMemories(date)).toMatchObject({ status: 400, body: { code: 'invalid_date', params: { field: 'date' } } });
   });
 
-  it('lists the memories of a valid date', () => {
+  it('lists the memories of a valid date', async () => {
     addPhotos(['2016-10-05', '2016-10-06', '2016-10-07']);
-    expect(memories.listMemories('2026-10-06')).toMatchObject({ status: 200, body: [{ year: 2016, title: null }] });
+    expect(await memories.listMemories('2026-10-06')).toMatchObject({ status: 200, body: [{ year: 2016, title: null }] });
   });
 });

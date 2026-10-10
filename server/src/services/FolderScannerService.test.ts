@@ -54,12 +54,13 @@ beforeAll(async () => {
   vi.stubEnv('PALOMA_PHOTOS_DIRS', '');
   vi.stubEnv('PALOMA_EXCLUDE_DIRS', '');
 
+  await (await import('../db/index.js')).openDatabase();
   ({ FolderScannerService: Scanner } = await import('./FolderScannerService.js'));
   ({ db } = await import('../db/index.js'));
   schema = await import('../db/schema.js');
 });
 
-beforeEach(() => {
+beforeEach(async () => {
   photosRoot = fs.mkdtempSync(path.join(tmpDir, 'photos_'));
   for (const table of [
     schema.edits, schema.faceDismissals, schema.detectedFaces, schema.faceDetections, schema.photoKeywords,
@@ -74,7 +75,7 @@ afterEach(async () => {
   await Scanner.stopAll();
 });
 
-afterAll(() => {
+afterAll(async () => {
   vi.unstubAllEnvs();
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
@@ -280,7 +281,7 @@ describe('FolderScannerService', () => {
       expect(indexedPaths()).toHaveLength(3);
     });
 
-    afterEach(() => {
+    afterEach(async () => {
       vi.restoreAllMocks();
     });
 
@@ -511,7 +512,7 @@ describe('FolderScannerService', () => {
       await makeImage(path.join(photosRoot, 'b.jpg'));
       writeIni(photosRoot, '[a.jpg]', 'caption=Old');
       await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
-      SidecarService.updatePhotoFields(photosRoot, 'a.jpg', { star: true });
+      await SidecarService.updatePhotoFields(photosRoot, 'a.jpg', { star: true });
 
       writeIni(photosRoot, '[a.jpg]', 'caption=New', '[b.jpg]', 'star=yes');
 
@@ -837,4 +838,74 @@ describe('description, tags and people in the library', () => {
     await vi.waitFor(() => expect(indexedPaths()).toEqual([]), WAIT);
     expect(db.select({ id: schema.persons.contactId }).from(schema.persons).all()).toEqual([{ id: '0123456789abcdef' }]);
   });
+});
+
+describe('large folders', () => {
+  const COUNT = 1200;
+
+  /** A library folder with COUNT photos indexed (no files needed to apply folder files) and a sidecar starring them all. */
+  function largeFolder(): string {
+    const folderId = db.insert(schema.folders).values({ path: photosRoot, name: 'large', indexedAt: '' })
+      .returning({ id: schema.folders.id }).get().id;
+    const names = Array.from({ length: COUNT }, (_, i) => `IMG_${String(i).padStart(4, '0')}.jpg`);
+    for (let i = 0; i < names.length; i += 200) {
+      db.insert(schema.photos).values(names.slice(i, i + 200).map((filename) => ({ folderId, filename, fileHash: filename, createdAt: '' }))).run();
+    }
+    writeSidecar(photosRoot, Object.fromEntries(names.map((name) => [name, { star: true, keywords: ['batch'] }])));
+    return photosRoot;
+  }
+
+  const starred = () => db.select({ id: schema.photos.id }).from(schema.photos).where(eq(schema.photos.isStarred, true)).all().length;
+
+  it('applies the folder files to every photo, batch after batch', async () => {
+    const dir = largeFolder();
+    const { SidecarService } = await import('./SidecarService.js');
+    await Scanner.applyFolderState(dir, await SidecarService.getFolderState(dir));
+    expect(starred()).toBe(COUNT);
+    expect(db.select({ id: schema.photoKeywords.photoId }).from(schema.photoKeywords).all()).toHaveLength(COUNT);
+  });
+
+  it('answers other queries between batches instead of after the whole folder', async () => {
+    const dir = largeFolder();
+    const { SidecarService } = await import('./SidecarService.js');
+    const { all } = await import('../db/query.js');
+    const state = await SidecarService.getFolderState(dir);
+
+    let applied = false;
+    let seenDuringApply = -1;
+    const reader = new Promise<void>((resolve) => setImmediate(() => {
+      all(db.select({ id: schema.photos.id }).from(schema.photos).where(eq(schema.photos.isStarred, true))).then((rows) => {
+        seenDuringApply = applied ? -1 : rows.length;
+        resolve();
+      });
+    }));
+    const apply = Scanner.applyFolderState(dir, state).then(() => { applied = true; });
+    await Promise.all([reader, apply]);
+
+    expect(seenDuringApply).toBeGreaterThan(0);
+    expect(seenDuringApply).toBeLessThan(COUNT);
+    expect(starred()).toBe(COUNT);
+  });
+});
+
+describe('the library during a scan', () => {
+  it('lists the photos indexed so far before the initial scan has finished', async () => {
+    const COUNT = 40;
+    for (let i = 0; i < COUNT; i++) await makeImage(path.join(photosRoot, `scan_${i}.jpg`), 400, 300);
+    const { listPhotos } = await import('./photoApi.js');
+    const indexed = () => db.select({ id: schema.photos.id }).from(schema.photos).all().length;
+
+    let scanned = false;
+    const scan = Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] }).then(() => { scanned = true; });
+    await vi.waitFor(() => expect(indexed()).toBeGreaterThan(0), WAIT);
+
+    const listed = await listPhotos({});
+    const answeredDuringScan = !scanned;
+    await scan;
+
+    expect(answeredDuringScan).toBe(true);
+    expect(listed.length).toBeGreaterThan(0);
+    expect(listed.length).toBeLessThan(COUNT);
+    expect(indexed()).toBe(COUNT);
+  }, 30_000);
 });

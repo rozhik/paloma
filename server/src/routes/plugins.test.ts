@@ -30,6 +30,7 @@ beforeAll(async () => {
   vi.stubEnv('PALOMA_PHOTOS_DIRS', '');
   vi.spyOn(console, 'log').mockImplementation(() => {});
 
+  await (await import('../db/index.js')).openDatabase();
   const { default: express } = await import('express');
   const router = (await import('./index.js')).default as unknown as import('express').Router;
   const app = express();

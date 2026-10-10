@@ -47,6 +47,7 @@ beforeAll(async () => {
   vi.stubEnv('PALOMA_EXCLUDE_DIRS', '');
   vi.spyOn(console, 'log').mockImplementation(() => {});
 
+  await (await import('../db/index.js')).openDatabase();
   const { default: express } = await import('express');
   const router = (await import('./index.js')).default as unknown as import('express').Router;
   ({ db } = await import('../db/index.js'));
@@ -74,12 +75,12 @@ afterAll(async () => {
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
-beforeEach(() => {
+beforeEach(async () => {
   fs.rmSync(sidecarPath(), { force: true });
   db.delete(schema.edits).run();
 });
 
-afterEach(() => {
+afterEach(async () => {
   fs.chmodSync(photosDir, 0o755);
 });
 

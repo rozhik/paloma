@@ -1,5 +1,6 @@
 import { and, eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
+import { get, run } from '../db/query.js';
 import { geoPlaces, geoSearch } from '../db/schema.js';
 import type { GeoSearchResult } from '../../../shared/types.js';
 
@@ -22,35 +23,35 @@ export function normalizeQuery(query: string): string {
 }
 
 export function getCachedPlace(cell: string, lang: string) {
-  return db.select().from(geoPlaces).where(and(eq(geoPlaces.cell, cell), eq(geoPlaces.lang, lang))).get();
+  return get(db.select().from(geoPlaces).where(and(eq(geoPlaces.cell, cell), eq(geoPlaces.lang, lang))));
 }
 
 /** Stores a resolved place name, or that the geocoder knows no place in the cell (`null`). */
-export function savePlace(cell: string, lang: string, name: string | null, now = new Date()): void {
+export async function savePlace(cell: string, lang: string, name: string | null, now = new Date()): Promise<void> {
   const row = {
     cell, lang, name, searchText: name?.toLowerCase() ?? null, status: name === null ? 'none' as const : 'ok' as const,
     attempts: 0, retryAt: null, updatedAt: now.toISOString(),
   };
-  db.insert(geoPlaces).values(row).onConflictDoUpdate({ target: [geoPlaces.cell, geoPlaces.lang], set: row }).run();
+  await run(db.insert(geoPlaces).values(row).onConflictDoUpdate({ target: [geoPlaces.cell, geoPlaces.lang], set: row }));
 }
 
 /** Records a failed lookup and when to try again. */
-export function savePlaceFailure(cell: string, lang: string, now = new Date()): void {
-  const attempts = (getCachedPlace(cell, lang)?.attempts ?? 0) + 1;
+export async function savePlaceFailure(cell: string, lang: string, now = new Date()): Promise<void> {
+  const attempts = ((await getCachedPlace(cell, lang))?.attempts ?? 0) + 1;
   const row = {
     cell, lang, name: null, searchText: null, status: 'failed' as const,
     attempts, retryAt: new Date(now.getTime() + retryDelayMs(attempts)).toISOString(), updatedAt: now.toISOString(),
   };
-  db.insert(geoPlaces).values(row).onConflictDoUpdate({ target: [geoPlaces.cell, geoPlaces.lang], set: row }).run();
+  await run(db.insert(geoPlaces).values(row).onConflictDoUpdate({ target: [geoPlaces.cell, geoPlaces.lang], set: row }));
 }
 
-export function getCachedSearch(lang: string, query: string): GeoSearchResult[] | undefined {
-  const row = db.select().from(geoSearch)
-    .where(and(eq(geoSearch.lang, lang), eq(geoSearch.query, normalizeQuery(query)))).get();
+export async function getCachedSearch(lang: string, query: string): Promise<GeoSearchResult[] | undefined> {
+  const row = await get(db.select().from(geoSearch)
+    .where(and(eq(geoSearch.lang, lang), eq(geoSearch.query, normalizeQuery(query)))));
   return row ? JSON.parse(row.resultsJson) : undefined;
 }
 
-export function saveSearch(lang: string, query: string, results: GeoSearchResult[], now = new Date()): void {
+export async function saveSearch(lang: string, query: string, results: GeoSearchResult[], now = new Date()): Promise<void> {
   const row = { lang, query: normalizeQuery(query), resultsJson: JSON.stringify(results), createdAt: now.toISOString() };
-  db.insert(geoSearch).values(row).onConflictDoUpdate({ target: [geoSearch.lang, geoSearch.query], set: row }).run();
+  await run(db.insert(geoSearch).values(row).onConflictDoUpdate({ target: [geoSearch.lang, geoSearch.query], set: row }));
 }

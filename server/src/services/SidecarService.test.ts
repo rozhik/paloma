@@ -19,29 +19,29 @@ const writeIni = (...lines: string[]): Buffer => {
 const sha256 = (bytes: Buffer): string => crypto.createHash('sha256').update(bytes).digest('hex');
 const touch = (...names: string[]): void => names.forEach((name) => fs.writeFileSync(path.join(dir, name), ''));
 
-beforeEach(() => {
+beforeEach(async () => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), 'paloma_sidecar_test_'));
   vi.spyOn(console, 'warn').mockImplementation(() => {});
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
-afterEach(() => {
+afterEach(async () => {
   vi.restoreAllMocks();
   fs.chmodSync(dir, 0o755);
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
 describe('readFolderSidecar', () => {
-  it('reports a missing file', () => {
-    expect(SidecarService.readFolderSidecar(dir)).toEqual({ kind: 'missing' });
+  it('reports a missing file', async () => {
+    expect(await SidecarService.readFolderSidecar(dir)).toEqual({ kind: 'missing' });
   });
 
-  it('reads a valid v2 file and treats absent photos as empty', () => {
+  it('reads a valid v2 file and treats absent photos as empty', async () => {
     writeJson({ format: 'paloma-folder', version: 2, photos: { 'a.jpg': { star: true } } });
-    expect(SidecarService.readFolderSidecar(dir)).toMatchObject({ kind: 'ok', data: { photos: { 'a.jpg': { star: true } } } });
+    expect(await SidecarService.readFolderSidecar(dir)).toMatchObject({ kind: 'ok', data: { photos: { 'a.jpg': { star: true } } } });
 
     writeJson({ format: 'paloma-folder', version: 2 });
-    expect(SidecarService.readFolderSidecar(dir)).toMatchObject({ kind: 'ok', data: { photos: {} } });
+    expect(await SidecarService.readFolderSidecar(dir)).toMatchObject({ kind: 'ok', data: { photos: {} } });
   });
 
   it.each([
@@ -54,14 +54,14 @@ describe('readFolderSidecar', () => {
     ['a non-string iniHash', JSON.stringify({ format: 'paloma-folder', version: 2, iniHash: 1, photos: {} })],
     ['albums that is an array', JSON.stringify({ format: 'paloma-folder', version: 2, albums: ['Birds'], photos: {} })],
     ['a non-object album definition', JSON.stringify({ format: 'paloma-folder', version: 2, albums: { c9ea: 'Birds' }, photos: {} })],
-  ])('reports %s as unreadable', (_, content) => {
+  ])('reports %s as unreadable', async (_, content) => {
     fs.writeFileSync(sidecarPath(), content);
-    expect(SidecarService.readFolderSidecar(dir).kind).toBe('unreadable');
+    expect((await SidecarService.readFolderSidecar(dir)).kind).toBe('unreadable');
   });
 });
 
 describe('fieldsOf', () => {
-  it('reads fields of the wrong type as absent', () => {
+  it('reads fields of the wrong type as absent', async () => {
     expect(SidecarService.fieldsOf({ star: 'yes', hidden: 1, caption: 5, keywords: 'a,b' } as unknown as PalomaPhotoEntry)).toEqual({});
     // "" and [] mark embedded text as removed, so they are kept
     expect(SidecarService.fieldsOf({ caption: '', keywords: ['a', 3, '', 'b'] } as unknown as PalomaPhotoEntry)).toEqual({ caption: '', keywords: ['a', 'b'] });
@@ -69,7 +69,7 @@ describe('fieldsOf', () => {
       .toEqual({ star: true, hidden: true, caption: 'x' });
   });
 
-  it('reads albums as a list of tokens without empty items or duplicates', () => {
+  it('reads albums as a list of tokens without empty items or duplicates', async () => {
     expect(SidecarService.fieldsOf({ albums: ['c9ea', '', 'c9ea', 3, '7f01'] } as unknown as PalomaPhotoEntry))
       .toEqual({ albums: ['c9ea', '7f01'] });
     expect(SidecarService.fieldsOf({ albums: 'c9ea' } as unknown as PalomaPhotoEntry)).toEqual({});
@@ -80,7 +80,7 @@ describe('reimport', () => {
   const base = (photos: PalomaFolderFile['photos']): PalomaFolderFile =>
     ({ format: 'paloma-folder', version: 2, iniHash: 'old', photos });
 
-  it('makes unmodified entries follow the .ini and keeps their other keys', () => {
+  it('makes unmodified entries follow the .ini and keeps their other keys', async () => {
     const result = SidecarService.reimport(
       base({
         'a.jpg': { caption: 'Old', star: true, rotate: 90 },
@@ -93,24 +93,24 @@ describe('reimport', () => {
     expect(result.iniHash).toBe('new');
   });
 
-  it('adds entries for new sections', () => {
+  it('adds entries for new sections', async () => {
     const result = SidecarService.reimport(base({}), { 'd.jpg': { star: true } }, 'new');
     expect(result.photos).toEqual({ 'd.jpg': { star: true } });
   });
 
-  it('keeps entries changed in Paloma and logs a conflict', () => {
+  it('keeps entries changed in Paloma and logs a conflict', async () => {
     const entry = { caption: 'Mine', modified: '2026-10-04T10:00:00.000Z' };
     const result = SidecarService.reimport(base({ 'a.jpg': entry }), { 'a.jpg': { caption: 'Theirs' } }, 'new');
     expect(result.photos['a.jpg']).toEqual(entry);
     expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('Conflict'));
   });
 
-  it('does not log a conflict when a changed entry agrees with the .ini', () => {
+  it('does not log a conflict when a changed entry agrees with the .ini', async () => {
     SidecarService.reimport(base({ 'a.jpg': { star: true, modified: 't' } }), { 'a.jpg': { star: true } }, 'new');
     expect(console.warn).not.toHaveBeenCalled();
   });
 
-  it('makes memberships of unmodified entries follow the .ini', () => {
+  it('makes memberships of unmodified entries follow the .ini', async () => {
     const result = SidecarService.reimport(
       base({ 'a.jpg': { albums: ['old'] }, 'b.jpg': { albums: ['mine'], modified: 't' } }),
       { 'a.jpg': { albums: ['new'] }, 'b.jpg': { albums: ['new'] } },
@@ -119,7 +119,7 @@ describe('reimport', () => {
     expect(result.photos).toEqual({ 'a.jpg': { albums: ['new'] }, 'b.jpg': { albums: ['mine'], modified: 't' } });
   });
 
-  it('re-imports album definitions without removing any', () => {
+  it('re-imports album definitions without removing any', async () => {
     const result = SidecarService.reimport(
       {
         ...base({}),
@@ -142,38 +142,38 @@ describe('reimport', () => {
     });
   });
 
-  it('keeps unknown top-level sections', () => {
+  it('keeps unknown top-level sections', async () => {
     const result = SidecarService.reimport({ ...base({}), albums: { x: {} } }, {}, 'new');
     expect(result.albums).toEqual({ x: {} });
   });
 });
 
 describe('getFolderState', () => {
-  it('reads the fields from .paloma.json', () => {
+  it('reads the fields from .paloma.json', async () => {
     writeJson({ format: 'paloma-folder', version: 2, photos: { 'a.jpg': { star: true, caption: 'Sunrise' }, 'b.jpg': { rotate: 90 } } });
-    expect(SidecarService.getFolderState(dir).photos).toEqual({ 'a.jpg': { star: true, caption: 'Sunrise' } });
+    expect((await SidecarService.getFolderState(dir)).photos).toEqual({ 'a.jpg': { star: true, caption: 'Sunrise' } });
   });
 
-  it('shows a Picasa folder live without writing anything', () => {
+  it('shows a Picasa folder live without writing anything', async () => {
     touch('img_0042.jpg');
     writeIni('[IMG_0042.JPG]', 'star=yes', '[gone.jpg]', 'caption=x');
-    expect(SidecarService.getFolderState(dir).photos).toEqual({ 'img_0042.jpg': { star: true }, 'gone.jpg': { caption: 'x' } });
+    expect((await SidecarService.getFolderState(dir)).photos).toEqual({ 'img_0042.jpg': { star: true }, 'gone.jpg': { caption: 'x' } });
     expect(fs.existsSync(sidecarPath())).toBe(false);
   });
 
-  it('returns album definitions from .paloma.json', () => {
+  it('returns album definitions from .paloma.json', async () => {
     writeJson({ format: 'paloma-folder', version: 2, albums: { c9ea: { name: 'Birds', cover: 'a.jpg' } }, photos: { 'a.jpg': { albums: ['c9ea'] } } });
-    expect(SidecarService.getFolderState(dir)).toEqual({
+    expect(await SidecarService.getFolderState(dir)).toEqual({
       photos: { 'a.jpg': { albums: ['c9ea'] } },
       albums: { c9ea: { name: 'Birds', cover: 'a.jpg' } },
       people: {},
     });
   });
 
-  it('shows Picasa albums live without writing anything', () => {
+  it('shows Picasa albums live without writing anything', async () => {
     touch('a.jpg');
     writeIni('[.album:c9ea]', 'name= Birds', 'token=c9ea', '[a.jpg]', 'albums=c9ea');
-    expect(SidecarService.getFolderState(dir)).toEqual({
+    expect(await SidecarService.getFolderState(dir)).toEqual({
       photos: { 'a.jpg': { albums: ['c9ea'] } },
       albums: { c9ea: { name: ' Birds' } },
       people: {},
@@ -181,47 +181,47 @@ describe('getFolderState', () => {
     expect(fs.existsSync(sidecarPath())).toBe(false);
   });
 
-  it('re-imports a changed .ini into the sidecar', () => {
+  it('re-imports a changed .ini into the sidecar', async () => {
     writeIni('[a.jpg]', 'star=yes', '[d.jpg]', 'star=yes');
     writeJson({ format: 'paloma-folder', version: 2, iniHash: 'stale', photos: { 'a.jpg': { star: true } } });
 
-    expect(SidecarService.getFolderState(dir).photos).toEqual({ 'a.jpg': { star: true }, 'd.jpg': { star: true } });
+    expect((await SidecarService.getFolderState(dir)).photos).toEqual({ 'a.jpg': { star: true }, 'd.jpg': { star: true } });
     const written = readJson();
     expect(written.photos['d.jpg']).toEqual({ star: true });
     expect(written.iniHash).toBe(sha256(fs.readFileSync(path.join(dir, '.picasa.ini'))));
   });
 
-  it('leaves the sidecar alone when the .ini is unchanged or deleted', () => {
+  it('leaves the sidecar alone when the .ini is unchanged or deleted', async () => {
     const bytes = writeIni('[a.jpg]', 'star=yes');
     writeJson({ format: 'paloma-folder', version: 2, iniHash: sha256(bytes), photos: { 'a.jpg': { caption: 'x' } } });
     const before = fs.readFileSync(sidecarPath(), 'utf-8');
 
-    expect(SidecarService.getFolderState(dir).photos).toEqual({ 'a.jpg': { caption: 'x' } });
+    expect((await SidecarService.getFolderState(dir)).photos).toEqual({ 'a.jpg': { caption: 'x' } });
     fs.rmSync(path.join(dir, '.picasa.ini'));
-    expect(SidecarService.getFolderState(dir).photos).toEqual({ 'a.jpg': { caption: 'x' } });
+    expect((await SidecarService.getFolderState(dir)).photos).toEqual({ 'a.jpg': { caption: 'x' } });
     expect(fs.readFileSync(sidecarPath(), 'utf-8')).toBe(before);
   });
 
-  it('ignores the .ini when there is a sidecar without iniHash', () => {
+  it('ignores the .ini when there is a sidecar without iniHash', async () => {
     writeIni('[a.jpg]', 'star=yes');
     writeJson({ format: 'paloma-folder', version: 2, photos: {} });
-    expect(SidecarService.getFolderState(dir).photos).toEqual({});
+    expect((await SidecarService.getFolderState(dir)).photos).toEqual({});
   });
 
-  it('gives no fields for an unreadable sidecar, ignores the .ini and keeps the file', () => {
+  it('gives no fields for an unreadable sidecar, ignores the .ini and keeps the file', async () => {
     writeIni('[a.jpg]', 'star=yes');
     fs.writeFileSync(sidecarPath(), '{broken');
-    expect(SidecarService.getFolderState(dir)).toEqual({ photos: {}, albums: {}, people: {} });
+    expect(await SidecarService.getFolderState(dir)).toEqual({ photos: {}, albums: {}, people: {} });
     expect(fs.readFileSync(sidecarPath(), 'utf-8')).toBe('{broken');
     expect(console.error).toHaveBeenCalledWith(expect.stringContaining('.paloma.json'));
   });
 });
 
 describe('updatePhotoFields', () => {
-  it('creates a new sidecar with the exact expected content', () => {
+  it('creates a new sidecar with the exact expected content', async () => {
     vi.useFakeTimers({ now: new Date('2026-10-04T14:20:00.000Z'), toFake: ['Date'] });
     try {
-      SidecarService.updatePhotoFields(dir, 'IMG_0042.jpg', { star: true });
+      await SidecarService.updatePhotoFields(dir, 'IMG_0042.jpg', { star: true });
     } finally {
       vi.useRealTimers();
     }
@@ -240,26 +240,26 @@ describe('updatePhotoFields', () => {
     ].join('\n'));
   });
 
-  it('stores all fields and clears them with false, empty string and empty list', () => {
-    SidecarService.updatePhotoFields(dir, 'a.jpg', { star: true, hidden: true, caption: 'Sunrise', keywords: ['mountains', 'dawn'] });
+  it('stores all fields and clears them with false, empty string and empty list', async () => {
+    await SidecarService.updatePhotoFields(dir, 'a.jpg', { star: true, hidden: true, caption: 'Sunrise', keywords: ['mountains', 'dawn'] });
     expect(readJson().photos['a.jpg']).toMatchObject({ star: true, hidden: true, caption: 'Sunrise', keywords: ['mountains', 'dawn'] });
 
-    SidecarService.updatePhotoFields(dir, 'a.jpg', { hidden: false, caption: '' });
+    await SidecarService.updatePhotoFields(dir, 'a.jpg', { hidden: false, caption: '' });
     expect(SidecarService.fieldsOf(readJson().photos['a.jpg'])).toEqual({ star: true, keywords: ['mountains', 'dawn'] });
   });
 
-  it('removes an emptied entry when there is no iniHash', () => {
-    SidecarService.updatePhotoFields(dir, 'a.jpg', { star: true });
-    SidecarService.updatePhotoFields(dir, 'a.jpg', { star: false });
+  it('removes an emptied entry when there is no iniHash', async () => {
+    await SidecarService.updatePhotoFields(dir, 'a.jpg', { star: true });
+    await SidecarService.updatePhotoFields(dir, 'a.jpg', { star: false });
     expect(readJson().photos).toEqual({});
   });
 
-  it('imports the Picasa .ini on the first change, including sections for missing files', () => {
+  it('imports the Picasa .ini on the first change, including sections for missing files', async () => {
     touch('a.jpg', 'b.jpg', 'c.jpg');
     const bytes = writeIni('[a.jpg]', 'caption=Sunrise', '[b.jpg]', 'star=yes', '[gone.jpg]', 'star=yes', '[x.jpg]', 'filters=enhance=1;');
     const iniBefore = fs.readFileSync(path.join(dir, '.picasa.ini'));
 
-    SidecarService.updatePhotoFields(dir, 'c.jpg', { star: true });
+    await SidecarService.updatePhotoFields(dir, 'c.jpg', { star: true });
 
     const written = readJson();
     expect(Object.keys(written)).toEqual(['format', 'version', 'iniHash', 'photos']);
@@ -274,11 +274,11 @@ describe('updatePhotoFields', () => {
     expect(fs.readFileSync(path.join(dir, '.picasa.ini')).equals(iniBefore)).toBe(true);
   });
 
-  it('imports Picasa album definitions and memberships on the first change', () => {
+  it('imports Picasa album definitions and memberships on the first change', async () => {
     touch('a.jpg', 'b.jpg');
     writeIni('[.album:c9ea]', 'name=Birds', 'token=c9ea', '[.album:7f01]', 'token=7f01', '[a.jpg]', 'albums=c9ea');
 
-    SidecarService.updatePhotoFields(dir, 'b.jpg', { star: true });
+    await SidecarService.updatePhotoFields(dir, 'b.jpg', { star: true });
 
     const written = readJson();
     expect(Object.keys(written)).toEqual(['format', 'version', 'iniHash', 'albums', 'photos']);
@@ -287,30 +287,30 @@ describe('updatePhotoFields', () => {
     expect(written.photos['b.jpg']).toEqual({ star: true, modified: expect.any(String) });
   });
 
-  it('keeps an unstarred imported entry with modified so a re-import does not bring the star back', () => {
+  it('keeps an unstarred imported entry with modified so a re-import does not bring the star back', async () => {
     touch('a.jpg');
     writeIni('[a.jpg]', 'star=yes');
-    SidecarService.updatePhotoFields(dir, 'a.jpg', { star: false });
+    await SidecarService.updatePhotoFields(dir, 'a.jpg', { star: false });
     expect(readJson().photos['a.jpg']).toEqual({ modified: expect.any(String) });
 
     writeIni('[a.jpg]', 'star=yes', '[b.jpg]', 'star=yes');
-    expect(SidecarService.getFolderState(dir).photos).toEqual({ 'b.jpg': { star: true } });
+    expect((await SidecarService.getFolderState(dir)).photos).toEqual({ 'b.jpg': { star: true } });
     expect(fs.readFileSync(path.join(dir, '.picasa.ini'), 'utf-8')).toContain('[b.jpg]');
   });
 
-  it('re-imports a changed .ini before applying the change', () => {
+  it('re-imports a changed .ini before applying the change', async () => {
     writeIni('[a.jpg]', 'star=yes');
-    SidecarService.updatePhotoFields(dir, 'b.jpg', { caption: 'x' });
+    await SidecarService.updatePhotoFields(dir, 'b.jpg', { caption: 'x' });
     writeIni('[a.jpg]', 'star=yes', '[d.jpg]', 'hidden=yes');
 
-    SidecarService.updatePhotoFields(dir, 'b.jpg', { caption: 'y' });
+    await SidecarService.updatePhotoFields(dir, 'b.jpg', { caption: 'y' });
 
     const written = readJson();
     expect(written.photos['d.jpg']).toEqual({ hidden: true });
     expect(written.photos['b.jpg'].caption).toBe('y');
   });
 
-  it('preserves unknown top-level sections and entry keys', () => {
+  it('preserves unknown top-level sections and entry keys', async () => {
     writeJson({
       format: 'paloma-folder',
       version: 2,
@@ -318,7 +318,7 @@ describe('updatePhotoFields', () => {
       photos: { 'a.jpg': { rotate: 90, edits: [{ filter: 'autolight' }] }, 'z.jpg': { star: true } },
       extra: { encoding: { utf8: '1' } },
     });
-    SidecarService.updatePhotoFields(dir, 'a.jpg', { star: true });
+    await SidecarService.updatePhotoFields(dir, 'a.jpg', { star: true });
 
     const written = readJson();
     expect(Object.keys(written)).toEqual(['format', 'version', 'albums', 'photos', 'extra']);
@@ -328,48 +328,48 @@ describe('updatePhotoFields', () => {
     expect(written.photos['z.jpg']).toEqual({ star: true });
   });
 
-  it('keeps photo keys in a stable order', () => {
-    SidecarService.updatePhotoFields(dir, 'b.jpg', { star: true });
-    SidecarService.updatePhotoFields(dir, 'a.jpg', { star: true });
+  it('keeps photo keys in a stable order', async () => {
+    await SidecarService.updatePhotoFields(dir, 'b.jpg', { star: true });
+    await SidecarService.updatePhotoFields(dir, 'a.jpg', { star: true });
     expect(Object.keys(readJson().photos)).toEqual(['a.jpg', 'b.jpg']);
   });
 
-  it('refuses to touch an unreadable sidecar', () => {
+  it('refuses to touch an unreadable sidecar', async () => {
     fs.writeFileSync(sidecarPath(), JSON.stringify({ version: '1.0', photos: {} }));
     const before = fs.readFileSync(sidecarPath(), 'utf-8');
 
-    expect(() => SidecarService.updatePhotoFields(dir, 'a.jpg', { star: true })).toThrow(SidecarUnreadableError);
+    await expect(SidecarService.updatePhotoFields(dir, 'a.jpg', { star: true })).rejects.toThrow(SidecarUnreadableError);
     expect(fs.readFileSync(sidecarPath(), 'utf-8')).toBe(before);
   });
 
-  it('refuses to touch a sidecar with a malformed albums section', () => {
+  it('refuses to touch a sidecar with a malformed albums section', async () => {
     writeJson({ format: 'paloma-folder', version: 2, albums: ['Birds'], photos: { 'a.jpg': { star: true } } });
     const before = fs.readFileSync(sidecarPath(), 'utf-8');
 
-    expect(SidecarService.getFolderState(dir)).toEqual({ photos: {}, albums: {}, people: {} });
-    expect(() => SidecarService.updatePhotoFields(dir, 'a.jpg', { caption: 'x' })).toThrow(SidecarUnreadableError);
+    expect(await SidecarService.getFolderState(dir)).toEqual({ photos: {}, albums: {}, people: {} });
+    await expect(SidecarService.updatePhotoFields(dir, 'a.jpg', { caption: 'x' })).rejects.toThrow(SidecarUnreadableError);
     expect(fs.readFileSync(sidecarPath(), 'utf-8')).toBe(before);
   });
 
-  it.skipIf(process.getuid?.() === 0)('throws in a read-only folder and leaves no temp file', () => {
+  it.skipIf(process.getuid?.() === 0)('throws in a read-only folder and leaves no temp file', async () => {
     fs.chmodSync(dir, 0o555);
-    expect(() => SidecarService.updatePhotoFields(dir, 'a.jpg', { star: true })).toThrow();
+    await expect(SidecarService.updatePhotoFields(dir, 'a.jpg', { star: true })).rejects.toThrow();
     fs.chmodSync(dir, 0o755);
     expect(fs.readdirSync(dir)).toEqual([]);
   });
 
-  it('removes the temp file when the rename fails', () => {
+  it('removes the temp file when the rename fails', async () => {
     fs.mkdirSync(sidecarPath()); // a directory in the way makes rename fail after the temp file was written
     fs.writeFileSync(path.join(sidecarPath(), 'keep'), '');
-    vi.spyOn(SidecarService, 'readFolderSidecar').mockReturnValue({ kind: 'missing' });
+    vi.spyOn(SidecarService, 'readFolderSidecar').mockResolvedValue({ kind: 'missing' });
 
-    expect(() => SidecarService.updatePhotoFields(dir, 'a.jpg', { star: true })).toThrow();
+    await expect(SidecarService.updatePhotoFields(dir, 'a.jpg', { star: true })).rejects.toThrow();
     expect(fs.readdirSync(dir)).toEqual(['.paloma.json']);
   });
 });
 
 describe('geotag', () => {
-  it('reads a valid geotag and null, and treats any other value as absent', () => {
+  it('reads a valid geotag and null, and treats any other value as absent', async () => {
     expect(SidecarService.fieldsOf({ geotag: { lat: 50.45, lon: 30.5234 } })).toEqual({ geotag: { lat: 50.45, lon: 30.5234 } });
     expect(SidecarService.fieldsOf({ geotag: null })).toEqual({ geotag: null });
     for (const geotag of [{ lat: 95, lon: 10 }, { lat: '50', lon: 30 }, { lat: 50 }, [50, 30], '50,30', { lat: 0, lon: 200 }]) {
@@ -377,90 +377,90 @@ describe('geotag', () => {
     }
   });
 
-  it('writes a rounded geotag, null, and deletes the key', () => {
-    SidecarService.updatePhotoFields(dir, 'a.jpg', { geotag: { lat: 48.1608334999, lon: 24.50027777 } });
+  it('writes a rounded geotag, null, and deletes the key', async () => {
+    await SidecarService.updatePhotoFields(dir, 'a.jpg', { geotag: { lat: 48.1608334999, lon: 24.50027777 } });
     expect(readJson().photos['a.jpg']).toEqual({ geotag: { lat: 48.160833, lon: 24.500278 }, modified: expect.any(String) });
 
-    SidecarService.updatePhotoFields(dir, 'a.jpg', { geotag: null });
+    await SidecarService.updatePhotoFields(dir, 'a.jpg', { geotag: null });
     expect(readJson().photos['a.jpg']).toEqual({ geotag: null, modified: expect.any(String) });
 
-    SidecarService.updatePhotoFields(dir, 'a.jpg', { geotag: false });
+    await SidecarService.updatePhotoFields(dir, 'a.jpg', { geotag: false });
     expect(readJson().photos).toEqual({});
   });
 
-  it('keeps an invalid geotag in the file until the location is changed', () => {
+  it('keeps an invalid geotag in the file until the location is changed', async () => {
     writeJson({ format: 'paloma-folder', version: 2, photos: { 'a.jpg': { geotag: { lat: 95, lon: 10 } } } });
-    SidecarService.updatePhotoFields(dir, 'a.jpg', { star: true });
+    await SidecarService.updatePhotoFields(dir, 'a.jpg', { star: true });
     expect(readJson().photos['a.jpg'].geotag).toEqual({ lat: 95, lon: 10 });
-    expect(SidecarService.getFolderState(dir).photos['a.jpg']).toEqual({ star: true });
+    expect((await SidecarService.getFolderState(dir)).photos['a.jpg']).toEqual({ star: true });
   });
 
-  it('saves several photos of a folder in one write with the same modified time', () => {
-    SidecarService.updatePhotosFields(dir, { 'a.jpg': { geotag: { lat: 1, lon: 2 } }, 'b.jpg': { geotag: { lat: 1, lon: 2 }, caption: 'x' } });
+  it('saves several photos of a folder in one write with the same modified time', async () => {
+    await SidecarService.updatePhotosFields(dir, { 'a.jpg': { geotag: { lat: 1, lon: 2 } }, 'b.jpg': { geotag: { lat: 1, lon: 2 }, caption: 'x' } });
     const { photos } = readJson();
     expect(photos['a.jpg']).toEqual({ geotag: { lat: 1, lon: 2 }, modified: expect.any(String) });
     expect(photos['b.jpg']).toEqual({ geotag: { lat: 1, lon: 2 }, caption: 'x', modified: photos['a.jpg'].modified });
   });
 
-  it('imports a Picasa geotag on the first change and shows it live before', () => {
+  it('imports a Picasa geotag on the first change and shows it live before', async () => {
     touch('a.jpg', 'b.jpg');
     writeIni('[a.jpg]', 'geotag=33.770556,-84.293055');
-    expect(SidecarService.getFolderState(dir).photos).toEqual({ 'a.jpg': { geotag: { lat: 33.770556, lon: -84.293055 } } });
+    expect((await SidecarService.getFolderState(dir)).photos).toEqual({ 'a.jpg': { geotag: { lat: 33.770556, lon: -84.293055 } } });
     expect(fs.existsSync(sidecarPath())).toBe(false);
 
-    SidecarService.updatePhotoFields(dir, 'b.jpg', { star: true });
+    await SidecarService.updatePhotoFields(dir, 'b.jpg', { star: true });
     expect(readJson().photos['a.jpg']).toEqual({ geotag: { lat: 33.770556, lon: -84.293055 } });
   });
 
-  it('re-imports a changed Picasa geotag into an unmodified entry', () => {
+  it('re-imports a changed Picasa geotag into an unmodified entry', async () => {
     touch('a.jpg', 'b.jpg');
     writeIni('[a.jpg]', 'geotag=10,20');
-    SidecarService.updatePhotoFields(dir, 'b.jpg', { star: true });
+    await SidecarService.updatePhotoFields(dir, 'b.jpg', { star: true });
 
     writeIni('[a.jpg]', 'geotag=11,21');
-    expect(SidecarService.getFolderState(dir).photos['a.jpg']).toEqual({ geotag: { lat: 11, lon: 21 } });
+    expect((await SidecarService.getFolderState(dir)).photos['a.jpg']).toEqual({ geotag: { lat: 11, lon: 21 } });
 
     writeIni('[a.jpg]', 'star=yes');
-    expect(SidecarService.getFolderState(dir).photos['a.jpg']).toEqual({ star: true });
+    expect((await SidecarService.getFolderState(dir)).photos['a.jpg']).toEqual({ star: true });
   });
 
-  it('keeps a location set in Paloma when Picasa changes it, and logs a conflict', () => {
+  it('keeps a location set in Paloma when Picasa changes it, and logs a conflict', async () => {
     touch('a.jpg');
     writeIni('[a.jpg]', 'geotag=10,20');
-    SidecarService.updatePhotoFields(dir, 'a.jpg', { geotag: { lat: 1, lon: 2 } });
+    await SidecarService.updatePhotoFields(dir, 'a.jpg', { geotag: { lat: 1, lon: 2 } });
 
     writeIni('[a.jpg]', 'geotag=11,21');
-    expect(SidecarService.getFolderState(dir).photos['a.jpg']).toEqual({ geotag: { lat: 1, lon: 2 } });
+    expect((await SidecarService.getFolderState(dir)).photos['a.jpg']).toEqual({ geotag: { lat: 1, lon: 2 } });
     expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('Conflict'));
   });
 
-  it('keeps an entry with only a removed location even without iniHash', () => {
-    SidecarService.updatePhotoFields(dir, 'a.jpg', { geotag: null });
+  it('keeps an entry with only a removed location even without iniHash', async () => {
+    await SidecarService.updatePhotoFields(dir, 'a.jpg', { geotag: null });
     expect(readJson().photos['a.jpg']).toEqual({ geotag: null, modified: expect.any(String) });
-    expect(SidecarService.getFolderState(dir).photos).toEqual({ 'a.jpg': { geotag: null } });
+    expect((await SidecarService.getFolderState(dir)).photos).toEqual({ 'a.jpg': { geotag: null } });
   });
 });
 
 describe('edits', () => {
   const CHAIN = [{ filter: 'rotate', angle: 90 }, { filter: 'sepia' }];
 
-  it('stores the chain with modified and removes it with an empty list', () => {
-    SidecarService.updatePhotoFields(dir, 'a.jpg', { edits: CHAIN });
+  it('stores the chain with modified and removes it with an empty list', async () => {
+    await SidecarService.updatePhotoFields(dir, 'a.jpg', { edits: CHAIN });
     expect(readJson().photos['a.jpg']).toEqual({ edits: CHAIN, modified: expect.any(String) });
     expect(SidecarService.fieldsOf(readJson().photos['a.jpg'])).toEqual({ edits: CHAIN });
 
-    SidecarService.updatePhotoFields(dir, 'a.jpg', { star: true });
-    SidecarService.updatePhotoFields(dir, 'a.jpg', { edits: [] });
+    await SidecarService.updatePhotoFields(dir, 'a.jpg', { star: true });
+    await SidecarService.updatePhotoFields(dir, 'a.jpg', { edits: [] });
     expect(readJson().photos['a.jpg']).toEqual({ star: true, modified: expect.any(String) });
   });
 
-  it('keeps steps of unknown filters and their unknown keys exactly', () => {
+  it('keeps steps of unknown filters and their unknown keys exactly', async () => {
     const chain = [{ filter: 'grain', amount: 30, nested: { x: [1] }, enabled: false as const }];
-    SidecarService.updatePhotoFields(dir, 'a.jpg', { edits: chain });
+    await SidecarService.updatePhotoFields(dir, 'a.jpg', { edits: chain });
     expect(readJson().photos['a.jpg'].edits).toEqual(chain);
   });
 
-  it('reads edits of the wrong type as absent and keeps them in the file until edits are saved', () => {
+  it('reads edits of the wrong type as absent and keeps them in the file until edits are saved', async () => {
     writeJson({
       format: 'paloma-folder',
       version: 2,
@@ -469,15 +469,15 @@ describe('edits', () => {
     expect(SidecarService.fieldsOf(readJson().photos['a.jpg'])).toEqual({});
     expect(SidecarService.fieldsOf(readJson().photos['b.jpg'])).toEqual({});
 
-    SidecarService.updatePhotoFields(dir, 'a.jpg', { star: true });
+    await SidecarService.updatePhotoFields(dir, 'a.jpg', { star: true });
     expect(readJson().photos['a.jpg'].edits).toBe('sepia');
     expect(readJson().photos['b.jpg'].edits).toEqual([{ filter: 'bw' }, { name: 'x' }]);
 
-    SidecarService.updatePhotoFields(dir, 'a.jpg', { edits: [{ filter: 'bw' }] });
+    await SidecarService.updatePhotoFields(dir, 'a.jpg', { edits: [{ filter: 'bw' }] });
     expect(readJson().photos['a.jpg'].edits).toEqual([{ filter: 'bw' }]);
   });
 
-  it('follows the Picasa filters in a re-import of an unmodified entry', () => {
+  it('follows the Picasa filters in a re-import of an unmodified entry', async () => {
     const result = SidecarService.reimport(
       {
         format: 'paloma-folder',
@@ -492,7 +492,7 @@ describe('edits', () => {
     expect(result.photos['b.jpg']).toEqual({ edits: [{ filter: 'bw' }, { filter: 'sepia' }] });
   });
 
-  it('keeps edits made in Paloma when Picasa changes its filters, and logs a conflict', () => {
+  it('keeps edits made in Paloma when Picasa changes its filters, and logs a conflict', async () => {
     const entry = { edits: [{ filter: 'sepia' }], modified: '2026-10-05T10:00:00.000Z' };
     const result = SidecarService.reimport(
       { format: 'paloma-folder', version: 2, iniHash: 'old', photos: { 'a.jpg': entry } },
@@ -503,21 +503,21 @@ describe('edits', () => {
     expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('Conflict'));
   });
 
-  it('is shown live from the Picasa .ini and becomes undoable after the first change', () => {
+  it('is shown live from the Picasa .ini and becomes undoable after the first change', async () => {
     touch('a.jpg');
     writeIni('[a.jpg]', 'filters=crop64=1,33101d68ffffffff;sepia=1;');
     const crop = { filter: 'crop64', rect: { left: 0.199466, top: 0.11487, right: 1, bottom: 1 } };
-    expect(SidecarService.getFolderState(dir).photos['a.jpg']).toEqual({ edits: [crop, { filter: 'sepia' }] });
+    expect((await SidecarService.getFolderState(dir)).photos['a.jpg']).toEqual({ edits: [crop, { filter: 'sepia' }] });
 
     // Undo in the viewer saves the chain without its last step
-    SidecarService.updatePhotoFields(dir, 'a.jpg', { edits: [crop] });
+    await SidecarService.updatePhotoFields(dir, 'a.jpg', { edits: [crop] });
     expect(readJson().photos['a.jpg']).toEqual({ edits: [crop], modified: expect.any(String) });
   });
 
-  it('is part of the folder state', () => {
+  it('is part of the folder state', async () => {
     touch('a.jpg');
-    SidecarService.updatePhotoFields(dir, 'a.jpg', { edits: [{ filter: 'bw' }] });
-    expect(SidecarService.getFolderState(dir).photos['a.jpg']).toEqual({ edits: [{ filter: 'bw' }] });
+    await SidecarService.updatePhotoFields(dir, 'a.jpg', { edits: [{ filter: 'bw' }] });
+    expect((await SidecarService.getFolderState(dir)).photos['a.jpg']).toEqual({ edits: [{ filter: 'bw' }] });
   });
 });
 
@@ -525,73 +525,73 @@ const FACE = { rect: { left: 0.34, top: 0.13, right: 0.63, bottom: 0.88 }, perso
 const ROY = { name: 'Roy Avery', email: null, googleId: null };
 
 describe('faces and people', () => {
-  it('reads "" and [] as removed embedded text', () => {
+  it('reads "" and [] as removed embedded text', async () => {
     writeJson({ format: 'paloma-folder', version: 2, photos: { 'a.jpg': { caption: '', keywords: [] } } });
-    expect(SidecarService.getFolderState(dir).photos).toEqual({ 'a.jpg': { caption: '', keywords: [] } });
+    expect((await SidecarService.getFolderState(dir)).photos).toEqual({ 'a.jpg': { caption: '', keywords: [] } });
   });
 
   it.each([
     [[{ person: 5 }]],
     [[{ ignored: true }]],
     [[{ person: 'b8e4117cf1d6615b', rect: { left: 2, top: 0, right: 1, bottom: 1 } }]],
-  ])('ignores a malformed face %j for the library and keeps it in the file', (faces) => {
+  ])('ignores a malformed face %j for the library and keeps it in the file', async (faces) => {
     touch('a.jpg', 'b.jpg');
     writeJson({ format: 'paloma-folder', version: 2, photos: { 'a.jpg': { faces } } });
 
-    expect(SidecarService.getFolderState(dir).photos).toEqual({});
-    SidecarService.updatePhotoFields(dir, 'b.jpg', { star: true });
+    expect((await SidecarService.getFolderState(dir)).photos).toEqual({});
+    await SidecarService.updatePhotoFields(dir, 'b.jpg', { star: true });
     expect(readJson().photos['a.jpg']).toEqual({ faces });
   });
 
-  it('reads a mark without a rectangle', () => {
+  it('reads a mark without a rectangle', async () => {
     writeJson({ format: 'paloma-folder', version: 2, photos: { 'a.jpg': { faces: [{ person: 'b8e4117cf1d6615b' }] } } });
-    expect(SidecarService.getFolderState(dir).photos['a.jpg']).toEqual({ faces: [{ person: 'b8e4117cf1d6615b' }] });
+    expect((await SidecarService.getFolderState(dir)).photos['a.jpg']).toEqual({ faces: [{ person: 'b8e4117cf1d6615b' }] });
   });
 
-  it('keeps faces when the photo is starred', () => {
+  it('keeps faces when the photo is starred', async () => {
     touch('a.jpg');
     writeJson({ format: 'paloma-folder', version: 2, photos: { 'a.jpg': { faces: [FACE] } } });
 
-    SidecarService.updatePhotoFields(dir, 'a.jpg', { star: true });
+    await SidecarService.updatePhotoFields(dir, 'a.jpg', { star: true });
 
     expect(readJson().photos['a.jpg']).toMatchObject({ faces: [FACE], star: true });
-    expect(SidecarService.getFolderState(dir).photos['a.jpg']).toEqual({ star: true, faces: [FACE] });
+    expect((await SidecarService.getFolderState(dir)).photos['a.jpg']).toEqual({ star: true, faces: [FACE] });
   });
 
-  it('reads valid people and ignores an invalid people section without rejecting the file', () => {
+  it('reads valid people and ignores an invalid people section without rejecting the file', async () => {
     writeJson({
       format: 'paloma-folder', version: 2,
       people: { b8e4117cf1d6615b: ROY, nothex: ROY, '0123456789abcdef': { name: 5 } },
       photos: { 'a.jpg': { star: true } },
     });
-    expect(SidecarService.getFolderState(dir)).toMatchObject({ people: { b8e4117cf1d6615b: ROY }, photos: { 'a.jpg': { star: true } } });
+    expect(await SidecarService.getFolderState(dir)).toMatchObject({ people: { b8e4117cf1d6615b: ROY }, photos: { 'a.jpg': { star: true } } });
 
     writeJson({ format: 'paloma-folder', version: 2, people: ['Roy'], photos: { 'a.jpg': { star: true } } });
-    expect(SidecarService.getFolderState(dir)).toMatchObject({ people: {}, photos: { 'a.jpg': { star: true } } });
+    expect(await SidecarService.getFolderState(dir)).toMatchObject({ people: {}, photos: { 'a.jpg': { star: true } } });
   });
 
-  it('shows Picasa faces and people live, then imports them on the first change', () => {
+  it('shows Picasa faces and people live, then imports them on the first change', async () => {
     touch('a.jpg', 'b.jpg');
     writeIni('[Contacts2]', 'b8e4117cf1d6615b=Roy Avery;;', '[a.jpg]', 'faces=rect64(579922efa1cce2aa),b8e4117cf1d6615b');
 
-    const live = SidecarService.getFolderState(dir);
+    const live = await SidecarService.getFolderState(dir);
     expect(live.people).toEqual({ b8e4117cf1d6615b: ROY });
     expect(live.photos['a.jpg'].faces).toHaveLength(1);
     expect(fs.existsSync(sidecarPath())).toBe(false);
 
-    SidecarService.updatePhotoFields(dir, 'b.jpg', { star: true });
+    await SidecarService.updatePhotoFields(dir, 'b.jpg', { star: true });
     const saved = readJson();
     expect(saved.people).toEqual({ b8e4117cf1d6615b: ROY });
     expect(saved.photos['a.jpg'].faces).toEqual(live.photos['a.jpg'].faces);
   });
 
-  it('re-imports renamed people and never removes a person', () => {
+  it('re-imports renamed people and never removes a person', async () => {
     touch('a.jpg', 'b.jpg');
     writeIni('[Contacts2]', 'b8e4117cf1d6615b=Roy Avery;;', '0123456789abcdef=Ann;;', '[a.jpg]', 'star=yes');
-    SidecarService.updatePhotoFields(dir, 'b.jpg', { star: true });
+    await SidecarService.updatePhotoFields(dir, 'b.jpg', { star: true });
 
     writeIni('[Contacts2]', 'b8e4117cf1d6615b=Roy A.;;', '[a.jpg]', 'star=yes');
-    const state = SidecarService.getFolderState(dir);
+    const state = await SidecarService.getFolderState(dir);
 
     expect(state.people).toEqual({
       b8e4117cf1d6615b: { ...ROY, name: 'Roy A.' },
@@ -605,30 +605,30 @@ describe('clearing embedded text', () => {
   beforeEach(() => touch('a.jpg'));
   const entry = () => readJson().photos['a.jpg'];
 
-  it('writes "" when the file has an embedded description', () => {
-    SidecarService.updatePhotoFields(dir, 'a.jpg', { caption: '', captionEmbedded: true });
+  it('writes "" when the file has an embedded description', async () => {
+    await SidecarService.updatePhotoFields(dir, 'a.jpg', { caption: '', captionEmbedded: true });
     expect(entry()).toMatchObject({ caption: '' });
   });
 
-  it('removes the caption key without an embedded description', () => {
+  it('removes the caption key without an embedded description', async () => {
     writeJson({ format: 'paloma-folder', version: 2, photos: { 'a.jpg': { caption: 'Sunrise', star: true } } });
-    SidecarService.updatePhotoFields(dir, 'a.jpg', { caption: '' });
+    await SidecarService.updatePhotoFields(dir, 'a.jpg', { caption: '' });
     expect(entry()).not.toHaveProperty('caption');
   });
 
-  it('writes [] when the file has embedded tags', () => {
-    SidecarService.updatePhotoFields(dir, 'a.jpg', { keywords: [], keywordsEmbedded: true });
+  it('writes [] when the file has embedded tags', async () => {
+    await SidecarService.updatePhotoFields(dir, 'a.jpg', { keywords: [], keywordsEmbedded: true });
     expect(entry()).toMatchObject({ keywords: [] });
   });
 
-  it('removes the keywords key without embedded tags', () => {
+  it('removes the keywords key without embedded tags', async () => {
     writeJson({ format: 'paloma-folder', version: 2, photos: { 'a.jpg': { keywords: ['old'], star: true } } });
-    SidecarService.updatePhotoFields(dir, 'a.jpg', { keywords: [] });
+    await SidecarService.updatePhotoFields(dir, 'a.jpg', { keywords: [] });
     expect(entry()).not.toHaveProperty('keywords');
   });
 
-  it('drops later duplicates ignoring case', () => {
-    SidecarService.updatePhotoFields(dir, 'a.jpg', { keywords: ['Київ', 'київ', 'Lviv'] });
+  it('drops later duplicates ignoring case', async () => {
+    await SidecarService.updatePhotoFields(dir, 'a.jpg', { keywords: ['Київ', 'київ', 'Lviv'] });
     expect(entry().keywords).toEqual(['Київ', 'Lviv']);
   });
 });
@@ -641,48 +641,48 @@ describe('marks', () => {
   beforeEach(() => touch('a.jpg'));
   const entry = () => readJson().photos['a.jpg'];
 
-  it('adds a person without a rectangle', () => {
-    SidecarService.updatePhotoFields(dir, 'a.jpg', { addMark: { person: ANN } });
+  it('adds a person without a rectangle', async () => {
+    await SidecarService.updatePhotoFields(dir, 'a.jpg', { addMark: { person: ANN } });
     expect(entry()).toEqual({ faces: [{ person: ANN }], modified: expect.any(String) });
   });
 
-  it('adds a detected face with its rectangle', () => {
-    SidecarService.updatePhotoFields(dir, 'a.jpg', { addMark: { person: ANN, rect: RECT } });
+  it('adds a detected face with its rectangle', async () => {
+    await SidecarService.updatePhotoFields(dir, 'a.jpg', { addMark: { person: ANN, rect: RECT } });
     expect(entry().faces).toEqual([{ rect: RECT, person: ANN }]);
   });
 
-  it('treats a mark that is already there as no change', () => {
+  it('treats a mark that is already there as no change', async () => {
     expect(withMark([FACE], { person: FACE.person })).toBeUndefined();
     expect(withMark([FACE], { person: FACE.person, rect: { ...FACE.rect } })).toBeUndefined();
   });
 
-  it('replaces a mark without a rectangle by one with a rectangle', () => {
+  it('replaces a mark without a rectangle by one with a rectangle', async () => {
     expect(withMark([{ person: ANN }, IGNORED], { person: ANN, rect: RECT })).toEqual([IGNORED, { rect: RECT, person: ANN }]);
   });
 
-  it('keeps faces it does not understand', () => {
+  it('keeps faces it does not understand', async () => {
     expect(withMark([{ person: 5 }], { person: ANN })).toEqual([{ person: 5 }, { person: ANN }]);
   });
 
-  it('removes every face of a person and keeps ignored faces', () => {
+  it('removes every face of a person and keeps ignored faces', async () => {
     writeJson({ format: 'paloma-folder', version: 2, photos: { 'a.jpg': { faces: [FACE, IGNORED, { ...FACE, rect: RECT }] } } });
 
-    SidecarService.updatePhotoFields(dir, 'a.jpg', { removePerson: FACE.person });
+    await SidecarService.updatePhotoFields(dir, 'a.jpg', { removePerson: FACE.person });
 
     expect(entry()).toEqual({ faces: [IGNORED], modified: expect.any(String) });
     expect(withoutPerson([IGNORED], FACE.person)).toBeUndefined();
   });
 
-  it('removes the faces key when the last face goes', () => {
+  it('removes the faces key when the last face goes', async () => {
     writeJson({ format: 'paloma-folder', version: 2, photos: { 'a.jpg': { faces: [FACE], star: true } } });
-    SidecarService.updatePhotoFields(dir, 'a.jpg', { removePerson: FACE.person });
+    await SidecarService.updatePhotoFields(dir, 'a.jpg', { removePerson: FACE.person });
     expect(entry()).not.toHaveProperty('faces');
   });
 
-  it('imports the Picasa .ini on the first mark in a Picasa folder', () => {
+  it('imports the Picasa .ini on the first mark in a Picasa folder', async () => {
     writeIni('[Contacts2]', 'b8e4117cf1d6615b=Roy Avery;;', '[b.jpg]', 'star=yes');
 
-    SidecarService.updatePhotoFields(dir, 'a.jpg', { addMark: { person: ANN } });
+    await SidecarService.updatePhotoFields(dir, 'a.jpg', { addMark: { person: ANN } });
 
     const saved = readJson();
     expect(saved.iniHash).toEqual(expect.any(String));

@@ -1,5 +1,6 @@
 import { and, eq, inArray, isNotNull, isNull, or, sql, type SQL } from 'drizzle-orm';
 import { db } from '../db/index.js';
+import { containsText, noRows, textPrefix } from '../db/sqlite.js';
 import { albumPhotos, geoPlaces, photoKeywords, photoPeople, photos } from '../db/schema.js';
 import { textKey } from './libraryText.js';
 import { shownAlbumTexts } from './albumApi.js';
@@ -42,16 +43,16 @@ export function invalidDateFilter({ takenFrom, takenTo }: PhotoFilterQuery): 'ta
 }
 
 /** A photo's day taken: the calendar date of its date taken as the library stores it. */
-export const dayTaken = sql<string>`substr(${photos.dateTaken}, 1, 10)`;
+export const dayTaken = textPrefix(photos.dateTaken, 10);
 
 /** The SQL condition for a library selection; undefined when it matches every photo. */
-export function photoFilters({
+export async function photoFilters({
   folderId, starred, album, tag, query, includeHidden, geotagged, ids, person, takenFrom, takenTo,
-}: PhotoFilterQuery): SQL | undefined {
+}: PhotoFilterQuery): Promise<SQL | undefined> {
   const conditions: SQL[] = [];
   if (typeof ids === 'string') {
     const list = ids.split(',').map(Number).filter((id) => Number.isInteger(id) && id > 0);
-    conditions.push(list.length > 0 ? inArray(photos.id, list) : sql`0`);
+    conditions.push(list.length > 0 ? inArray(photos.id, list) : noRows);
   }
   if (folderId) conditions.push(eq(photos.folderId, Number(folderId)));
   if (starred === 'true') conditions.push(eq(photos.isStarred, true));
@@ -65,12 +66,12 @@ export function photoFilters({
     conditions.push(inArray(photos.id, db.select({ id: photoPeople.photoId }).from(photoPeople).where(eq(photoPeople.contactId, person))));
   }
   // An invalid date matches nothing; GET /api/photos rejects it before
-  if (takenFrom !== undefined) conditions.push(isIsoDate(takenFrom) ? sql`${dayTaken} >= ${takenFrom}` : sql`0`);
-  if (takenTo !== undefined) conditions.push(isIsoDate(takenTo) ? sql`${dayTaken} <= ${takenTo}` : sql`0`);
+  if (takenFrom !== undefined) conditions.push(isIsoDate(takenFrom) ? sql`${dayTaken} >= ${takenFrom}` : noRows);
+  if (takenTo !== undefined) conditions.push(isIsoDate(takenTo) ? sql`${dayTaken} <= ${takenTo}` : noRows);
   if (includeHidden !== 'true') conditions.push(eq(photos.isHidden, false));
   if (geotagged === 'true') conditions.push(isNotNull(photos.latitude));
   if (geotagged === 'false') conditions.push(isNull(photos.latitude));
-  if (query && typeof query === 'string') conditions.push(...searchConditions(query));
+  if (query && typeof query === 'string') conditions.push(...await searchConditions(query));
   return conditions.length > 0 ? and(...conditions) : undefined;
 }
 
@@ -83,19 +84,19 @@ function matching<T>(texts: Map<string, T>, word: string, textsOf: (value: T) =>
 /**
  * One condition per word of the search text, all of which must hold: the word occurs in the photo's own texts
  * (file name, folder path, description, tags, camera), its place name in any cached language, the shown name
- * or description of one of its albums, or the shown name or alias of a person on it. `instr`, so `%` and `_` are literal.
+ * or description of one of its albums, or the shown name or alias of a person on it. A substring match, so `%` and `_` are literal.
  */
-function searchConditions(query: string): SQL[] {
+async function searchConditions(query: string): Promise<SQL[]> {
   const words = textKey(query).split(/\s+/).filter((word) => word !== '');
   if (words.length === 0) return [];
-  const albums = shownAlbumTexts();
-  const people = shownPeople();
+  const albums = await shownAlbumTexts();
+  const people = await shownPeople();
   return words.map((word) => {
     const placeCells = db.selectDistinct({ cell: geoPlaces.cell })
       .from(geoPlaces)
-      .where(sql`instr(${geoPlaces.searchText}, ${word}) > 0`);
+      .where(containsText(geoPlaces.searchText, word));
     const options: SQL[] = [
-      sql`instr(${photos.searchText}, ${word}) > 0`,
+      containsText(photos.searchText, word),
       inArray(photos.geoCell, placeCells),
     ];
     const tokens = matching(albums, word, (album) => [album.name, album.description]);

@@ -50,16 +50,18 @@ export function gpsLocation(gps: GpsInfo): { latitude: number; longitude: number
 }
 
 export class MetadataService {
-  public static calculateFileHash(filePath: string): string {
-    const buffer = fs.readFileSync(filePath);
-    // Use XXH64 for fast file hash calculation
-    const hash = XXH.h64(buffer, 0xabcd).toString(16);
-    return hash;
+  /**
+   * XXH64 of the file, read as a stream so a large file is never held in memory. The value equals the
+   * one-shot hash of the whole file, which names the cached thumbnails.
+   */
+  public static async calculateFileHash(filePath: string, highWaterMark?: number): Promise<string> {
+    const hash = XXH.h64(0xabcd);
+    for await (const chunk of fs.createReadStream(filePath, { highWaterMark })) hash.update(chunk as Buffer);
+    return hash.digest().toString(16);
   }
 
   public static async extractMetadata(filePath: string): Promise<PhotoMetadata> {
-    const stats = fs.statSync(filePath);
-    const fileHash = this.calculateFileHash(filePath);
+    const [stats, fileHash] = await Promise.all([fs.promises.stat(filePath), this.calculateFileHash(filePath)]);
 
     let width = 0;
     let height = 0;

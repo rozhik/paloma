@@ -9,6 +9,7 @@ import { isRelativeRect } from './SidecarService.js';
 import { findPerson } from './peopleApi.js';
 import { avatarFace, rectFaces, shownPeople } from './people.js';
 import type { ImageResult } from './renderApi.js';
+import { ensureDir, fileExists } from './files.js';
 import type { RelativeRect } from '../../../shared/types.js';
 
 /** Longest side of the image face detection runs on. */
@@ -60,13 +61,14 @@ const inFlight = new Map<string, Promise<string>>();
 
 /** Renders `target` once with `render`, writing it atomically; concurrent requests share the render. */
 async function cached(target: string, render: () => Promise<sharp.Sharp>): Promise<string> {
-  if (fs.existsSync(target)) return target;
+  if (await fileExists(target)) return target;
   const running = inFlight.get(target);
   if (running) return running;
   const job = (async () => {
     const tmp = `${target}.${process.pid}.tmp`;
+    await ensureDir(path.dirname(target));
     await (await render()).toFile(tmp);
-    fs.renameSync(tmp, target);
+    await fs.promises.rename(tmp, target);
     return target;
   })().finally(() => inFlight.delete(target));
   inFlight.set(target, job);
@@ -95,10 +97,10 @@ export async function renderFaceSource(filePath: string, fileHash: string): Prom
     .jpeg({ quality: 90 }));
 }
 
-function existingPhoto(photoId: number) {
-  const photo = Number.isInteger(photoId) ? getApiPhoto(photoId) : undefined;
+async function existingPhoto(photoId: number) {
+  const photo = Number.isInteger(photoId) ? await getApiPhoto(photoId) : undefined;
   if (!photo) return { error: { status: 404 as const, body: apiError('photo_not_found', 'Photo not found') } };
-  if (!fs.existsSync(photo.filePath)) return { error: { status: 404 as const, body: apiError('file_not_found', 'File missing') } };
+  if (!await fileExists(photo.filePath)) return { error: { status: 404 as const, body: apiError('file_not_found', 'File missing') } };
   return { photo };
 }
 
@@ -133,24 +135,24 @@ export async function photoFace(photoId: number, query: { rect?: unknown; size?:
   if (!Number.isInteger(size) || size < MIN_FACE_SIZE || size > MAX_FACE_SIZE) {
     return { status: 400, body: apiError('invalid_field', `size must be an integer from ${MIN_FACE_SIZE} to ${MAX_FACE_SIZE}`, { field: 'size' }) };
   }
-  const found = existingPhoto(photoId);
+  const found = await existingPhoto(photoId);
   if (found.error) return found.error;
   return sendFile(() => renderFaceCrop(found.photo.filePath, found.photo.fileHash, rect, size), found.photo.filePath);
 }
 
 /** `GET /api/photos/:id/face-source`: the image face detection runs on. */
 export async function photoFaceSource(photoId: number): Promise<ImageResult> {
-  const found = existingPhoto(photoId);
+  const found = await existingPhoto(photoId);
   if (found.error) return found.error;
   return sendFile(() => renderFaceSource(found.photo.filePath, found.photo.fileHash), found.photo.filePath);
 }
 
 /** `GET /api/people/:id/avatar`: the person's avatar crop, or 404 when they have no face with a rectangle. */
 export async function personAvatar(id: string): Promise<ImageResult> {
-  if (!findPerson(id)) return { status: 404, body: apiError('person_not_found', 'Person not found') };
-  const face = avatarFace(shownPeople([id]).get(id)!.row, rectFaces(id));
+  if (!await findPerson(id)) return { status: 404, body: apiError('person_not_found', 'Person not found') };
+  const face = avatarFace((await shownPeople([id])).get(id)!.row, await rectFaces(id));
   if (!face) return { status: 404, body: apiError('face_not_found', 'The person has no face to show') };
   const filePath = path.join(face.folderPath, face.filename);
-  if (!fs.existsSync(filePath)) return { status: 404, body: apiError('file_not_found', 'File missing') };
+  if (!await fileExists(filePath)) return { status: 404, body: apiError('file_not_found', 'File missing') };
   return sendFile(() => renderFaceCrop(filePath, face.fileHash, face.rect, AVATAR_SIZE), filePath, 'private, max-age=31536000, immutable');
 }

@@ -13,19 +13,18 @@ interface StateFile {
  * choice is on when bundled and off when external. An unreadable file is logged and treated as empty.
  */
 export class PluginState {
-  private choices: Record<string, boolean> = {};
+  /** Choices start empty (every plugin at its default) until load() reads the file. */
+  constructor(private readonly file: string, private choices: Record<string, boolean> = {}) {}
 
-  constructor(private readonly file: string) {
-    this.load();
-  }
-
-  private load(): void {
+  /** The choices saved in `file`. */
+  static async load(file: string): Promise<PluginState> {
+    const choices: Record<string, boolean> = {};
     let text: string;
     try {
-      text = fs.readFileSync(this.file, 'utf-8');
+      text = await fs.promises.readFile(file, 'utf-8');
     } catch (err) {
-      if ((err as NodeJS.ErrnoException).code !== 'ENOENT') console.error(`Cannot read ${this.file}: ${(err as Error).message}`);
-      return;
+      if ((err as NodeJS.ErrnoException).code !== 'ENOENT') console.error(`Cannot read ${file}: ${(err as Error).message}`);
+      return new PluginState(file, choices);
     }
     try {
       const parsed = JSON.parse(text) as Partial<StateFile>;
@@ -33,11 +32,13 @@ export class PluginState {
         throw new Error('"plugins" is not an object');
       }
       for (const [id, choice] of Object.entries(parsed.plugins)) {
-        if (typeof choice?.enabled === 'boolean') this.choices[id] = choice.enabled;
+        if (typeof choice?.enabled === 'boolean') choices[id] = choice.enabled;
       }
     } catch (err) {
-      console.error(`Ignoring unreadable ${this.file}, plugins use their defaults: ${(err as Error).message}`);
+      console.error(`Ignoring unreadable ${file}, plugins use their defaults: ${(err as Error).message}`);
+      return new PluginState(file, {});
     }
+    return new PluginState(file, choices);
   }
 
   isEnabled(id: string, source: PluginSource): boolean {
@@ -45,15 +46,15 @@ export class PluginState {
   }
 
   /** Saves the choice atomically; throws if the file cannot be written, leaving the choice unchanged. */
-  setEnabled(id: string, enabled: boolean): void {
+  async setEnabled(id: string, enabled: boolean): Promise<void> {
     const next = { ...this.choices, [id]: enabled };
     const data: StateFile = { plugins: {} };
     for (const key of Object.keys(next).sort()) data.plugins[key] = { enabled: next[key] };
 
-    fs.mkdirSync(path.dirname(this.file), { recursive: true });
+    await fs.promises.mkdir(path.dirname(this.file), { recursive: true });
     const tmp = `${this.file}.${process.pid}.tmp`;
-    fs.writeFileSync(tmp, `${JSON.stringify(data, null, 2)}\n`);
-    fs.renameSync(tmp, this.file);
+    await fs.promises.writeFile(tmp, `${JSON.stringify(data, null, 2)}\n`);
+    await fs.promises.rename(tmp, this.file);
     this.choices = next;
   }
 }

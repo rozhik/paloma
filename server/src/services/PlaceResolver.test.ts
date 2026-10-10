@@ -19,13 +19,14 @@ beforeAll(async () => {
   vi.stubEnv('PALOMA_PHOTOS_DIRS', '');
   vi.stubEnv('PALOMA_EXCLUDE_DIRS', '');
 
+  await (await import('../db/index.js')).openDatabase();
   ({ db } = await import('../db/index.js'));
   schema = await import('../db/schema.js');
   ({ PlaceResolver } = await import('./PlaceResolver.js'));
   ({ GeocoderService } = await import('./GeocoderService.js'));
 });
 
-afterAll(() => {
+afterAll(async () => {
   vi.unstubAllEnvs();
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
@@ -46,7 +47,7 @@ function addPhoto(filename: string, geoCell: string | null): void {
 const placeOf = (cell: string, lang = 'en') =>
   db.select().from(schema.geoPlaces).where(eq(schema.geoPlaces.cell, cell)).all().find((row) => row.lang === lang);
 
-beforeEach(() => {
+beforeEach(async () => {
   for (const table of [schema.photos, schema.folders, schema.geoPlaces]) db.delete(table).run();
   folderId = db.insert(schema.folders).values({ path: '/a', name: 'a', indexedAt: '' }).returning({ id: schema.folders.id }).get().id;
   now = new Date('2026-10-05T12:00:00Z');
@@ -57,7 +58,7 @@ beforeEach(() => {
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
-afterEach(() => {
+afterEach(async () => {
   resolver.stop();
   vi.restoreAllMocks();
 });
@@ -130,7 +131,7 @@ describe('PlaceResolver', () => {
     db.insert(schema.geoPlaces).values({ cell: '1:1', lang: 'de', status: 'ok', name: 'X', updatedAt: '' }).run();
     addPhoto('a.jpg', '4845:2455');
 
-    resolver.start();
+    await resolver.start();
     await resolver.drain();
 
     expect(placeOf('4845:2455', 'de')).toMatchObject({ status: 'ok' });

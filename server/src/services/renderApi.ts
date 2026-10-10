@@ -1,4 +1,3 @@
-import fs from 'node:fs';
 import type { ApiError } from '../../../shared/types.js';
 import { apiError } from './apiError.js';
 import { validateChain } from './editChain.js';
@@ -6,6 +5,7 @@ import { libraryLookup } from './libraryImages.js';
 import { editsInvalid, getApiPhoto } from './photoApi.js';
 import { PREVIEW_STEP_TIMEOUT_MS, RenderService } from './RenderService.js';
 import { ThumbnailService, type ImageSize } from './ThumbnailService.js';
+import { fileExists } from './files.js';
 
 export const DEFAULT_PREVIEW_SIZE = 1200;
 export const MAX_PREVIEW_SIZE = 4096;
@@ -15,10 +15,10 @@ export type ImageResult =
   | { status: 200; kind: 'file'; file: string; type?: string; cacheControl?: string }
   | { status: 400 | 404 | 500; body: ApiError };
 
-function photoFile(photoId: number) {
-  const photo = getApiPhoto(photoId);
+async function photoFile(photoId: number) {
+  const photo = await getApiPhoto(photoId);
   if (!photo) return { error: { status: 404 as const, body: apiError('photo_not_found', 'Photo not found') } };
-  if (!fs.existsSync(photo.filePath)) return { error: { status: 404 as const, body: apiError('file_not_found', 'File missing') } };
+  if (!await fileExists(photo.filePath)) return { error: { status: 404 as const, body: apiError('file_not_found', 'File missing') } };
   return { photo };
 }
 
@@ -36,7 +36,7 @@ export async function renderPreview(photoId: number, body: unknown): Promise<Ima
     return { status: 400, body: apiError('invalid_field', `maxSize must be an integer from 16 to ${MAX_PREVIEW_SIZE}`, { field: 'maxSize' }) };
   }
 
-  const found = photoFile(photoId);
+  const found = await photoFile(photoId);
   if (found.error) return found.error;
   try {
     const rendered = await RenderService.renderWithSize(found.photo.filePath, check.steps, {
@@ -61,7 +61,7 @@ export async function renderPreview(photoId: number, body: unknown): Promise<Ima
 
 /** `GET /api/photos/:id/{thumbnail,preview}`: the photo's cached image as it looks with its saved edits. */
 export async function photoImage(photoId: number, size: ImageSize): Promise<ImageResult> {
-  const found = photoFile(photoId);
+  const found = await photoFile(photoId);
   if (found.error) return found.error;
   try {
     const file = await ThumbnailService.getImage(found.photo, found.photo.edits, size, libraryLookup);

@@ -29,6 +29,7 @@ beforeAll(async () => {
   tmp = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'paloma_thumbs_test_')));
   vi.stubEnv('PALOMA_DATA_DIR', path.join(tmp, 'data'));
   vi.stubEnv('PALOMA_CACHE_DIR', path.join(tmp, 'cache'));
+  await (await import('../db/index.js')).openDatabase();
   ({ ThumbnailService: Thumbnails } = await import('./ThumbnailService.js'));
 
   const filePath = path.join(tmp, 'a.jpg');
@@ -36,7 +37,7 @@ beforeAll(async () => {
   photo = { filePath, fileHash: 'hash1' };
 });
 
-afterAll(() => {
+afterAll(async () => {
   vi.unstubAllEnvs();
   fs.rmSync(tmp, { recursive: true, force: true });
 });

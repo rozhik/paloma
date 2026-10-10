@@ -81,13 +81,13 @@ function paramInfo(param: ParamDefinition, lang: string): FilterParamInfo {
  * The real path of a filter's icon when it is an existing `.svg` file inside the plugin folder (also after
  * following symlinks), or why it cannot be used.
  */
-export function resolveFilterIcon(pluginFolder: string, icon: string): { file: string } | { problem: string } {
+export async function resolveFilterIcon(pluginFolder: string, icon: string): Promise<{ file: string } | { problem: string }> {
   const problem = `icon ${JSON.stringify(icon)} is not an .svg file inside the plugin folder`;
   if (path.isAbsolute(icon) || path.extname(icon).toLowerCase() !== '.svg') return { problem };
   try {
-    const root = fs.realpathSync(pluginFolder);
-    const file = fs.realpathSync(path.resolve(root, icon));
-    if (!file.startsWith(root + path.sep) || !fs.statSync(file).isFile()) return { problem };
+    const root = await fs.promises.realpath(pluginFolder);
+    const file = await fs.promises.realpath(path.resolve(root, icon));
+    if (!file.startsWith(root + path.sep) || !(await fs.promises.stat(file)).isFile()) return { problem };
     return { file };
   } catch {
     return { problem };
@@ -113,7 +113,8 @@ export class PluginRegistry {
   /** Discovers plugins and loads those that are on. Safe to call more than once. */
   init(): Promise<void> {
     this.initPromise ??= (async () => {
-      this.entries = discoverPlugins(this.options.bundledDir, this.options.externalDir).map((discovered) => ({
+      this.state = await PluginState.load(this.options.stateFile);
+      this.entries = (await discoverPlugins(this.options.bundledDir, this.options.externalDir)).map((discovered) => ({
         discovered,
         module: null,
         host: makeHost(discovered.id),
@@ -156,7 +157,7 @@ export class PluginRegistry {
       entry.icons = new Map();
       for (const filter of checked.filters) {
         if (filter.icon === undefined) continue;
-        const resolved = resolveFilterIcon(entry.discovered.folder, filter.icon);
+        const resolved = await resolveFilterIcon(entry.discovered.folder, filter.icon);
         if ('file' in resolved) entry.icons.set(filter.name, resolved.file);
         else checked.warnings.push(`filter "${filter.name}": ${resolved.problem}; the filter has no icon`);
       }
@@ -278,7 +279,7 @@ export class PluginRegistry {
     if (!entry.discovered.manifest) {
       throw new PluginRegistryError('unavailable', `Plugin ${id} cannot be used: ${entry.discovered.error}`);
     }
-    this.state.setEnabled(id, enabled);
+    await this.state.setEnabled(id, enabled);
     if (enabled) await this.load(entry);
     this.rebuildFilters();
     this.epoch += 1;

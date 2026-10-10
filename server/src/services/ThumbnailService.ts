@@ -6,10 +6,7 @@ import type { EditStep } from '../../../shared/types.js';
 import type { FilterLookup } from './editChain.js';
 import { PREVIEW_STEP_TIMEOUT_MS, RenderService } from './RenderService.js';
 import { renderKey } from './photoImages.js';
-
-if (!fs.existsSync(config.cacheDir)) {
-  fs.mkdirSync(config.cacheDir, { recursive: true });
-}
+import { ensureDir, fileExists } from './files.js';
 
 export type ImageSize = 'thumb' | 'preview';
 
@@ -52,11 +49,12 @@ export class ThumbnailService {
     const origWidth = metadata.width || 0;
     const origHeight = metadata.height || 0;
 
-    if (!fs.existsSync(thumbPath)) {
+    await ensureDir(config.cacheDir);
+    if (!await fileExists(thumbPath)) {
       await SIZES.thumb.encode(image.clone()).toFile(thumbPath);
     }
 
-    if (!fs.existsSync(previewPath)) {
+    if (!await fileExists(previewPath)) {
       await SIZES.preview.encode(image.clone()).toFile(previewPath);
     }
 
@@ -76,12 +74,12 @@ export class ThumbnailService {
     const key = renderKey(edits, lookup);
     if (!key) {
       const plain = this.getThumbnailPath(photo.fileHash, size);
-      if (!fs.existsSync(plain)) await this.generateThumbnails(photo.filePath, photo.fileHash);
+      if (!await fileExists(plain)) await this.generateThumbnails(photo.filePath, photo.fileHash);
       return plain;
     }
 
     const target = this.getRenderedPath(photo.fileHash, key, size);
-    if (fs.existsSync(target)) return target;
+    if (await fileExists(target)) return target;
     const running = this.inFlight.get(target);
     if (running) return running;
 
@@ -93,8 +91,9 @@ export class ThumbnailService {
         label: photo.filePath,
       });
       const tmp = `${target}.${process.pid}.tmp`;
+      await ensureDir(config.cacheDir);
       await SIZES[size].encode(image).toFile(tmp);
-      fs.renameSync(tmp, target);
+      await fs.promises.rename(tmp, target);
       return target;
     })().finally(() => this.inFlight.delete(target));
     this.inFlight.set(target, render);

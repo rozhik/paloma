@@ -27,7 +27,7 @@ export function activate(host) {
 
 const newRegistry = () => new PluginRegistry({ bundledDir: bundled, externalDir: external, stateFile });
 
-beforeEach(() => {
+beforeEach(async () => {
   tmp = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'paloma_registry_test_')));
   bundled = path.join(tmp, 'bundled');
   external = path.join(tmp, 'external');
@@ -39,7 +39,7 @@ beforeEach(() => {
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
 
-afterEach(() => {
+afterEach(async () => {
   vi.restoreAllMocks();
   fs.rmSync(tmp, { recursive: true, force: true });
 });

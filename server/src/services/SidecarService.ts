@@ -8,6 +8,7 @@ import { ALBUM_KEYS, readPicasaIni, type IniAlbum, type PhotoFields, type Picasa
 import { isGeotag, roundGeotag } from './location.js';
 import { isEditChain } from './editChain.js';
 import { uniqueKeywords } from './embeddedText.js';
+import { withFolderLock } from './folderLock.js';
 
 export type { PhotoFields } from './picasaIni.js';
 
@@ -151,9 +152,9 @@ export function peopleOf(value: unknown): Record<string, PalomaPerson> {
   return people;
 }
 
-function listDir(dir: string): string[] {
+async function listDir(dir: string): Promise<string[]> {
   try {
-    return fs.readdirSync(dir);
+    return await fs.promises.readdir(dir);
   } catch {
     return [];
   }
@@ -185,10 +186,10 @@ export class SidecarService {
   }
 
   /** Reads `.paloma.json`. Anything that is not a well-formed v2 file is `unreadable` and must not be overwritten. */
-  public static readFolderSidecar(dir: string): SidecarRead {
+  public static async readFolderSidecar(dir: string): Promise<SidecarRead> {
     let text: string;
     try {
-      text = fs.readFileSync(this.getSidecarPath(dir), 'utf-8');
+      text = await fs.promises.readFile(this.getSidecarPath(dir), 'utf-8');
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code === 'ENOENT') return { kind: 'missing' };
       return { kind: 'unreadable', reason: (err as Error).message };
@@ -330,21 +331,21 @@ export class SidecarService {
   }
 
   /** Replaces `.paloma.json` atomically via a temp file in the same folder. */
-  public static writeFolderSidecar(dir: string, data: PalomaFolderFile): void {
+  public static async writeFolderSidecar(dir: string, data: PalomaFolderFile): Promise<void> {
     const tmp = path.join(dir, `${SIDECAR_NAME}.${process.pid}.${crypto.randomBytes(4).toString('hex')}.tmp`);
     try {
-      fs.writeFileSync(tmp, this.serialize(data), 'utf-8');
-      fs.renameSync(tmp, this.getSidecarPath(dir));
+      await fs.promises.writeFile(tmp, this.serialize(data), 'utf-8');
+      await fs.promises.rename(tmp, this.getSidecarPath(dir));
     } catch (err) {
-      fs.rmSync(tmp, { force: true });
+      await fs.promises.rm(tmp, { force: true });
       throw err;
     }
   }
 
   /** Re-imports the Picasa .ini into a readable sidecar when its hash differs from `iniHash`. */
-  private static reconcileIni(dir: string, data: PalomaFolderFile, names: readonly string[]): PalomaFolderFile | null {
+  private static async reconcileIni(dir: string, data: PalomaFolderFile, names: readonly string[]): Promise<PalomaFolderFile | null> {
     if (data.iniHash === undefined) return null;
-    const ini = readPicasaIni(dir, names);
+    const ini = await readPicasaIni(dir, names);
     if (ini.kind !== 'ok' || ini.sha256 === data.iniHash) return null;
     return this.reimport(data, this.matchSections(ini.sections, names), ini.sha256, dir, ini.albums, ini.people);
   }
@@ -367,9 +368,14 @@ export class SidecarService {
    * The photo fields of a folder: from a readable `.paloma.json` (re-importing a changed Picasa .ini into it),
    * or live from the Picasa .ini when there is no sidecar. An unreadable sidecar yields no fields.
    */
-  public static getFolderState(dir: string): FolderState {
-    const names = listDir(dir);
-    const sidecar = this.readFolderSidecar(dir);
+  public static getFolderState(dir: string): Promise<FolderState> {
+    // Under the folder's lock, since re-importing a changed .ini writes the sidecar
+    return withFolderLock(dir, () => this.readFolderState(dir));
+  }
+
+  private static async readFolderState(dir: string): Promise<FolderState> {
+    const names = await listDir(dir);
+    const sidecar = await this.readFolderSidecar(dir);
 
     let photos: Record<string, PalomaPhotoEntry | PhotoFields>;
     let albums: Record<string, PalomaAlbumDefinition>;
@@ -379,10 +385,10 @@ export class SidecarService {
       return EMPTY_STATE;
     } else if (sidecar.kind === 'ok') {
       let data = sidecar.data;
-      const reimported = this.reconcileIni(dir, data, names);
+      const reimported = await this.reconcileIni(dir, data, names);
       if (reimported) {
         try {
-          this.writeFolderSidecar(dir, reimported);
+          await this.writeFolderSidecar(dir, reimported);
           data = reimported;
         } catch (err) {
           console.error(`Failed to re-import the Picasa .ini into ${this.getSidecarPath(dir)}:`, err);
@@ -392,7 +398,7 @@ export class SidecarService {
       albums = data.albums ?? {};
       people = peopleOf(data.people);
     } else {
-      const ini = readPicasaIni(dir, names);
+      const ini = await readPicasaIni(dir, names);
       photos = ini.kind === 'ok' ? this.matchSections(ini.sections, names) : {};
       albums = ini.kind === 'ok' ? ini.albums : {};
       people = ini.kind === 'ok' ? ini.people : {};
@@ -411,15 +417,19 @@ export class SidecarService {
    * sidecar (re-importing a changed Picasa .ini first), else a snapshot of the Picasa .ini, else an empty file.
    * Throws SidecarUnreadableError if the existing sidecar is unreadable, or the write error.
    */
-  public static updateFolderSidecar(dir: string, mutate: (data: PalomaFolderFile) => PalomaFolderFile): void {
-    const names = listDir(dir);
-    const sidecar = this.readFolderSidecar(dir);
+  public static updateFolderSidecar(dir: string, mutate: (data: PalomaFolderFile) => PalomaFolderFile): Promise<void> {
+    return withFolderLock(dir, () => this.rewriteFolderSidecar(dir, mutate));
+  }
+
+  private static async rewriteFolderSidecar(dir: string, mutate: (data: PalomaFolderFile) => PalomaFolderFile): Promise<void> {
+    const names = await listDir(dir);
+    const sidecar = await this.readFolderSidecar(dir);
     if (sidecar.kind === 'unreadable') throw new SidecarUnreadableError(this.getSidecarPath(dir), sidecar.reason);
 
     const data = sidecar.kind === 'ok'
-      ? this.reconcileIni(dir, sidecar.data, names) ?? sidecar.data
-      : this.importIni(readPicasaIni(dir, names), names);
-    this.writeFolderSidecar(dir, mutate(data));
+      ? await this.reconcileIni(dir, sidecar.data, names) ?? sidecar.data
+      : this.importIni(await readPicasaIni(dir, names), names);
+    await this.writeFolderSidecar(dir, mutate(data));
   }
 
   /**
@@ -446,14 +456,14 @@ export class SidecarService {
    * Saves a user change to one photo's fields. The first change in a folder imports its Picasa .ini.
    * Throws SidecarUnreadableError if the existing sidecar is unreadable, or the write error.
    */
-  public static updatePhotoFields(dir: string, filename: string, patch: FieldPatch): void {
-    this.updatePhotosFields(dir, { [filename]: patch });
+  public static updatePhotoFields(dir: string, filename: string, patch: FieldPatch): Promise<void> {
+    return this.updatePhotosFields(dir, { [filename]: patch });
   }
 
   /** Saves changes to several photos of one folder in a single atomic write, all with the same `modified`. */
-  public static updatePhotosFields(dir: string, patches: Record<string, FieldPatch>): void {
+  public static updatePhotosFields(dir: string, patches: Record<string, FieldPatch>): Promise<void> {
     const modified = new Date().toISOString();
-    this.updateFolderSidecar(dir, (data) => this.patchPhotos(data, patches, modified));
+    return this.updateFolderSidecar(dir, (data) => this.patchPhotos(data, patches, modified));
   }
 
   /** Returns `data` with field changes applied to several photo entries, each marked `modified`. */

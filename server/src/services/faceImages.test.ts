@@ -13,11 +13,12 @@ beforeAll(async () => {
   vi.stubEnv('PALOMA_CACHE_DIR', path.join(tmpDir, 'cache'));
   vi.stubEnv('PALOMA_PHOTOS_DIRS', '');
   vi.stubEnv('PALOMA_EXCLUDE_DIRS', '');
+  await (await import('../db/index.js')).openDatabase();
   faces = await import('./faceImages.js');
   fs.mkdirSync(path.join(tmpDir, 'cache'), { recursive: true });
 });
 
-afterAll(() => {
+afterAll(async () => {
   vi.unstubAllEnvs();
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
@@ -41,27 +42,27 @@ async function pixel(file: string, x: number, y: number): Promise<{ r: number; b
 }
 
 describe('faceCropBox', () => {
-  it('adds a margin around the face and makes the crop square', () => {
+  it('adds a margin around the face and makes the crop square', async () => {
     // face 100×50 px at (100, 100) in a 1000×1000 image: side 100 × 1.4 = 140, centred on (150, 125)
     expect(faces.faceCropBox({ left: 0.1, top: 0.1, right: 0.2, bottom: 0.15 }, 1000, 1000))
       .toEqual({ left: 80, top: 55, width: 140, height: 140 });
   });
 
-  it('moves the crop inside the image at an edge', () => {
+  it('moves the crop inside the image at an edge', async () => {
     expect(faces.faceCropBox({ left: 0, top: 0, right: 0.1, bottom: 0.1 }, 1000, 1000))
       .toEqual({ left: 0, top: 0, width: 140, height: 140 });
     expect(faces.faceCropBox({ left: 0.9, top: 0.9, right: 1, bottom: 1 }, 1000, 1000))
       .toEqual({ left: 860, top: 860, width: 140, height: 140 });
   });
 
-  it('shrinks the crop to the image when the face fills it, keeping it centred', () => {
+  it('shrinks the crop to the image when the face fills it, keeping it centred', async () => {
     expect(faces.faceCropBox({ left: 0, top: 0, right: 1, bottom: 1 }, 400, 300))
       .toEqual({ left: 50, top: 0, width: 300, height: 300 });
   });
 });
 
 describe('parseRectQuery', () => {
-  it('reads four fractions in order', () => {
+  it('reads four fractions in order', async () => {
     expect(faces.parseRectQuery('0.1,0.2,0.3,0.4')).toEqual({ left: 0.1, top: 0.2, right: 0.3, bottom: 0.4 });
     expect(faces.parseRectQuery('0.3,0.2,0.1,0.4')).toBeUndefined();
     expect(faces.parseRectQuery('0.1,0.2,0.3')).toBeUndefined();

@@ -19,6 +19,7 @@ beforeAll(async () => {
   vi.stubEnv('PALOMA_EXCLUDE_DIRS', '');
   vi.stubEnv('PALOMA_GEOCODER_URL', '');
 
+  await (await import('../db/index.js')).openDatabase();
   const { default: express } = await import('express');
   // Typed as the module under CommonJS interop; at runtime `default` is the router
   const router = (await import('./index.js')).default as unknown as import('express').Router;
@@ -85,5 +86,35 @@ describe('geo routes', () => {
     expect(await send('GET', '/photos?takenFrom=2016-10-03&takenTo=2016-13-40')).toEqual({
       status: 400, body: { error: expect.any(String), code: 'invalid_date', params: { field: 'takenTo' } },
     });
+  });
+});
+
+describe('photos whose file is gone', () => {
+  let photoId: number;
+
+  beforeAll(async () => {
+    const { db } = await import('../db/index.js');
+    const schema = await import('../db/schema.js');
+    const folderId = db.insert(schema.folders).values({ path: path.join(tmpDir, 'gone'), name: 'gone', indexedAt: '' })
+      .returning({ id: schema.folders.id }).get().id;
+    photoId = db.insert(schema.photos).values({ folderId, filename: 'missing.jpg', fileHash: 'missing', createdAt: '' })
+      .returning({ id: schema.photos.id }).get().id;
+  });
+
+  it.each(['thumbnail', 'preview', 'face-source'])('answer GET /photos/:id/%s with 404 file_not_found', async (image) => {
+    expect(await send('GET', `/photos/${photoId}/${image}`)).toEqual({ status: 404, body: { error: expect.any(String), code: 'file_not_found' } });
+  });
+
+  it('answer GET /raw/:id with a JSON 404 file_not_found', async () => {
+    const res = await fetch(`${base}/raw/${photoId}`);
+    expect(res.status).toBe(404);
+    expect(res.headers.get('content-type')).toContain('application/json');
+    expect(await res.json()).toEqual({ error: expect.any(String), code: 'file_not_found' });
+  });
+
+  it('answer a missing cached thumbnail with JSON, not an image type', async () => {
+    const res = await fetch(`${base}/cache/thumbnail/missing`);
+    expect(res.status).toBe(404);
+    expect(res.headers.get('content-type')).toContain('application/json');
   });
 });

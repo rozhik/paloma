@@ -1,5 +1,6 @@
 import { and, eq, isNotNull, isNull, lte, or, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
+import { all, get } from '../db/query.js';
 import { geoPlaces, photos } from '../db/schema.js';
 import { cellCentre } from './location.js';
 import type { GeocoderService } from './GeocoderService.js';
@@ -24,9 +25,9 @@ export class PlaceResolver {
   ) {}
 
   /** Starts resolving, with the languages already in the cache, and checks again every 30 s while idle. */
-  public start(): void {
+  public async start(): Promise<void> {
     this.stopped = false;
-    for (const { lang } of db.selectDistinct({ lang: geoPlaces.lang }).from(geoPlaces).all()) this.languages.add(lang);
+    for (const { lang } of await all(db.selectDistinct({ lang: geoPlaces.lang }).from(geoPlaces))) this.languages.add(lang);
     this.wake();
   }
 
@@ -63,10 +64,10 @@ export class PlaceResolver {
   }
 
   /** The next cell and language that photos use and the cache cannot answer yet. */
-  public nextMissing(): { cell: string; lang: string } | undefined {
+  public async nextMissing(): Promise<{ cell: string; lang: string } | undefined> {
     const now = this.now().toISOString();
     for (const lang of this.languages) {
-      const row = db.selectDistinct({ cell: photos.geoCell })
+      const row = await get(db.selectDistinct({ cell: photos.geoCell })
         .from(photos)
         .leftJoin(geoPlaces, and(eq(geoPlaces.cell, photos.geoCell), eq(geoPlaces.lang, lang)))
         .where(and(
@@ -74,8 +75,7 @@ export class PlaceResolver {
           or(isNull(geoPlaces.cell), and(eq(geoPlaces.status, 'failed'), lte(geoPlaces.retryAt, now))),
         ))
         .orderBy(sql`${photos.geoCell}`)
-        .limit(1)
-        .get();
+        .limit(1));
       if (row?.cell) return { cell: row.cell, lang };
     }
     return undefined;
@@ -86,14 +86,14 @@ export class PlaceResolver {
       this.again = false;
       for (;;) {
         const geocoder = this.getGeocoder();
-        const next = geocoder && this.nextMissing();
+        const next = geocoder && await this.nextMissing();
         if (!geocoder || !next) break;
         const { lat, lon } = cellCentre(next.cell);
         try {
-          savePlace(next.cell, next.lang, await geocoder.reverse(lat, lon, next.lang), this.now());
+          await savePlace(next.cell, next.lang, await geocoder.reverse(lat, lon, next.lang), this.now());
         } catch (err) {
           console.error(`Place lookup for ${next.cell} (${next.lang}) failed: ${(err as Error).message}`);
-          savePlaceFailure(next.cell, next.lang, this.now());
+          await savePlaceFailure(next.cell, next.lang, this.now());
         }
       }
     } while (this.again);

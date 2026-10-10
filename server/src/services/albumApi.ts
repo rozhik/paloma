@@ -1,5 +1,6 @@
 import { eq, inArray } from 'drizzle-orm';
 import { db } from '../db/index.js';
+import { all, BATCH_SIZE, chunked } from '../db/query.js';
 import { albumPhotos, edits, folderAlbums, folders, photos } from '../db/schema.js';
 import {
   addToAlbum, createAlbum, deleteAlbum, editAlbum, localIsoWithOffset, newAlbumToken, removeFromAlbum, type AlbumFields,
@@ -85,8 +86,8 @@ function pickCover(copies: readonly AlbumCopy[], members: Member[]): Member | un
   return ordered.find((m) => !m.isHidden) ?? ordered[0];
 }
 
-function loadMembers(tokens?: readonly string[]): Map<string, Member[]> {
-  const rows = db.select({
+async function loadMembers(tokens?: readonly string[]): Promise<Map<string, Member[]>> {
+  const query = (where?: readonly string[]) => all(db.select({
     token: albumPhotos.token,
     id: photos.id,
     filename: photos.filename,
@@ -100,8 +101,8 @@ function loadMembers(tokens?: readonly string[]): Map<string, Member[]> {
     .innerJoin(photos, eq(albumPhotos.photoId, photos.id))
     .leftJoin(edits, eq(photos.id, edits.photoId))
     .innerJoin(folders, eq(photos.folderId, folders.id))
-    .where(tokens ? inArray(albumPhotos.token, [...tokens]) : undefined)
-    .all();
+    .where(where ? inArray(albumPhotos.token, [...where]) : undefined));
+  const rows = tokens ? await chunked(tokens, BATCH_SIZE, query) : await query();
   const members = new Map<string, Member[]>();
   for (const { token, ...member } of rows) {
     const list = members.get(token) ?? [];
@@ -111,10 +112,9 @@ function loadMembers(tokens?: readonly string[]): Map<string, Member[]> {
   return members;
 }
 
-function loadCopies(tokens: readonly string[]): Map<string, AlbumCopy[]> {
+async function loadCopies(tokens: readonly string[]): Promise<Map<string, AlbumCopy[]>> {
   const copies = new Map<string, AlbumCopy[]>();
-  if (tokens.length === 0) return copies;
-  const rows = db.select({
+  const rows = await chunked(tokens, BATCH_SIZE, (chunk) => all(db.select({
     token: folderAlbums.token,
     folderPath: folders.path,
     name: folderAlbums.name,
@@ -126,8 +126,7 @@ function loadCopies(tokens: readonly string[]): Map<string, AlbumCopy[]> {
   })
     .from(folderAlbums)
     .innerJoin(folders, eq(folderAlbums.folderId, folders.id))
-    .where(inArray(folderAlbums.token, [...tokens]))
-    .all();
+    .where(inArray(folderAlbums.token, chunk))));
   for (const { token, ...copy } of rows) {
     const list = copies.get(token) ?? [];
     list.push(copy);
@@ -137,10 +136,10 @@ function loadCopies(tokens: readonly string[]): Map<string, AlbumCopy[]> {
 }
 
 /** The shown name and description of every album some folder defines, by token. */
-export function shownAlbumTexts(): Map<string, { name: string | null; description: string | null }> {
-  const tokens = db.selectDistinct({ token: folderAlbums.token }).from(folderAlbums).all().map((row) => row.token);
+export async function shownAlbumTexts(): Promise<Map<string, { name: string | null; description: string | null }>> {
+  const tokens = (await all(db.selectDistinct({ token: folderAlbums.token }).from(folderAlbums))).map((row) => row.token);
   const texts = new Map<string, { name: string | null; description: string | null }>();
-  for (const [token, copies] of loadCopies(tokens)) {
+  for (const [token, copies] of await loadCopies(tokens)) {
     const { name, description } = shownFields(resolveAlbum(copies));
     texts.set(token, { name, description });
   }
@@ -160,9 +159,9 @@ function toAlbum(token: string, copies: AlbumCopy[], members: Member[]): Album {
 }
 
 /** Albums with at least one photo in the library, sorted by name with untitled albums last. */
-export function listAlbums(tokens?: readonly string[]): Album[] {
-  const members = loadMembers(tokens);
-  const copies = loadCopies([...members.keys()]);
+export async function listAlbums(tokens?: readonly string[]): Promise<Album[]> {
+  const members = await loadMembers(tokens);
+  const copies = await loadCopies([...members.keys()]);
   return [...members.entries()]
     .map(([token, list]) => toAlbum(token, copies.get(token) ?? [], list))
     .sort((a, b) => {
@@ -171,8 +170,8 @@ export function listAlbums(tokens?: readonly string[]): Album[] {
     });
 }
 
-export function getAlbum(token: string): Album | undefined {
-  return listAlbums([token])[0];
+export async function getAlbum(token: string): Promise<Album | undefined> {
+  return (await listAlbums([token]))[0];
 }
 
 // --- Changes ---
@@ -192,24 +191,23 @@ function isName(value: unknown): value is string {
 }
 
 /** Library folders that define the album or have a photo in it. */
-function albumFolders(token: string): string[] {
-  const defining = db.select({ path: folders.path })
+async function albumFolders(token: string): Promise<string[]> {
+  const defining = (await all(db.select({ path: folders.path })
     .from(folderAlbums)
     .innerJoin(folders, eq(folderAlbums.folderId, folders.id))
-    .where(eq(folderAlbums.token, token))
-    .all()
+    .where(eq(folderAlbums.token, token))))
     .map((row) => row.path);
-  const withMembers = (loadMembers([token]).get(token) ?? []).map((m) => m.folderPath);
+  const withMembers = ((await loadMembers([token])).get(token) ?? []).map((m) => m.folderPath);
   return [...new Set([...defining, ...withMembers])];
 }
 
-function currentAlbum(token: string): AlbumResult<Album> {
-  const album = getAlbum(token);
+async function currentAlbum(token: string): Promise<AlbumResult<Album>> {
+  const album = await getAlbum(token);
   return album ? { status: 200, body: album } : { status: 500, body: apiError('album_empty', 'Album has no photos in the library') };
 }
 
 /** `POST /api/albums`: a new album holding the given photos. */
-export function createAlbumFromPhotos(body: unknown): AlbumResult<Album> {
+export async function createAlbumFromPhotos(body: unknown): Promise<AlbumResult<Album>> {
   if (!isPlainObject(body)) return bad('invalid_body', 'Body must be a JSON object');
   const { name, photoIds, description, location } = body;
   if (!isName(name)) return noName();
@@ -217,61 +215,61 @@ export function createAlbumFromPhotos(body: unknown): AlbumResult<Album> {
   if (location !== undefined && typeof location !== 'string') return notString('location');
   const ids = parsePhotoIds(photoIds);
   if (!ids) return noPhotoIds();
-  const refs = loadPhotos(ids);
+  const refs = await loadPhotos(ids);
   if (!refs) return notFound('photo_not_found', 'Photo not found');
 
   const token = newAlbumToken();
   const now = new Date();
   const fields = { name, date: localIsoWithOffset(now), description, location };
   const files = filesByFolder(refs);
-  return saveFolderByFolder('album', [...files.keys()], (dir, data) =>
+  return await saveFolderByFolder('album', [...files.keys()], (dir, data) =>
     createAlbum(data, token, fields, files.get(dir)!, now.toISOString())) ?? currentAlbum(token);
 }
 
-function requireListed(token: string): AlbumResult<never> | null {
-  return getAlbum(token) ? null : notFound('album_not_found', 'Album not found');
+async function requireListed(token: string): Promise<AlbumResult<never> | null> {
+  return await getAlbum(token) ? null : notFound('album_not_found', 'Album not found');
 }
 
 /** `POST /api/albums/:token/photos`. */
-export function addAlbumPhotos(token: string, body: unknown): AlbumResult<Album> {
-  const missing = requireListed(token);
+export async function addAlbumPhotos(token: string, body: unknown): Promise<AlbumResult<Album>> {
+  const missing = await requireListed(token);
   if (missing) return missing;
   const ids = parsePhotoIds(isPlainObject(body) ? body.photoIds : undefined);
   if (!ids) return noPhotoIds();
-  const refs = loadPhotos(ids);
+  const refs = await loadPhotos(ids);
   if (!refs) return notFound('photo_not_found', 'Photo not found');
 
-  const source = resolveAlbum(loadCopies([token]).get(token) ?? []);
+  const source = resolveAlbum((await loadCopies([token])).get(token) ?? []);
   const shown: PalomaAlbumDefinition = {};
   for (const [key, value] of Object.entries(shownFields(source))) if (value !== null) shown[key] = value;
   if (source?.modified) shown.modified = source.modified;
 
   const files = filesByFolder(refs);
   const modified = new Date().toISOString();
-  return saveFolderByFolder('album', [...files.keys()], (dir, data) => addToAlbum(data, token, shown, files.get(dir)!, modified))
+  return await saveFolderByFolder('album', [...files.keys()], (dir, data) => addToAlbum(data, token, shown, files.get(dir)!, modified))
     ?? currentAlbum(token);
 }
 
 /** `DELETE /api/albums/:token/photos`; when no photo is left, the album is gone. */
-export function removeAlbumPhotos(token: string, body: unknown): AlbumResult<Album | { success: true; removed: true }> {
-  const missing = requireListed(token);
+export async function removeAlbumPhotos(token: string, body: unknown): Promise<AlbumResult<Album | { success: true; removed: true }>> {
+  const missing = await requireListed(token);
   if (missing) return missing;
   const ids = parsePhotoIds(isPlainObject(body) ? body.photoIds : undefined);
   if (!ids) return noPhotoIds();
-  const refs = loadPhotos(ids);
+  const refs = await loadPhotos(ids);
   if (!refs) return notFound('photo_not_found', 'Photo not found');
 
-  const memberIds = new Set((loadMembers([token]).get(token) ?? []).map((m) => m.id));
+  const memberIds = new Set(((await loadMembers([token])).get(token) ?? []).map((m) => m.id));
   const files = filesByFolder(refs.filter((ref) => memberIds.has(ref.id)));
   const modified = new Date().toISOString();
-  const error = saveFolderByFolder('album', [...files.keys()], (dir, data) => removeFromAlbum(data, token, files.get(dir)!, modified));
+  const error = await saveFolderByFolder('album', [...files.keys()], (dir, data) => removeFromAlbum(data, token, files.get(dir)!, modified));
   if (error) return error;
-  return { status: 200, body: getAlbum(token) ?? { success: true, removed: true } };
+  return { status: 200, body: await getAlbum(token) ?? { success: true, removed: true } };
 }
 
 /** `PATCH /api/albums/:token`: any of name, description, location and coverPhotoId. */
-export function editAlbumProperties(token: string, body: unknown): AlbumResult<Album> {
-  const missing = requireListed(token);
+export async function editAlbumProperties(token: string, body: unknown): Promise<AlbumResult<Album>> {
+  const missing = await requireListed(token);
   if (missing) return missing;
   if (!isPlainObject(body)) return bad('invalid_body', 'Body must be a JSON object');
   const { name, description, location, coverPhotoId } = body;
@@ -285,27 +283,27 @@ export function editAlbumProperties(token: string, body: unknown): AlbumResult<A
   let cover: Member | null | undefined;
   if (coverPhotoId === null) cover = null;
   else if (coverPhotoId !== undefined) {
-    cover = (loadMembers([token]).get(token) ?? []).find((m) => m.id === coverPhotoId);
+    cover = ((await loadMembers([token])).get(token) ?? []).find((m) => m.id === coverPhotoId);
     if (!cover) return bad('cover_not_in_album', 'coverPhotoId must be a photo in the album');
   }
 
-  const shown = shownFields(resolveAlbum(loadCopies([token]).get(token) ?? []));
+  const shown = shownFields(resolveAlbum((await loadCopies([token])).get(token) ?? []));
   if (name !== undefined) shown.name = name;
   if (description !== undefined) shown.description = description || null;
   if (location !== undefined) shown.location = location || null;
 
   const modified = new Date().toISOString();
-  return saveFolderByFolder('album', albumFolders(token), (dir, data) => {
+  return await saveFolderByFolder('album', await albumFolders(token), (dir, data) => {
     const coverHere = cover === undefined ? undefined : cover !== null && cover.folderPath === dir ? cover.filename : null;
     return editAlbum(data, token, shown, coverHere, modified);
   }) ?? currentAlbum(token);
 }
 
 /** `DELETE /api/albums/:token`: removes the album everywhere; photo files are not touched. */
-export function deleteAlbumEverywhere(token: string): AlbumResult<{ success: true }> {
-  const missing = requireListed(token);
+export async function deleteAlbumEverywhere(token: string): Promise<AlbumResult<{ success: true }>> {
+  const missing = await requireListed(token);
   if (missing) return missing;
   const modified = new Date().toISOString();
-  return saveFolderByFolder('album', albumFolders(token), (_dir, data) => deleteAlbum(data, token, modified))
+  return await saveFolderByFolder('album', await albumFolders(token), (_dir, data) => deleteAlbum(data, token, modified))
     ?? { status: 200, body: { success: true } };
 }

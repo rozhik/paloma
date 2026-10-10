@@ -15,23 +15,24 @@ export interface DiscoveredPlugin {
   error: string | null;
 }
 
-function subfolders(root: string): string[] {
+async function subfolders(root: string): Promise<string[]> {
   let entries: fs.Dirent[];
   try {
-    entries = fs.readdirSync(root, { withFileTypes: true });
+    entries = await fs.promises.readdir(root, { withFileTypes: true });
   } catch {
     return [];
   }
-  return entries
-    .filter((entry) => !entry.name.startsWith('.'))
-    .filter((entry) => entry.isDirectory() || (entry.isSymbolicLink() && isDirectory(path.join(root, entry.name))))
-    .map((entry) => entry.name)
-    .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  const names: string[] = [];
+  for (const entry of entries) {
+    if (entry.name.startsWith('.')) continue;
+    if (entry.isDirectory() || (entry.isSymbolicLink() && await isDirectory(path.join(root, entry.name)))) names.push(entry.name);
+  }
+  return names.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
 }
 
-function isDirectory(target: string): boolean {
+async function isDirectory(target: string): Promise<boolean> {
   try {
-    return fs.statSync(target).isDirectory();
+    return (await fs.promises.stat(target)).isDirectory();
   } catch {
     return false;
   }
@@ -42,15 +43,15 @@ function isDirectory(target: string): boolean {
  * root by folder name. Folders without `paloma-plugin.json` are skipped, and a missing root has none.
  * When two plugins share an id, the first one wins and the other gets an error naming the id.
  */
-export function discoverPlugins(bundledRoot: string, externalRoot: string): DiscoveredPlugin[] {
+export async function discoverPlugins(bundledRoot: string, externalRoot: string): Promise<DiscoveredPlugin[]> {
   const found: DiscoveredPlugin[] = [];
   const roots: [PluginSource, string][] = [['bundled', bundledRoot]];
   if (path.resolve(externalRoot) !== path.resolve(bundledRoot)) roots.push(['external', externalRoot]);
 
   for (const [source, root] of roots) {
-    for (const name of subfolders(root)) {
+    for (const name of await subfolders(root)) {
       const folder = path.join(root, name);
-      const read = readManifest(folder);
+      const read = await readManifest(folder);
       if (read.kind === 'missing') continue;
       if (read.kind === 'ok') {
         found.push({ id: read.manifest.id, source, folder, manifest: read.manifest, partial: read.manifest, error: null });

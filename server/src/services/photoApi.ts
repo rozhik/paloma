@@ -1,14 +1,15 @@
 import path from 'node:path';
-import { and, desc, eq, inArray } from 'drizzle-orm';
+import { and, count, desc, eq, inArray } from 'drizzle-orm';
 import { db } from '../db/index.js';
+import { all, BATCH_SIZE, chunked, get } from '../db/query.js';
 import { albumPhotos, edits, folders, geoPlaces, photos } from '../db/schema.js';
 import { SidecarService, SidecarUnreadableError, type FieldPatch } from './SidecarService.js';
-import { FolderScannerService } from './FolderScannerService.js';
 import { apiError } from './apiError.js';
 import { photoFilters, type PhotoFilterQuery } from './photoFilters.js';
 import { placeResolver } from './geocoding.js';
 import { normalizeLang } from './placeCache.js';
-import { loadPhotos, parsePhotoIds, saveFolderByFolder } from './folderChanges.js';
+import { loadPhotos, parsePhotoIds, reapplyFolder, saveFolderByFolder } from './folderChanges.js';
+import { withFolderLock } from './folderLock.js';
 import { isGeotag } from './location.js';
 import { libraryImageUrls, libraryLookup } from './libraryImages.js';
 import { describeProblem, validateChain, type ChainProblem } from './editChain.js';
@@ -50,41 +51,38 @@ export interface PhotoListQuery extends PhotoFilterQuery {
 }
 
 /** Album tokens of each photo, keyed by photo id. */
-function albumsOf(photoIds: number[]): Map<number, string[]> {
+async function albumsOf(photoIds: number[]): Promise<Map<number, string[]>> {
   const byPhoto = new Map<number, string[]>();
-  if (photoIds.length === 0) return byPhoto;
-  const rows = db.select().from(albumPhotos).where(inArray(albumPhotos.photoId, photoIds)).all();
+  const rows = await chunked(photoIds, BATCH_SIZE, (ids) => all(db.select().from(albumPhotos).where(inArray(albumPhotos.photoId, ids))));
   for (const { photoId, token } of rows) byPhoto.set(photoId, [...(byPhoto.get(photoId) ?? []), token]);
   return byPhoto;
 }
 
-export function listPhotos({ limit = '500', offset = '0', lang, ...filters }: PhotoListQuery): Photo[] {
+export async function listPhotos({ limit = '500', offset = '0', lang, ...filters }: PhotoListQuery): Promise<Photo[]> {
   // A language nobody uses joins no names
   const language = lang === undefined ? '' : normalizeLang(lang);
   if (language) placeResolver.noteLanguage(language);
-  const rows = db.select({ photo: photos, folder: folders, edit: edits, place: geoPlaces.name })
+  const rows = await all(db.select({ photo: photos, folder: folders, edit: edits, place: geoPlaces.name })
     .from(photos)
     .innerJoin(folders, eq(photos.folderId, folders.id))
     .leftJoin(edits, eq(photos.id, edits.photoId))
     .leftJoin(geoPlaces, and(eq(geoPlaces.cell, photos.geoCell), eq(geoPlaces.lang, language)))
-    .where(photoFilters(filters))
+    .where(await photoFilters(filters))
     .orderBy(desc(photos.dateTaken), photos.id)
     .limit(Number(limit))
-    .offset(Number(offset))
-    .all();
-  const albums = albumsOf(rows.map(({ photo }) => photo.id));
+    .offset(Number(offset)));
+  const albums = await albumsOf(rows.map(({ photo }) => photo.id));
   return rows.map(({ photo, folder, edit, place }) => toApiPhoto(photo, folder, edit, albums.get(photo.id), place));
 }
 
 /** Folders with the number of photos that are not hidden. */
-export function listFolders(): Array<FolderRow & { photoCount: number }> {
-  return db.select().from(folders).all().map((folder) => ({
-    ...folder,
-    photoCount: db.select({ id: photos.id })
-      .from(photos)
-      .where(and(eq(photos.folderId, folder.id), eq(photos.isHidden, false)))
-      .all().length,
-  }));
+export async function listFolders(): Promise<Array<FolderRow & { photoCount: number }>> {
+  const rows = await all(db.select({ folder: folders, photoCount: count(photos.id) })
+    .from(folders)
+    .leftJoin(photos, and(eq(photos.folderId, folders.id), eq(photos.isHidden, false)))
+    .groupBy(folders.id)
+    .orderBy(folders.id));
+  return rows.map(({ folder, photoCount }) => ({ ...folder, photoCount }));
 }
 
 const invalidField = (field: string, expected: string): ApiError =>
@@ -151,24 +149,37 @@ export function parsePhotoPatch(body: unknown): FieldPatch | ApiError {
   return patch;
 }
 
-export function getApiPhoto(photoId: number): Photo | undefined {
-  const row = db.select({ photo: photos, folder: folders, edit: edits })
+export async function getApiPhoto(photoId: number): Promise<Photo | undefined> {
+  const row = await get(db.select({ photo: photos, folder: folders, edit: edits })
     .from(photos)
     .innerJoin(folders, eq(photos.folderId, folders.id))
     .leftJoin(edits, eq(photos.id, edits.photoId))
-    .where(eq(photos.id, photoId))
-    .get();
-  return row && toApiPhoto(row.photo, row.folder, row.edit, albumsOf([photoId]).get(photoId));
+    .where(eq(photos.id, photoId)));
+  return row && toApiPhoto(row.photo, row.folder, row.edit, (await albumsOf([photoId])).get(photoId));
+}
+
+/** The listed photos as the API shows them, in the order of the ids; ids not in the library are left out. */
+async function getApiPhotos(photoIds: readonly number[]): Promise<Photo[]> {
+  const shown: Photo[] = [];
+  for (const id of photoIds) {
+    const photo = await getApiPhoto(id);
+    if (photo) shown.push(photo);
+  }
+  return shown;
 }
 
 /**
  * Writes a field change to the photo's folder sidecar, then updates the library from disk.
  * Returns the error result when the sidecar is unreadable or cannot be written, leaving the library unchanged.
  */
-export function savePhotoPatch(photo: Photo, patch: FieldPatch): ApiResult<never> | null {
+export function savePhotoPatch(photo: Photo, patch: FieldPatch): Promise<ApiResult<never> | null> {
   const dir = photo.folderPath!;
+  return withFolderLock(dir, () => savePatchLocked(dir, photo, patch));
+}
+
+async function savePatchLocked(dir: string, photo: Photo, patch: FieldPatch): Promise<ApiResult<never> | null> {
   try {
-    SidecarService.updatePhotoFields(dir, photo.filename, patch);
+    await SidecarService.updatePhotoFields(dir, photo.filename, patch);
   } catch (err) {
     console.error(`Failed to save ${photo.filename} to the sidecar in ${dir}:`, err);
     return err instanceof SidecarUnreadableError
@@ -180,7 +191,7 @@ export function savePhotoPatch(photo: Photo, patch: FieldPatch): ApiResult<never
       : { status: 500, body: apiError('sidecar_write_failed', `Could not write .paloma.json in ${dir}`, { folders: dir }) };
   }
   // The whole folder, since saving may also have re-imported a changed Picasa .ini
-  FolderScannerService.applyFolderState(dir, SidecarService.getFolderState(dir));
+  await reapplyFolder(dir);
   return null;
 }
 
@@ -188,15 +199,15 @@ export function savePhotoPatch(photo: Photo, patch: FieldPatch): ApiResult<never
  * `PUT /api/photos/:id/edits`: replaces the photo's edit chain (`[]` removes it). Steps of available filters
  * are validated and get their defaults; steps of other filters are saved as sent.
  */
-export function saveEdits(photoId: number, body: unknown): ApiResult<Photo> {
+export async function saveEdits(photoId: number, body: unknown): Promise<ApiResult<Photo>> {
   const value = (typeof body === 'object' && body !== null && !Array.isArray(body) ? body : {}) as Record<string, unknown>;
   const check = validateChain(value.edits, libraryLookup);
   if (!check.ok) return { status: 400, body: editsInvalid(check.problem) };
 
-  const photo = getApiPhoto(photoId);
+  const photo = await getApiPhoto(photoId);
   if (!photo?.folderPath) return { status: 404, body: apiError('photo_not_found', 'Photo not found') };
-  const failed = savePhotoPatch(photo, { edits: check.steps });
-  return failed ?? { status: 200, body: getApiPhoto(photoId)! };
+  const failed = await savePhotoPatch(photo, { edits: check.steps });
+  return failed ?? { status: 200, body: (await getApiPhoto(photoId))! };
 }
 
 /** The 400 body for an invalid edit chain, naming the step, filter and parameter. */
@@ -208,39 +219,39 @@ export function editsInvalid(problem: ChainProblem): ApiError {
 }
 
 /** Saves a change to a photo's fields in its folder's sidecar first, then updates the library from disk. */
-export function updatePhoto(photoId: number, body: unknown): ApiResult<Photo> {
+export async function updatePhoto(photoId: number, body: unknown): Promise<ApiResult<Photo>> {
   const patch = parsePhotoPatch(body);
   if ('code' in patch) return { status: 400, body: patch };
 
-  const photo = getApiPhoto(photoId);
+  const photo = await getApiPhoto(photoId);
   if (!photo?.folderPath) return { status: 404, body: apiError('photo_not_found', 'Photo not found') };
-  const file = db.select({ exifLatitude: photos.exifLatitude, embeddedCaption: photos.embeddedCaption, embeddedKeywords: photos.embeddedKeywords })
-    .from(photos).where(eq(photos.id, photoId)).get()!;
+  const file = (await get(db.select({ exifLatitude: photos.exifLatitude, embeddedCaption: photos.embeddedCaption, embeddedKeywords: photos.embeddedKeywords })
+    .from(photos).where(eq(photos.id, photoId))))!;
   if (patch.geotag !== undefined && patch.geotag !== false) patch.geotag = geotagPatch(patch.geotag, file);
   Object.assign(patch, embeddedState(file));
 
-  const failed = savePhotoPatch(photo, patch);
+  const failed = await savePhotoPatch(photo, patch);
   if (failed) return failed;
   if (patch.geotag !== undefined) placeResolver.wake();
-  return { status: 200, body: getApiPhoto(photoId)! };
+  return { status: 200, body: (await getApiPhoto(photoId))! };
 }
 
 /**
  * `POST /api/photos/location`: sets (or clears, with `null`) the location of several photos, possibly in
  * several folders, saving folder by folder. Responds with the updated photos.
  */
-export function setPhotosLocation(body: unknown): ApiResult<Photo[]> {
+export async function setPhotosLocation(body: unknown): Promise<ApiResult<Photo[]>> {
   const { photoIds, location } = (typeof body === 'object' && body !== null && !Array.isArray(body) ? body : {}) as Record<string, unknown>;
   const ids = parsePhotoIds(photoIds);
   if (!ids) return { status: 400, body: apiError('photo_ids_required', 'photoIds must be a non-empty array of photo ids') };
   if (location === undefined) return { status: 400, body: apiError('invalid_location', 'location is required') };
   const parsed = parseLocation(location);
   if (parsed !== null && 'code' in parsed) return { status: 400, body: parsed };
-  const refs = loadPhotos(ids);
+  const refs = await loadPhotos(ids);
   if (!refs) return { status: 404, body: apiError('photo_not_found', 'Photo not found') };
 
-  const exif = new Map(db.select({ id: photos.id, exifLatitude: photos.exifLatitude })
-    .from(photos).where(inArray(photos.id, ids)).all()
+  const exif = new Map((await chunked(ids, BATCH_SIZE, (chunk) => all(db.select({ id: photos.id, exifLatitude: photos.exifLatitude })
+    .from(photos).where(inArray(photos.id, chunk)))))
     .map((row) => [row.id, row]));
   const patches = new Map<string, Record<string, FieldPatch>>();
   for (const ref of refs) {
@@ -250,11 +261,11 @@ export function setPhotosLocation(body: unknown): ApiResult<Photo[]> {
   }
 
   const modified = new Date().toISOString();
-  const error = saveFolderByFolder('photo location', [...patches.keys()], (dir, data) =>
+  const error = await saveFolderByFolder('photo location', [...patches.keys()], (dir, data) =>
     SidecarService.patchPhotos(data, patches.get(dir)!, modified));
   placeResolver.wake();
   if (error) return error;
-  return { status: 200, body: ids.map((id) => getApiPhoto(id)!) };
+  return { status: 200, body: await getApiPhotos(ids) };
 }
 
 /** Distinct non-empty strings of an optional array; null for anything that is not an array of strings. */
@@ -269,7 +280,7 @@ function tagList(value: unknown): string[] | null {
  * tags and removes the `remove` tags, for several photos, possibly in several folders, saving folder by folder.
  * Starts from each photo's current tags, embedded ones included. Responds with the updated photos.
  */
-export function changePhotosKeywords(body: unknown): ApiResult<Photo[]> {
+export async function changePhotosKeywords(body: unknown): Promise<ApiResult<Photo[]>> {
   const value = (typeof body === 'object' && body !== null && !Array.isArray(body) ? body : {}) as Record<string, unknown>;
   const ids = parsePhotoIds(value.photoIds);
   if (!ids) return { status: 400, body: apiError('photo_ids_required', 'photoIds must be a non-empty array of photo ids') };
@@ -280,12 +291,12 @@ export function changePhotosKeywords(body: unknown): ApiResult<Photo[]> {
   if (add.length === 0 && remove.length === 0) {
     return { status: 400, body: apiError('no_photo_fields', 'Expected a non-empty add or remove list') };
   }
-  const refs = loadPhotos(ids);
+  const refs = await loadPhotos(ids);
   if (!refs) return { status: 404, body: apiError('photo_not_found', 'Photo not found') };
 
-  const rows = new Map(db.select({
+  const rows = new Map((await chunked(ids, BATCH_SIZE, (chunk) => all(db.select({
     id: photos.id, keywords: photos.keywords, embeddedCaption: photos.embeddedCaption, embeddedKeywords: photos.embeddedKeywords,
-  }).from(photos).where(inArray(photos.id, ids)).all().map((row) => [row.id, row]));
+  }).from(photos).where(inArray(photos.id, chunk))))).map((row) => [row.id, row]));
   const removed = new Set(remove.map(textKey));
   const patches = new Map<string, Record<string, FieldPatch>>();
   for (const ref of refs) {
@@ -299,8 +310,8 @@ export function changePhotosKeywords(body: unknown): ApiResult<Photo[]> {
   }
 
   const modified = new Date().toISOString();
-  const error = saveFolderByFolder('photo tags', [...patches.keys()], (dir, data) =>
+  const error = await saveFolderByFolder('photo tags', [...patches.keys()], (dir, data) =>
     SidecarService.patchPhotos(data, patches.get(dir)!, modified));
   if (error) return error;
-  return { status: 200, body: ids.map((id) => getApiPhoto(id)!) };
+  return { status: 200, body: await getApiPhotos(ids) };
 }

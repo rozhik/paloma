@@ -3,29 +3,46 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import sharp from 'sharp';
+import XXH from 'xxhashjs';
 import { MetadataService, gpsLocation } from './MetadataService.js';
 
 describe('MetadataService', () => {
   let tmpFile: string;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'paloma_meta_test_'));
     tmpFile = path.join(tmpDir, 'dummy.txt');
     fs.writeFileSync(tmpFile, 'Hello Paloma World!');
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     if (fs.existsSync(tmpFile)) {
       fs.rmSync(path.dirname(tmpFile), { recursive: true, force: true });
     }
   });
 
-  it('should calculate consistent xxhash for file', () => {
-    const hash1 = MetadataService.calculateFileHash(tmpFile);
-    const hash2 = MetadataService.calculateFileHash(tmpFile);
+  it('should calculate consistent xxhash for file', async () => {
+    const hash1 = await MetadataService.calculateFileHash(tmpFile);
+    const hash2 = await MetadataService.calculateFileHash(tmpFile);
     expect(hash1).toBe(hash2);
     expect(typeof hash1).toBe('string');
     expect(hash1.length).toBeGreaterThan(0);
+  });
+
+  // The hash names cached thumbnails and is stored per photo, so streaming must not change its value
+  it('streams to the same hash as hashing the whole file at once, for any chunk size', async () => {
+    const dir = path.dirname(tmpFile);
+    const files = [tmpFile, path.join(dir, 'empty.bin'), path.join(dir, 'photo.jpg'), path.join(dir, 'large.bin')];
+    fs.writeFileSync(files[1], Buffer.alloc(0));
+    await sharp({ create: { width: 64, height: 48, channels: 3, background: '#3a6' } }).jpeg().toFile(files[2]);
+    fs.writeFileSync(files[3], Buffer.from(Array.from({ length: 70_000 }, (_, i) => (i * 31 + 7) % 256)));
+    for (const file of files) {
+      const oneShot = XXH.h64(fs.readFileSync(file), 0xabcd).toString(16);
+      for (const highWaterMark of [1, 7, 64 * 1024]) {
+        expect(await MetadataService.calculateFileHash(file, highWaterMark)).toBe(oneShot);
+      }
+      expect(await MetadataService.calculateFileHash(file)).toBe(oneShot);
+    }
   });
 });
 
@@ -37,23 +54,23 @@ async function jpegWithGps(file: string, gps?: Record<string, string>): Promise<
 }
 
 describe('gpsLocation', () => {
-  it('converts degrees, minutes and seconds to signed decimal degrees', () => {
+  it('converts degrees, minutes and seconds to signed decimal degrees', async () => {
     expect(gpsLocation({ GPSLatitudeRef: 'N', GPSLatitude: [48, 9, 39], GPSLongitudeRef: 'E', GPSLongitude: [24, 30, 1] }))
       .toEqual({ latitude: 48 + 9 / 60 + 39 / 3600, longitude: 24 + 30 / 60 + 1 / 3600 });
   });
 
-  it('makes southern and western coordinates negative', () => {
+  it('makes southern and western coordinates negative', async () => {
     const location = gpsLocation({ GPSLatitudeRef: 'S', GPSLatitude: [33, 51, 21.6], GPSLongitudeRef: 'W', GPSLongitude: [74, 0, 21.6] });
     expect(location?.latitude).toBeCloseTo(-33.856, 6);
     expect(location?.longitude).toBeCloseTo(-74.006, 6);
   });
 
-  it('accepts decimal degrees written as a single value', () => {
+  it('accepts decimal degrees written as a single value', async () => {
     expect(gpsLocation({ GPSLatitudeRef: 'N', GPSLatitude: [50.45], GPSLongitudeRef: 'E', GPSLongitude: [30.5234] }))
       .toEqual({ latitude: 50.45, longitude: 30.5234 });
   });
 
-  it('treats a missing, malformed, out-of-range or 0,0 position as no location', () => {
+  it('treats a missing, malformed, out-of-range or 0,0 position as no location', async () => {
     expect(gpsLocation(undefined)).toBeNull();
     expect(gpsLocation({ GPSLatitudeRef: 'N', GPSLatitude: [48, 9, 39] })).toBeNull();
     expect(gpsLocation({ GPSLatitude: [Number.NaN, 0, 0], GPSLongitude: [24, 0, 0] })).toBeNull();
@@ -65,11 +82,11 @@ describe('gpsLocation', () => {
 describe('MetadataService.extractMetadata location', () => {
   let dir: string;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     dir = fs.mkdtempSync(path.join(os.tmpdir(), 'paloma_gps_test_'));
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     fs.rmSync(dir, { recursive: true, force: true });
   });
 

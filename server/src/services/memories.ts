@@ -1,5 +1,7 @@
 import { and, desc, eq, inArray, or, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
+import { textPrefix } from '../db/sqlite.js';
+import { all, get } from '../db/query.js';
 import { albumPhotos, edits, photos } from '../db/schema.js';
 import { apiError } from './apiError.js';
 import { listAlbums } from './albumApi.js';
@@ -44,35 +46,33 @@ interface MemoryPhoto {
 }
 
 /** Among named albums holding every one of the photos, the one with the fewest photos, ties by name ignoring case. */
-function namingAlbum(photoIds: number[]): Memory['album'] {
-  const tokens = db.select({ token: albumPhotos.token })
+async function namingAlbum(photoIds: number[]): Promise<Memory['album']> {
+  const tokens = (await all(db.select({ token: albumPhotos.token })
     .from(albumPhotos)
     .where(inArray(albumPhotos.photoId, photoIds))
     .groupBy(albumPhotos.token)
-    .having(sql`count(distinct ${albumPhotos.photoId}) = ${photoIds.length}`)
-    .all()
+    .having(sql`count(distinct ${albumPhotos.photoId}) = ${photoIds.length}`)))
     .map((row) => row.token);
   if (tokens.length === 0) return null;
-  const [album] = listAlbums(tokens)
+  const [album] = (await listAlbums(tokens))
     .filter((a): a is typeof a & { name: string } => a.name !== null && a.name.trim() !== '')
     .sort((a, b) => a.photoCount - b.photoCount || a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
   return album ? { token: album.token, name: album.name } : null;
 }
 
 /** The memories of a date: one per earlier year with enough photos that are not hidden around it, newest first. */
-export function memoriesOf(date: string): Memory[] {
+export async function memoriesOf(date: string): Promise<Memory[]> {
   const thisYear = Number(date.slice(0, 4));
-  const oldest = db.select({ year: sql<string | null>`min(substr(${photos.dateTaken}, 1, 4))` })
+  const oldest = (await get(db.select({ year: sql<string | null>`min(${textPrefix(photos.dateTaken, 4)})` })
     .from(photos)
-    .where(eq(photos.isHidden, false))
-    .get()?.year;
+    .where(eq(photos.isHidden, false))))?.year;
   if (!oldest) return [];
   const windows: MemoryWindow[] = [];
   // A window can start in the year before its own, so the oldest photo's year is enough
   for (let year = thisYear - 1; year >= Number(oldest); year--) windows.push(memoryWindow(date, year));
   if (windows.length === 0) return [];
 
-  const rows: MemoryPhoto[] = db.select({
+  const rows: MemoryPhoto[] = await all(db.select({
     id: photos.id,
     day: dayTaken,
     isStarred: photos.isStarred,
@@ -82,30 +82,31 @@ export function memoriesOf(date: string): Memory[] {
     .from(photos)
     .leftJoin(edits, eq(photos.id, edits.photoId))
     .where(and(eq(photos.isHidden, false), or(...windows.map((w) => sql`${dayTaken} between ${w.from} and ${w.to}`))))
-    .orderBy(desc(photos.dateTaken), photos.id)
-    .all();
+    .orderBy(desc(photos.dateTaken), photos.id));
 
-  return windows.flatMap((window): Memory[] => {
+  const memories: Memory[] = [];
+  for (const window of windows) {
     // Windows of different years never overlap, so each photo is in one memory
     const members = rows.filter((row) => row.day >= window.from && row.day <= window.to);
-    if (members.length < MEMORY_MIN_PHOTOS) return [];
+    if (members.length < MEMORY_MIN_PHOTOS) continue;
     const cover = members.find((row) => row.isStarred) ?? members[0];
-    return [{
+    memories.push({
       ...window,
       yearsAgo: thisYear - window.year,
       photoCount: members.length,
-      album: namingAlbum(members.map((row) => row.id)),
+      album: await namingAlbum(members.map((row) => row.id)),
       title: null,
       coverPhotoId: cover.id,
       coverThumbnailUrl: libraryImageUrls(cover, cover.editsJson).thumbnailUrl,
-    }];
-  });
+    });
+  }
+  return memories;
 }
 
 /** `GET /api/memories?date=YYYY-MM-DD`: the memories of the client's local date. */
-export function listMemories(date: unknown): ApiResult<Memory[]> {
+export async function listMemories(date: unknown): Promise<ApiResult<Memory[]>> {
   if (!isIsoDate(date)) {
     return { status: 400, body: apiError('invalid_date', 'date must be a YYYY-MM-DD date', { field: 'date' }) };
   }
-  return { status: 200, body: memoriesOf(date) };
+  return { status: 200, body: await memoriesOf(date) };
 }

@@ -68,11 +68,11 @@ function isInside(dir: string, target: string): boolean {
 }
 
 /** Reads and checks `paloma-plugin.json` in a plugin folder. */
-export function readManifest(folder: string): ManifestRead {
+export async function readManifest(folder: string): Promise<ManifestRead> {
   const file = path.join(folder, MANIFEST_NAME);
   let text: string;
   try {
-    text = fs.readFileSync(file, 'utf-8');
+    text = await fs.promises.readFile(file, 'utf-8');
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code === 'ENOENT') return { kind: 'missing' };
     return { kind: 'invalid', partial: {}, reason: `cannot read ${MANIFEST_NAME}: ${(err as Error).message}` };
@@ -108,17 +108,17 @@ export function readManifest(folder: string): ManifestRead {
     return invalid(`"level" must be one of ${COMPLEXITY_LEVELS.join(', ')}`);
   }
 
-  const root = fs.realpathSync(folder);
+  const root = await fs.promises.realpath(folder);
   const server = path.resolve(root, parsed.server);
   if (!isInside(root, server)) return invalid(`"server" ${JSON.stringify(parsed.server)} is outside the plugin folder`);
   let realServer: string;
   try {
-    realServer = fs.realpathSync(server);
+    realServer = await fs.promises.realpath(server);
   } catch {
     return invalid(`the module ${JSON.stringify(parsed.server)} does not exist`);
   }
   if (!isInside(root, realServer)) return invalid(`"server" ${JSON.stringify(parsed.server)} is outside the plugin folder`);
-  if (!fs.statSync(realServer).isFile()) return invalid(`the module ${JSON.stringify(parsed.server)} is not a file`);
+  if (!(await fs.promises.stat(realServer)).isFile()) return invalid(`the module ${JSON.stringify(parsed.server)} is not a file`);
 
   return {
     kind: 'ok',
