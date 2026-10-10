@@ -15,9 +15,6 @@
     "photos_many": "{{count, number}} de photos",
     "photos_other": "{{count, number}} photos"
   },
-  "language": {
-    "label": "Langue"
-  },
   "nav": {
     "edition": "Senior Edition",
     "searchPlaceholder": "Rechercher des photos par nom, mot-clé ou date...",
@@ -25,7 +22,6 @@
     "people": "Personnes",
     "map": "Carte",
     "collage": "Collage",
-    "plugins": "Modules",
     "settings": "Réglages",
     "views": "Vues"
   },
@@ -405,6 +401,7 @@
     "close": "Fermer les infos",
     "loading": "Chargement…",
     "file": "Fichier",
+    "folder": "Dossier",
     "path": "Sur le disque",
     "size": "Taille",
     "dimensions": "Dimensions",
@@ -517,5 +514,23 @@
     "noUnrecognizedHint": "Chaque visage trouvé appartient déjà à quelqu’un. Lancez « Trouver les visages » sur d’autres dossiers pour en trouver de nouveaux.",
     "shownOf": "{{shown, number}} sur {{total, number}} affichés",
     "assignFailed": "Visages qui n’ont pas pu être enregistrés : {{failed, number}}. Leurs dossiers ne sont pas modifiables."
+  },
+  "entryInfo": {
+    "photos": "Photos",
+    "size": "Taille totale",
+    "taken": "Prises",
+    "undated": "Sans date",
+    "starred": "Favorites",
+    "geotagged": "Avec un lieu",
+    "modified": "Modifiées",
+    "folders": "Dossiers",
+    "albums": "Albums",
+    "people": "Personnes",
+    "loading": "Chargement…"
+  },
+  "entryMenu": {
+    "open": "Actions pour {{name}}",
+    "map": "Afficher sur la carte",
+    "info": "Informations"
   }
 }

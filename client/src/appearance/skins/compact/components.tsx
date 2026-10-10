@@ -6,12 +6,12 @@ import './compact.css';
 import type { Photo } from '../../../../../shared/types.js';
 import { describeError } from '../../../api/http.js';
 import { useFormat } from '../../../i18n/format.js';
-import { LanguageSwitcher } from '../../../components/LanguageSwitcher.js';
 import { ViewerChrome } from '../../../components/viewer/ViewerChrome.js';
 import { IconButton } from '../../../shell/IconButton.js';
 import { useNavigationItems } from '../../../shell/navigation.js';
 import { useAllows } from '../../../levels/controls.js';
 import { SidebarSection, useSidebarSections, type SidebarItem } from '../../../shell/sidebar.js';
+import { EntryMenuButton } from '../../../shell/EntryMenuButton.js';
 import { PHOTO_DRAG_TYPE, useTray } from '../../../shell/useTray.js';
 import { VirtualGrid } from '../../../shell/VirtualGrid.js';
 import { SquarePhotoCard } from '../../../shell/SquarePhotoCard.js';
@@ -27,7 +27,6 @@ const CompactToolbar: React.FC = () => {
   const { searchQuery, setSearchQuery, setCurrentView } = usePalomaStore();
   const items = useNavigationItems();
   const showSearch = useAllows('search');
-  const showLanguage = useAllows('languageSwitcher');
   return (
     <header className="compact-toolbar">
       <button type="button" className="compact-logo" onClick={() => setCurrentView('library')}>
@@ -61,32 +60,34 @@ const CompactToolbar: React.FC = () => {
           />
         ))}
       </nav>
-      {showLanguage && <LanguageSwitcher variant="outline-light" className="compact-icon-btn compact-language" iconOnly iconSize={16} />}
     </header>
   );
 };
 
-/** A list entry in one dense line. */
+/** A list entry in one dense line, then the entry's menu. */
 const CompactEntry: React.FC<{ item: SidebarItem }> = ({ item }) => {
   const { formatNumber } = useFormat();
   const Icon = item.icon;
   return (
-    <button
-      type="button"
-      className={`compact-entry ${item.active ? 'active' : ''}`}
-      aria-current={item.active ? 'true' : undefined}
-      onClick={item.select}
-      title={item.title ?? item.label}
-    >
-      <Icon size={15} className={item.active ? '' : item.iconClass} aria-hidden="true" />
-      <span dir="auto" className={`text-truncate flex-grow-1 ${item.placeholder ? 'fst-italic' : ''}`}>{item.label}</span>
-      {item.count !== undefined && <span className="compact-count">{formatNumber(item.count)}</span>}
-    </button>
+    <div className="compact-entry-row">
+      <button
+        type="button"
+        className={`compact-entry ${item.active ? 'active' : ''}`}
+        aria-current={item.active ? 'true' : undefined}
+        onClick={item.select}
+        title={item.title ?? item.label}
+      >
+        <Icon size={15} className={item.active ? '' : item.iconClass} aria-hidden="true" />
+        <span dir="auto" className={`text-truncate flex-grow-1 ${item.placeholder ? 'fst-italic' : ''}`}>{item.label}</span>
+        {item.count !== undefined && <span className="compact-count">{formatNumber(item.count)}</span>}
+      </button>
+      {item.entry && <EntryMenuButton entry={item.entry} name={item.label} className="compact-entry-menu" iconSize={15} />}
+    </div>
   );
 };
 
 /** Sidebar with collapsible lists; the whole sidebar folds to a narrow strip of shortcut icons. */
-const CompactSidebar: React.FC = () => {
+export const CompactSidebar: React.FC = () => {
   const { t } = useTranslation();
   const sections = useSidebarSections();
   const collapsed = useUiSettings((state) => state.sidebarCollapsed);

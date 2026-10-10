@@ -55,7 +55,7 @@ describe.each(SKIN_IDS)('%s skin', (id) => {
     expect(skin.sizes['thumb-size']).toBe(`${skin.grid.columnWidth}px`);
   });
 
-  it.each<AppView>(['library', 'map', 'plugins', 'settings'])('offers every view, tray action and sidebar list in %s', async (view) => {
+  it.each<AppView>(['library', 'map', 'settings'])('offers every view, tray action and sidebar list in %s', async (view) => {
     const { AppShell } = await skin.load();
     // One geotagged photo selected in an album: every tray action applies
     setStore({ currentView: view, selectedPhotos: [photo(1)], selectedAlbumToken: 'abc' });
@@ -101,14 +101,15 @@ describe.each(SKIN_IDS)('%s skin', (id) => {
       }
     };
     const searchField = () => `placeholder="${i18n.t('nav.searchPlaceholder')}"`;
-    const languageButton = () => `aria-label="${i18n.t('language.label')}"`;
+    // The switcher's icon; the language is chosen only in Settings
+    const languageButton = () => 'lucide-languages';
 
     it('shows Child only the library, settings and albums, without search or language', async () => {
       const markup = await render('child');
       const found = names(markup);
       expect(found).toContain(i18n.t('nav.library'));
       expect(found).toContain(i18n.t('nav.settings'));
-      for (const view of ['people', 'map', 'collage', 'plugins'] as const) expect(found, view).not.toContain(i18n.t(`nav.${view}`));
+      for (const view of ['people', 'map', 'collage'] as const) expect(found, view).not.toContain(i18n.t(`nav.${view}`));
       expect(markup).not.toContain(searchField());
       expect(markup).not.toContain(languageButton());
       expect(markup).not.toContain(i18n.t('sidebar.folders'));
@@ -128,12 +129,19 @@ describe.each(SKIN_IDS)('%s skin', (id) => {
       }
     });
 
-    it('shows Normal every view, search and the language switcher', async () => {
+    it('shows Normal every view and search', async () => {
       const markup = await render('normal');
       const found = names(markup);
       for (const item of NAV_ITEMS) expect(found, item.view).toContain(i18n.t(item.labelKey));
       expect(markup).toContain(searchField());
-      expect(markup).toContain(languageButton());
+    });
+
+    it('has no Plugins button or language switcher in the top bar at any level', async () => {
+      for (const level of ['child', 'easy', 'normal', 'pro', 'developer'] as const) {
+        const markup = await render(level);
+        expect(names(markup), level).not.toContain(i18n.t('plugins.title'));
+        expect(markup, level).not.toContain(languageButton());
+      }
     });
   });
 });

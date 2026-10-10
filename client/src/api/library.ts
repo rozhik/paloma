@@ -1,4 +1,6 @@
+import type { Photo, PhotoStats } from '../../../shared/types.js';
 import type { FilterType, MemorySelection } from '../store/usePalomaStore.js';
+import { apiRequest } from './http.js';
 
 export interface LibrarySelection {
   selectedFolderId: number | null;
@@ -27,3 +29,11 @@ export function libraryQueryParams(selection: LibrarySelection, lang: string): U
   params.append('lang', lang);
   return params;
 }
+
+/** The photos of a selection, the same first page the grid shows. */
+export const fetchSelectionPhotos = (selection: LibrarySelection, lang: string): Promise<Photo[]> =>
+  apiRequest('GET', `/api/photos?${libraryQueryParams(selection, lang).toString()}`);
+
+/** Totals over every photo of a selection, for an entry's Information. */
+export const fetchPhotoStats = (selection: LibrarySelection, lang: string): Promise<PhotoStats> =>
+  apiRequest('GET', `/api/photos/stats?${libraryQueryParams(selection, lang).toString()}`);

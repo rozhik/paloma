@@ -2,9 +2,10 @@ import React from 'react';
 import type { Photo } from '../../../../../shared/types.js';
 import { usePalomaStore } from '../../../store/usePalomaStore.js';
 import { useTranslation } from 'react-i18next';
-import { Star, CheckCircle, Circle, MapPin, Sliders } from 'lucide-react';
+import { Star, CheckCircle, Circle, MapPin } from 'lucide-react';
 import { usePlaceLabel } from '../../../components/placeLabel.js';
 import { useAllows } from '../../../levels/controls.js';
+import { ModifiedMark } from '../../../shell/ModifiedMark.js';
 
 interface PhotoCardProps {
   photo: Photo;
@@ -79,6 +80,7 @@ export const ClassicPhotoCard: React.FC<PhotoCardProps> = ({ photo, onStarToggle
 
       <div className="photo-card-thumb">
         <img src={photo.thumbnailUrl} alt={photo.filename} loading="lazy" />
+        <ModifiedMark photo={photo} size={18} />
       </div>
 
       <div className="p-2 d-flex align-items-center justify-content-between">
@@ -86,7 +88,6 @@ export const ClassicPhotoCard: React.FC<PhotoCardProps> = ({ photo, onStarToggle
           {photo.filename}
         </span>
         <div className="d-flex align-items-center gap-1">
-          {photo.edits && <span title={t('photo.edited')}><Sliders size={16} className="text-primary" /></span>}
           {photo.latitude !== null && (
             <span title={placeLabel(photo) ?? undefined} aria-label={t('photo.geotagged')}>
               <MapPin size={16} className="text-danger" />

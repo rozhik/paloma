@@ -61,7 +61,7 @@ A skin SHALL define the layout and structure of the app shell (navigation, folde
 - **THEN** its text and controls use the Compact skin's sizes and fonts
 
 ### Requirement: Every skin offers the same features
-Every skin SHALL give access to every view and action that the Classic skin offers: library, people, map, collage, plugins and settings views; folder and album navigation; search; selecting, starring and opening photos; the photo tray and its actions; and the photo viewer with its navigation and editing. A skin SHALL NOT change what an action does, only how it is presented.
+Every skin SHALL give access to every view and action that the Classic skin offers: library, people, map, collage and settings views; folder and album navigation; the sidebar entry menus and the Information dialog; search; selecting, starring and opening photos; the photo tray and its actions; and the photo viewer with its navigation and editing. A skin SHALL NOT change what an action does, only how it is presented.
 
 #### Scenario: Export from Compact
 - **WHEN** the user selects photos in the Compact skin
@@ -70,6 +70,10 @@ Every skin SHALL give access to every view and action that the Classic skin offe
 #### Scenario: Icon-only buttons are labelled
 - **WHEN** a skin shows a button as an icon without visible text
 - **THEN** the button has a tooltip and an accessible name in the active UI language
+
+#### Scenario: Entry menu in Fluid Glass
+- **WHEN** the user opens the sidebar panel in the Fluid Glass skin
+- **THEN** every album entry has a menu button of at least 44 by 44 CSS pixels that offers the same items as in Classic
 
 ### Requirement: Every skin follows the viewer bar settings
 In every skin, the photo viewer's navigation bar and edit bar SHALL be placed on the screen edges chosen in Settings. A skin MAY change how the bars look and their thickness.
@@ -105,7 +109,7 @@ In every skin, each list in the sidebar (the library shortcuts, Albums, Folders,
 - **THEN** the list collapses or expands, and the heading reports whether it is expanded in the active UI language
 
 ### Requirement: Classic skin
-The Classic skin SHALL keep Paloma's current arrangement: a navigation bar across the top with labelled view buttons, search and language choice; the folder and album sidebar on the left; the photo tray along the bottom; and large text and controls.
+The Classic skin SHALL keep Paloma's current arrangement: a navigation bar across the top with labelled view buttons and search, without a language choice; the folder and album sidebar on the left; the photo tray along the bottom; and large text and controls.
 
 #### Scenario: Classic layout
 - **WHEN** the library is shown in the Classic skin

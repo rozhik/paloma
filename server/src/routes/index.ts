@@ -21,6 +21,7 @@ import { apiError } from '../services/apiError.js';
 import { invalidDateFilter } from '../services/photoFilters.js';
 import { listTags } from '../services/tagApi.js';
 import { listMemories } from '../services/memories.js';
+import { photoStats } from '../services/photoStats.js';
 import { getPhotoInfo } from '../services/photoInfo.js';
 import { personAvatar, photoFace, photoFaceSource } from '../services/faceImages.js';
 import { assignFaces, dismissFaces, pendingPhotos, saveDetectedFaces, similarFaces, unassignedFaces } from '../services/faceDetectionApi.js';
@@ -54,6 +55,12 @@ router.get('/photos', asyncRoute(async (req, res) => {
   const field = invalidDateFilter(req.query);
   if (field) return res.status(400).json(apiError('invalid_date', `${field} must be a YYYY-MM-DD date`, { field }));
   res.json(await listPhotos(req.query));
+}));
+
+router.get('/photos/stats', asyncRoute(async (req, res) => {
+  const field = invalidDateFilter(req.query);
+  if (field) return res.status(400).json(apiError('invalid_date', `${field} must be a YYYY-MM-DD date`, { field }));
+  res.json(await photoStats(req.query));
 }));
 
 router.post('/photos/location', asyncRoute(async (req, res) => {

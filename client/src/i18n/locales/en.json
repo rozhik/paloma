@@ -11,9 +11,6 @@
     "photos_one": "{{count, number}} photo",
     "photos_other": "{{count, number}} photos"
   },
-  "language": {
-    "label": "Language"
-  },
   "nav": {
     "edition": "Senior Edition",
     "searchPlaceholder": "Search photos by name, tags or date...",
@@ -21,7 +18,6 @@
     "people": "People",
     "map": "Map",
     "collage": "Collage",
-    "plugins": "Plugins",
     "settings": "Settings",
     "views": "Views"
   },
@@ -387,6 +383,7 @@
     "close": "Close the info",
     "loading": "Loading…",
     "file": "File",
+    "folder": "Folder",
     "path": "On disk",
     "size": "Size",
     "dimensions": "Dimensions",
@@ -498,5 +495,23 @@
     "noUnrecognizedHint": "Every face found so far belongs to someone. Run “Find faces” on more folders to find new ones.",
     "shownOf": "Showing {{shown, number}} of {{total, number}}",
     "assignFailed": "Faces that could not be saved: {{failed, number}}. Their folders cannot be written."
+  },
+  "entryInfo": {
+    "photos": "Photos",
+    "size": "Total size",
+    "taken": "Taken",
+    "undated": "Without a date",
+    "starred": "Starred",
+    "geotagged": "With a location",
+    "modified": "Modified",
+    "folders": "Folders",
+    "albums": "Albums",
+    "people": "People",
+    "loading": "Loading…"
+  },
+  "entryMenu": {
+    "open": "Actions for {{name}}",
+    "map": "Show on the map",
+    "info": "Information"
   }
 }

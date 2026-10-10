@@ -6,12 +6,12 @@ import './glass.css';
 import type { Photo } from '../../../../../shared/types.js';
 import { describeError } from '../../../api/http.js';
 import { useFormat } from '../../../i18n/format.js';
-import { LanguageSwitcher } from '../../../components/LanguageSwitcher.js';
 import { ViewerChrome, type ViewerChromeProps } from '../../../components/viewer/ViewerChrome.js';
 import { IconButton } from '../../../shell/IconButton.js';
 import { useNavigationItems } from '../../../shell/navigation.js';
 import { useAllows } from '../../../levels/controls.js';
 import { SidebarSection, useSidebarSections, type SidebarItem } from '../../../shell/sidebar.js';
+import { EntryMenuButton } from '../../../shell/EntryMenuButton.js';
 import { SquarePhotoCard } from '../../../shell/SquarePhotoCard.js';
 import { PHOTO_DRAG_TYPE, useTray } from '../../../shell/useTray.js';
 import { VirtualGrid } from '../../../shell/VirtualGrid.js';
@@ -30,7 +30,6 @@ const GlassToolbar: React.FC<{ showFolders: boolean; foldersOpen: boolean; onFol
   const { searchQuery, setSearchQuery } = usePalomaStore();
   const items = useNavigationItems();
   const showSearch = useAllows('search');
-  const showLanguage = useAllows('languageSwitcher');
   return (
     <header className="glass-toolbar glass-surface">
       {showFolders && (
@@ -73,7 +72,6 @@ const GlassToolbar: React.FC<{ showFolders: boolean; foldersOpen: boolean; onFol
           )
         ))}
       </nav>
-      {showLanguage && <LanguageSwitcher variant="link" className="glass-btn glass-language" iconOnly iconSize={22} />}
     </header>
   );
 };
@@ -83,31 +81,38 @@ const GlassEntry: React.FC<{ item: SidebarItem; onChosen: () => void }> = ({ ite
   const { formatNumber } = useFormat();
   const Icon = item.icon;
   return (
-    <button
-      type="button"
-      className={`glass-entry ${item.active ? 'active' : ''}`}
-      aria-current={item.active ? 'true' : undefined}
-      title={item.title}
-      onClick={() => {
-        item.select();
-        onChosen();
-      }}
-    >
-      {item.thumbnailUrl
-        ? <img src={item.thumbnailUrl} alt="" className="glass-entry-cover" />
-        : <Icon size={22} className={item.active ? '' : item.iconClass} aria-hidden="true" />}
-      <span dir="auto" className={`text-truncate flex-grow-1 ${item.placeholder ? 'fst-italic' : ''}`}>{item.label}</span>
-      {item.count !== undefined && <span className="glass-count">{formatNumber(item.count)}</span>}
-    </button>
+    <div className="glass-entry-row">
+      <button
+        type="button"
+        className={`glass-entry ${item.active ? 'active' : ''}`}
+        aria-current={item.active ? 'true' : undefined}
+        title={item.title}
+        onClick={() => {
+          item.select();
+          onChosen();
+        }}
+      >
+        {item.thumbnailUrl
+          ? <img src={item.thumbnailUrl} alt="" className="glass-entry-cover" />
+          : <Icon size={22} className={item.active ? '' : item.iconClass} aria-hidden="true" />}
+        <span dir="auto" className={`text-truncate flex-grow-1 ${item.placeholder ? 'fst-italic' : ''}`}>{item.label}</span>
+        {item.count !== undefined && <span className="glass-count">{formatNumber(item.count)}</span>}
+      </button>
+      {/* Its menu and dialogs are drawn over the backdrop, so using them keeps the panel open */}
+      {item.entry && <EntryMenuButton entry={item.entry} name={item.label} className="glass-btn glass-entry-menu" iconSize={22} />}
+    </div>
   );
 };
 
 /** The sidebar as a floating panel over the grid; picking an entry or tapping outside closes it. */
-const GlassSidebar: React.FC<{ onClose: () => void }> = ({ onClose }) => {
+export const GlassSidebar: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const { t } = useTranslation();
   const sections = useSidebarSections();
   useEffect(() => {
-    const onKey = (event: KeyboardEvent) => event.key === 'Escape' && onClose();
+    // Esc in an entry's open menu or dialog closes that, not the panel
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !document.querySelector('.entry-menu-items.show, .modal.show')) onClose();
+    };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);

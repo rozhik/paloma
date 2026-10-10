@@ -16,9 +16,6 @@
     "photos_many": "{{count, number}} фотографий",
     "photos_other": "{{count, number}} фотографии"
   },
-  "language": {
-    "label": "Язык"
-  },
   "nav": {
     "edition": "Senior Edition",
     "searchPlaceholder": "Поиск фотографий по названию, тегам или дате...",
@@ -26,7 +23,6 @@
     "people": "Люди",
     "map": "Карта",
     "collage": "Коллаж",
-    "plugins": "Плагины",
     "settings": "Настройки",
     "views": "Разделы"
   },
@@ -420,6 +416,7 @@
     "close": "Закрыть информацию",
     "loading": "Загрузка…",
     "file": "Файл",
+    "folder": "Папка",
     "path": "На диске",
     "size": "Размер",
     "dimensions": "Размеры",
@@ -533,5 +530,23 @@
     "noUnrecognizedHint": "Каждое найденное лицо уже кому-то принадлежит. Запустите «Найти лица» для других папок, чтобы найти новые.",
     "shownOf": "Показано {{shown, number}} из {{total, number}}",
     "assignFailed": "Лиц, которые не удалось сохранить: {{failed, number}}. Их папки недоступны для записи."
+  },
+  "entryInfo": {
+    "photos": "Фото",
+    "size": "Общий размер",
+    "taken": "Снято",
+    "undated": "Без даты",
+    "starred": "Со звёздочкой",
+    "geotagged": "С местом",
+    "modified": "Изменённые",
+    "folders": "Папки",
+    "albums": "Альбомы",
+    "people": "Люди",
+    "loading": "Загрузка…"
+  },
+  "entryMenu": {
+    "open": "Действия для «{{name}}»",
+    "map": "Показать на карте",
+    "info": "Информация"
   }
 }

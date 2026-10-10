@@ -13,9 +13,6 @@
     "untitled": "无标题",
     "photos_other": "{{count, number}} 张照片"
   },
-  "language": {
-    "label": "语言"
-  },
   "nav": {
     "edition": "Senior Edition",
     "searchPlaceholder": "按名称、标签或日期搜索照片...",
@@ -23,7 +20,6 @@
     "people": "人物",
     "map": "地图",
     "collage": "拼贴",
-    "plugins": "插件",
     "settings": "设置",
     "views": "视图"
   },
@@ -375,6 +371,7 @@
     "close": "关闭信息",
     "loading": "正在加载…",
     "file": "文件",
+    "folder": "文件夹",
     "path": "磁盘位置",
     "size": "大小",
     "dimensions": "尺寸",
@@ -485,5 +482,23 @@
     "noUnrecognizedHint": "目前找到的每张人脸都已属于某人。对更多文件夹运行“查找人脸”以找到新的人脸。",
     "shownOf": "显示 {{shown, number}}/{{total, number}}",
     "assignFailed": "无法保存的人脸：{{failed, number}} 张。无法写入其文件夹。"
+  },
+  "entryInfo": {
+    "photos": "照片",
+    "size": "总大小",
+    "taken": "拍摄时间",
+    "undated": "无日期",
+    "starred": "已加星标",
+    "geotagged": "有位置",
+    "modified": "已修改",
+    "folders": "文件夹",
+    "albums": "相册",
+    "people": "人物",
+    "loading": "正在加载…"
+  },
+  "entryMenu": {
+    "open": "{{name}} 的操作",
+    "map": "在地图上显示",
+    "info": "信息"
   }
 }

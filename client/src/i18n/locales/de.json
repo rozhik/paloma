@@ -14,9 +14,6 @@
     "photos_one": "{{count, number}} Foto",
     "photos_other": "{{count, number}} Fotos"
   },
-  "language": {
-    "label": "Sprache"
-  },
   "nav": {
     "edition": "Senior Edition",
     "searchPlaceholder": "Fotos nach Name, Tags oder Datum suchen...",
@@ -24,7 +21,6 @@
     "people": "Personen",
     "map": "Karte",
     "collage": "Collage",
-    "plugins": "Plugins",
     "settings": "Einstellungen",
     "views": "Ansichten"
   },
@@ -390,6 +386,7 @@
     "close": "Info schließen",
     "loading": "Wird geladen…",
     "file": "Datei",
+    "folder": "Ordner",
     "path": "Auf dem Datenträger",
     "size": "Größe",
     "dimensions": "Abmessungen",
@@ -501,5 +498,23 @@
     "noUnrecognizedHint": "Jedes bisher gefundene Gesicht gehört jemandem. Starten Sie „Gesichter finden“ für weitere Ordner, um neue zu finden.",
     "shownOf": "{{shown, number}} von {{total, number}} angezeigt",
     "assignFailed": "Gesichter, die nicht gespeichert werden konnten: {{failed, number}}. In ihre Ordner kann nicht geschrieben werden."
+  },
+  "entryInfo": {
+    "photos": "Fotos",
+    "size": "Gesamtgröße",
+    "taken": "Aufgenommen",
+    "undated": "Ohne Datum",
+    "starred": "Markiert",
+    "geotagged": "Mit Ort",
+    "modified": "Bearbeitet",
+    "folders": "Ordner",
+    "albums": "Alben",
+    "people": "Personen",
+    "loading": "Wird geladen…"
+  },
+  "entryMenu": {
+    "open": "Aktionen für {{name}}",
+    "map": "Auf der Karte zeigen",
+    "info": "Informationen"
   }
 }

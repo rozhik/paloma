@@ -2,7 +2,7 @@
 
 A Paloma plugin is a folder of JavaScript code that adds features to Paloma without changes to Paloma itself. In plugin API version 1, plugins add **image filters**: the steps of a photo's non-destructive edit chain, such as crop, sepia or film grain.
 
-> **Plugins are trusted code.** A plugin's module runs inside the Paloma server with the same rights as Paloma: it can read and write any file the server can. Install only plugins you trust. External plugins stay **off** until you switch them on in **Plugins**, and the code of a plugin that is off is never run.
+> **Plugins are trusted code.** A plugin's module runs inside the Paloma server with the same rights as Paloma: it can read and write any file the server can. Install only plugins you trust. External plugins stay **off** until you switch them on in **Settings → Plugins**, and the code of a plugin that is off is never run.
 
 ## Installing a plugin
 
@@ -16,7 +16,7 @@ git clone https://example.com/paloma-film-grain.git
 git submodule add https://example.com/paloma-film-grain.git
 ```
 
-Then restart Paloma. The plugin is listed in **Plugins** as off. Switch it on there; this does not need a restart. To update a plugin, `git pull` in its folder and restart. To remove it, delete its folder and restart.
+Then restart Paloma. The plugin is listed in **Settings → Plugins** as off. Switch it on there; this does not need a restart. To update a plugin, `git pull` in its folder and restart. To remove it, delete its folder and restart.
 
 If a plugin needs npm packages, it should ship them or tell you to run `npm install` in its folder.
 
@@ -101,7 +101,7 @@ export function activate(host) {
 
 Keys of the returned object other than `filters` are ignored with a warning in this API version. Later versions will add new kinds of contributions there, for example a map provider.
 
-If `activate` throws, or the module does not export it, the plugin shows the error in **Plugins** and the rest of Paloma keeps working. Switching the plugin on again retries `activate`.
+If `activate` throws, or the module does not export it, the plugin shows the error in **Settings → Plugins** and the rest of Paloma keeps working. Switching the plugin on again retries `activate`.
 
 ## Filters
 

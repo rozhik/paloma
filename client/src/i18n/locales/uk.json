@@ -16,9 +16,6 @@
     "photos_many": "{{count, number}} фотографій",
     "photos_other": "{{count, number}} фотографії"
   },
-  "language": {
-    "label": "Мова"
-  },
   "nav": {
     "edition": "Senior Edition",
     "searchPlaceholder": "Пошук світлин за назвою, тегами або датою...",
@@ -26,7 +23,6 @@
     "people": "Люди",
     "map": "Карта",
     "collage": "Колаж",
-    "plugins": "Плагіни",
     "settings": "Налаштування",
     "views": "Розділи"
   },
@@ -420,6 +416,7 @@
     "close": "Закрити інформацію",
     "loading": "Завантаження…",
     "file": "Файл",
+    "folder": "Папка",
     "path": "На диску",
     "size": "Розмір",
     "dimensions": "Розміри",
@@ -533,5 +530,23 @@
     "noUnrecognizedHint": "Кожне знайдене обличчя вже належить комусь. Запустіть «Знайти обличчя» для інших папок, щоб знайти нові.",
     "shownOf": "Показано {{shown, number}} з {{total, number}}",
     "assignFailed": "Облич, які не вдалося зберегти: {{failed, number}}. Їхні папки недоступні для запису."
+  },
+  "entryInfo": {
+    "photos": "Фото",
+    "size": "Загальний розмір",
+    "taken": "Знято",
+    "undated": "Без дати",
+    "starred": "З зірочкою",
+    "geotagged": "З місцем",
+    "modified": "Змінені",
+    "folders": "Папки",
+    "albums": "Альбоми",
+    "people": "Люди",
+    "loading": "Завантаження…"
+  },
+  "entryMenu": {
+    "open": "Дії для «{{name}}»",
+    "map": "Показати на карті",
+    "info": "Інформація"
   }
 }

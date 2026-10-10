@@ -25,6 +25,7 @@ describe('control levels', () => {
     expect(CONTROL_LEVELS['sidebar.tags']).toBe('easy');
     expect(CONTROL_LEVELS['tray.addTags']).toBe('easy');
     expect(CONTROL_LEVELS['tray.removeTag']).toBe('easy');
+    expect(CONTROL_LEVELS['settings.plugins']).toBe('normal');
   });
 
   it('let Easy see people and only Normal change them; Child sees none', () => {
@@ -49,7 +50,7 @@ describe('control levels', () => {
   it('show Child only the library, albums, viewing, slideshow and settings', () => {
     const child = (Object.keys(CONTROL_LEVELS) as ControlId[]).filter((id) => allows('child', id)).sort();
     expect(child).toEqual([
-      'photo.open', 'sidebar.albums', 'slideshow', 'view.library', 'view.settings', 'viewer.navigate', 'viewer.zoom',
+      'entry.menu', 'photo.open', 'sidebar.albums', 'slideshow', 'view.library', 'view.settings', 'viewer.navigate', 'viewer.zoom',
     ]);
   });
 

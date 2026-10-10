@@ -1,6 +1,6 @@
 import React, { useId } from 'react';
 import { useTranslation } from 'react-i18next';
-import { BookImage, ChevronDown, Clock, Folder, History, Image, MapPin, ScanFace, Star, Tag, User, type LucideIcon } from 'lucide-react';
+import { ChevronDown, ScanFace, type LucideIcon } from 'lucide-react';
 import { usePalomaStore, type FilterType } from '../store/usePalomaStore.js';
 import { SIDEBAR_LISTS, useUiSettings, type SidebarListId } from '../settings/uiSettings.js';
 import { allows, useLevel } from '../levels/controls.js';
@@ -11,6 +11,7 @@ import { sortPeople, usePeople, useUnrecognizedCount } from '../people/usePeople
 import { avatarUrl } from '../api/people.js';
 import { useMemories } from './useMemories.js';
 import { memoryName } from '../memories/memoryName.js';
+import { entryIcon, type LibraryEntry } from './entries.js';
 
 /** One entry of a sidebar list: a shortcut, a memory, an album, a tag, a person or a folder. */
 export interface SidebarItem {
@@ -27,6 +28,8 @@ export interface SidebarItem {
   placeholder?: boolean;
   active: boolean;
   select: () => void;
+  /** The entry it opens, for its menu; none for Unrecognized, which has no menu */
+  entry?: LibraryEntry;
 }
 
 export interface SidebarSectionData {
@@ -51,12 +54,15 @@ export function toggleSidebarList(id: SidebarListId): void {
   });
 }
 
-const SHORTCUTS: { filter: FilterType; icon: LucideIcon; iconClass: string; labelKey: 'sidebar.allPhotos' | 'sidebar.starred' | 'sidebar.recentImport' | 'sidebar.geotagged' }[] = [
-  { filter: 'all', icon: Image, iconClass: 'text-primary', labelKey: 'sidebar.allPhotos' },
-  { filter: 'starred', icon: Star, iconClass: 'text-warning', labelKey: 'sidebar.starred' },
-  { filter: 'recent', icon: Clock, iconClass: 'text-info', labelKey: 'sidebar.recentImport' },
-  { filter: 'geotagged', icon: MapPin, iconClass: 'text-danger', labelKey: 'sidebar.geotagged' },
+const SHORTCUTS: { filter: FilterType; labelKey: 'sidebar.allPhotos' | 'sidebar.starred' | 'sidebar.recentImport' | 'sidebar.geotagged' }[] = [
+  { filter: 'all', labelKey: 'sidebar.allPhotos' },
+  { filter: 'starred', labelKey: 'sidebar.starred' },
+  { filter: 'recent', labelKey: 'sidebar.recentImport' },
+  { filter: 'geotagged', labelKey: 'sidebar.geotagged' },
 ];
+
+/** The fields of an item that come from its entry: the entry itself, its icon and its color. */
+const fromEntry = (entry: LibraryEntry) => ({ entry, ...entryIcon(entry) });
 
 /** The sidebar lists shown at a level. */
 export const sidebarListsFor = (level: Level): SidebarListId[] => SIDEBAR_LISTS.filter((id) => allows(level, `sidebar.${id}`));
@@ -88,11 +94,10 @@ export function useSidebarSections(): SidebarSectionData[] {
   const sections = [
     section('shortcuts', {
       title: t('sidebar.collections'),
-      items: SHORTCUTS.map(({ filter, icon, iconClass, labelKey }) => ({
+      items: SHORTCUTS.map(({ filter, labelKey }) => ({
         key: filter,
         label: t(labelKey),
-        icon,
-        iconClass,
+        ...fromEntry({ kind: 'shortcut', filter }),
         // "All photos" is active only when no folder or album narrows it
         active: selectedFilter === filter && (filter !== 'all' || nothingSelected),
         select: () => setSelectedFilter(filter),
@@ -105,8 +110,7 @@ export function useSidebarSections(): SidebarSectionData[] {
       items: memories.map(({ year, yearsAgo, from, to, album, title, photoCount, coverThumbnailUrl }) => ({
         key: String(year),
         label: memoryName({ year, yearsAgo, album, title }, t),
-        icon: History,
-        iconClass: 'text-secondary',
+        ...fromEntry({ kind: 'memory', memory: { year, yearsAgo, from, to, album, title } }),
         thumbnailUrl: coverThumbnailUrl,
         count: photoCount,
         active: selectedMemory !== null && selectedMemory.from === from && selectedMemory.to === to,
@@ -121,8 +125,7 @@ export function useSidebarSections(): SidebarSectionData[] {
         key: album.token,
         label: album.name ?? t('common.untitled'),
         placeholder: album.name === null,
-        icon: BookImage,
-        iconClass: 'text-primary',
+        ...fromEntry({ kind: 'album', token: album.token }),
         thumbnailUrl: album.coverThumbnailUrl,
         count: album.photoCount,
         title: album.description ?? undefined,
@@ -137,8 +140,7 @@ export function useSidebarSections(): SidebarSectionData[] {
       items: tags.map((tag) => ({
         key: tag.name,
         label: tag.name,
-        icon: Tag,
-        iconClass: 'text-info',
+        ...fromEntry({ kind: 'tag', name: tag.name }),
         count: tag.photoCount,
         active: selectedTag !== null && selectedTag.toLowerCase() === tag.name.toLowerCase(),
         select: () => setSelectedTag(tag.name),
@@ -163,8 +165,7 @@ export function useSidebarSections(): SidebarSectionData[] {
         key: person.id,
         label: person.name ?? t('people.unknown'),
         placeholder: person.name === null,
-        icon: User,
-        iconClass: 'text-success',
+        ...fromEntry({ kind: 'person', id: person.id }),
         thumbnailUrl: avatarUrl(person.id, person.avatarVersion),
         count: person.photoCount,
         title: person.alias ?? undefined,
@@ -180,8 +181,7 @@ export function useSidebarSections(): SidebarSectionData[] {
       items: folders.map((folder) => ({
         key: String(folder.id),
         label: folder.name,
-        icon: Folder,
-        iconClass: 'text-warning',
+        ...fromEntry({ kind: 'folder', id: folder.id }),
         count: folder.photoCount || 0,
         active: selectedFolderId === folder.id,
         select: () => setSelectedFolderId(folder.id),

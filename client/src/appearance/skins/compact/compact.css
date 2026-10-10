@@ -77,12 +77,6 @@ html[data-skin='compact'] .compact-views {
   margin-inline-start: auto;
 }
 
-html[data-skin='compact'] .compact-language.btn {
-  --bs-btn-border-color: transparent;
-  --bs-btn-padding-x: 4px;
-  --bs-btn-padding-y: 0;
-}
-
 /* ---------- Sidebar ---------- */
 
 html[data-skin='compact'] .compact-sidebar {
@@ -111,6 +105,34 @@ html[data-skin='compact'] .compact-section {
 html[data-skin='compact'] .sidebar-section-heading {
   min-height: var(--pal-hit-min);
   font-size: var(--pal-font-size-small);
+}
+
+/* An entry and its menu button side by side */
+html[data-skin='compact'] .compact-entry-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+html[data-skin='compact'] .compact-entry-row > .compact-entry {
+  min-width: 0;
+}
+html[data-skin='compact'] .compact-entry-menu {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--pal-hit-min);
+  min-height: var(--pal-hit-min);
+  padding: 0;
+  border: 0;
+  border-radius: var(--pal-radius);
+  background: transparent;
+  color: var(--pal-text-muted);
+}
+html[data-skin='compact'] .compact-entry-menu:hover,
+html[data-skin='compact'] .compact-entry-menu[aria-expanded='true'] {
+  color: var(--pal-text);
+  background: color-mix(in srgb, var(--pal-text) 8%, transparent);
 }
 
 html[data-skin='compact'] .compact-entry {

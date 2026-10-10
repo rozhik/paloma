@@ -15,9 +15,6 @@
     "photos_many": "{{count, number}} de fotos",
     "photos_other": "{{count, number}} fotos"
   },
-  "language": {
-    "label": "Idioma"
-  },
   "nav": {
     "edition": "Senior Edition",
     "searchPlaceholder": "Buscar fotos por nombre, etiquetas o fecha...",
@@ -25,7 +22,6 @@
     "people": "Personas",
     "map": "Mapa",
     "collage": "Collage",
-    "plugins": "Complementos",
     "settings": "Ajustes",
     "views": "Vistas"
   },
@@ -405,6 +401,7 @@
     "close": "Cerrar la información",
     "loading": "Cargando…",
     "file": "Archivo",
+    "folder": "Carpeta",
     "path": "En el disco",
     "size": "Tamaño",
     "dimensions": "Dimensiones",
@@ -517,5 +514,23 @@
     "noUnrecognizedHint": "Cada cara encontrada ya pertenece a alguien. Ejecuta «Buscar caras» en más carpetas para encontrar otras nuevas.",
     "shownOf": "Se muestran {{shown, number}} de {{total, number}}",
     "assignFailed": "Caras que no se pudieron guardar: {{failed, number}}. No se puede escribir en sus carpetas."
+  },
+  "entryInfo": {
+    "photos": "Fotos",
+    "size": "Tamaño total",
+    "taken": "Tomadas",
+    "undated": "Sin fecha",
+    "starred": "Destacadas",
+    "geotagged": "Con ubicación",
+    "modified": "Modificadas",
+    "folders": "Carpetas",
+    "albums": "Álbumes",
+    "people": "Personas",
+    "loading": "Cargando…"
+  },
+  "entryMenu": {
+    "open": "Acciones para {{name}}",
+    "map": "Mostrar en el mapa",
+    "info": "Información"
   }
 }

@@ -202,6 +202,27 @@ export interface TagSummary {
   photoCount: number;
 }
 
+/** `GET /api/photos/stats`: totals over every photo of a library selection; computed, never stored. */
+export interface PhotoStats {
+  photoCount: number;
+  /** Sum of the file sizes in bytes, as of the last scan */
+  totalSize: number;
+  /** Earliest and latest date taken; null when no photo has one */
+  takenFrom: string | null;
+  takenTo: string | null;
+  undatedCount: number;
+  starredCount: number;
+  geotaggedCount: number;
+  /** Photos with a saved edit chain of at least one step */
+  modifiedCount: number;
+  /** Most photos first, then by name */
+  folders: { id: number; name: string; path: string; photoCount: number }[];
+  /** `name` is null for an untitled album */
+  albums: { token: string; name: string | null; photoCount: number }[];
+  /** `name` is null for an unknown person */
+  people: { id: string; name: string | null; photoCount: number }[];
+}
+
 /** A person on a photo; `name` is null for an unknown person. */
 export interface PhotoPerson {
   /** Contact id: 16 lowercase hex digits */

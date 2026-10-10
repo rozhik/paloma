@@ -7,7 +7,7 @@ import { usePalomaStore } from '../store/usePalomaStore.js';
 
 describe('shared shell lists', () => {
   it('offers every view in the navigation', () => {
-    expect(NAV_ITEMS.map((item) => item.view)).toEqual(['library', 'people', 'map', 'collage', 'plugins', 'settings']);
+    expect(NAV_ITEMS.map((item) => item.view)).toEqual(['library', 'people', 'map', 'collage', 'settings']);
     for (const item of NAV_ITEMS) expect(item.labelKey).toBe(`nav.${item.view}`);
   });
 

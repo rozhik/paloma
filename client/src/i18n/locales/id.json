@@ -13,9 +13,6 @@
     "untitled": "Tanpa judul",
     "photos_other": "{{count, number}} foto"
   },
-  "language": {
-    "label": "Bahasa"
-  },
   "nav": {
     "edition": "Senior Edition",
     "searchPlaceholder": "Cari foto menurut nama, tag, atau tanggal...",
@@ -23,7 +20,6 @@
     "people": "Orang",
     "map": "Peta",
     "collage": "Kolase",
-    "plugins": "Plugin",
     "settings": "Pengaturan",
     "views": "Tampilan"
   },
@@ -375,6 +371,7 @@
     "close": "Tutup info",
     "loading": "Memuat…",
     "file": "Berkas",
+    "folder": "Folder",
     "path": "Di disk",
     "size": "Ukuran",
     "dimensions": "Dimensi",
@@ -485,5 +482,23 @@
     "noUnrecognizedHint": "Setiap wajah yang ditemukan sudah dimiliki seseorang. Jalankan “Cari wajah” pada folder lain untuk menemukan yang baru.",
     "shownOf": "Menampilkan {{shown, number}} dari {{total, number}}",
     "assignFailed": "Wajah yang tidak dapat disimpan: {{failed, number}}. Folder-nya tidak dapat ditulisi."
+  },
+  "entryInfo": {
+    "photos": "Foto",
+    "size": "Ukuran total",
+    "taken": "Diambil",
+    "undated": "Tanpa tanggal",
+    "starred": "Berbintang",
+    "geotagged": "Dengan lokasi",
+    "modified": "Diubah",
+    "folders": "Folder",
+    "albums": "Album",
+    "people": "Orang",
+    "loading": "Memuat…"
+  },
+  "entryMenu": {
+    "open": "Tindakan untuk {{name}}",
+    "map": "Tampilkan di peta",
+    "info": "Informasi"
   }
 }

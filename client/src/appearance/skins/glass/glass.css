@@ -114,10 +114,6 @@ html[data-skin='glass'] .glass-view span {
   white-space: nowrap;
 }
 
-html[data-skin='glass'] .glass-language.dropdown-toggle::after {
-  display: none;
-}
-
 /* ---------- Sidebar panel ---------- */
 
 html[data-skin='glass'] .glass-backdrop {
@@ -148,6 +144,19 @@ html[data-skin='glass'] .glass-sidebar {
 
 html[data-skin='glass'] .glass-section {
   margin-bottom: 8px;
+}
+
+/* An entry and its menu button side by side */
+html[data-skin='glass'] .glass-entry-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+html[data-skin='glass'] .glass-entry-row > .glass-entry {
+  min-width: 0;
+}
+html[data-skin='glass'] .glass-entry-menu {
+  flex-shrink: 0;
 }
 
 html[data-skin='glass'] .glass-entry {

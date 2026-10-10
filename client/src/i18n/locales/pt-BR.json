@@ -15,9 +15,6 @@
     "photos_many": "{{count, number}} de fotos",
     "photos_other": "{{count, number}} fotos"
   },
-  "language": {
-    "label": "Idioma"
-  },
   "nav": {
     "edition": "Senior Edition",
     "searchPlaceholder": "Pesquisar fotos por nome, marcadores ou data...",
@@ -25,7 +22,6 @@
     "people": "Pessoas",
     "map": "Mapa",
     "collage": "Colagem",
-    "plugins": "Plugins",
     "settings": "Configurações",
     "views": "Visualizações"
   },
@@ -405,6 +401,7 @@
     "close": "Fechar as informações",
     "loading": "Carregando…",
     "file": "Arquivo",
+    "folder": "Pasta",
     "path": "No disco",
     "size": "Tamanho",
     "dimensions": "Dimensões",
@@ -517,5 +514,23 @@
     "noUnrecognizedHint": "Todo rosto encontrado já pertence a alguém. Execute “Encontrar rostos” em mais pastas para encontrar novos.",
     "shownOf": "Mostrando {{shown, number}} de {{total, number}}",
     "assignFailed": "Rostos que não puderam ser salvos: {{failed, number}}. Não é possível gravar nas pastas deles."
+  },
+  "entryInfo": {
+    "photos": "Fotos",
+    "size": "Tamanho total",
+    "taken": "Tiradas",
+    "undated": "Sem data",
+    "starred": "Com estrela",
+    "geotagged": "Com local",
+    "modified": "Modificadas",
+    "folders": "Pastas",
+    "albums": "Álbuns",
+    "people": "Pessoas",
+    "loading": "Carregando…"
+  },
+  "entryMenu": {
+    "open": "Ações para {{name}}",
+    "map": "Mostrar no mapa",
+    "info": "Informações"
   }
 }

@@ -590,6 +590,23 @@ body {
   margin-bottom: 4px;
 }
 
+/* A link to a library entry: its icon and name, in the text's own size */
+.entry-link.btn {
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  text-decoration: none;
+}
+.entry-link.btn:hover,
+.entry-link.btn:focus-visible {
+  text-decoration: underline;
+}
+
+/* On a chip the link takes the chip's color */
+.tag-chip-link.btn {
+  color: inherit;
+}
+
 .tag-chip-remove {
   color: inherit;
   line-height: 1;
@@ -703,9 +720,24 @@ img {
 }
 
 .photo-card-thumb {
+  position: relative;
   aspect-ratio: 1 / 1;
   background-color: var(--pal-placeholder);
   overflow: hidden;
+}
+
+/* A photo with saved edits: a mark over the thumbnail's bottom-start corner, the same in every skin */
+.photo-modified-mark {
+  position: absolute;
+  bottom: 6px;
+  inset-inline-start: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px;
+  border-radius: var(--pal-radius);
+  background: var(--pal-overlay);
+  color: var(--pal-viewer-text);
 }
 
 .photo-card-thumb img {

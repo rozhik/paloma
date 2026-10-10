@@ -17,7 +17,9 @@ export type ControlId =
   | 'viewer.navigate' | 'viewer.zoom' | 'viewer.editBar' | 'viewer.info' | 'viewer.faces' | 'viewer.faces.assign'
   | 'info.exif' | 'info.json' | 'info.people' | 'info.people.edit'
   | 'people.choose' | 'people.edit' | 'faces.detect' | 'faces.similar' | 'faces.unrecognized'
-  | 'search' | 'languageSwitcher' | 'slideshow'
+  | 'search' | 'slideshow'
+  | 'settings.plugins'
+  | 'entry.menu' | 'entry.info'
   | 'album.editProperties' | 'album.delete'
   | 'map.placePhotos' | 'map.removeLocation';
 
@@ -33,6 +35,8 @@ export const CONTROL_LEVELS: Record<ControlId, Level> = {
   'viewer.navigate': 'child',
   'viewer.zoom': 'child',
   slideshow: 'child',
+  // The menu of a sidebar entry; it offers only the items of the active level
+  'entry.menu': 'child',
 
   'sidebar.shortcuts': 'easy',
   // Today's memories and opening one; a memory cannot be changed
@@ -50,8 +54,9 @@ export const CONTROL_LEVELS: Record<ControlId, Level> = {
   'tray.clear': 'easy',
   'tray.export': 'easy',
   'tray.print': 'easy',
-  languageSwitcher: 'easy',
   'viewer.editBar': 'easy',
+  // An entry's Information dialog, with its statistics and links
+  'entry.info': 'easy',
   // The Info panel with editing the description and tags
   'viewer.info': 'easy',
   // Seeing people: the sidebar list, a person's photos, the people on a photo and face frames in the viewer
@@ -63,7 +68,8 @@ export const CONTROL_LEVELS: Record<ControlId, Level> = {
   'view.people': 'normal',
   'view.map': 'normal',
   'view.collage': 'normal',
-  'view.plugins': 'normal',
+  // The Plugins section of Settings
+  'settings.plugins': 'normal',
   'tray.removeLocation': 'normal',
   'tray.collage': 'normal',
   'tray.movie': 'normal',

@@ -32,11 +32,15 @@ While the Info panel is open, moving to the previous or next photo SHALL keep it
 - **THEN** the panel shows the information of the next photo
 
 ### Requirement: File section
-The panel SHALL show the file name, the full path on disk, the file size in the active language's number format with a unit (B, KB, MB, GB, base 1024), the pixel dimensions, the date taken, and the file's last modification time.
+The panel SHALL show the file name, the folder it is in as an entry link, the full path on disk, the file size in the active language's number format with a unit (B, KB, MB, GB, base 1024), the pixel dimensions, the date taken, and the file's last modification time.
 
 #### Scenario: File facts
 - **WHEN** the user opens Info for `/photos/trip/IMG_0042.JPG`, 3 524 812 bytes, 4000×3000
 - **THEN** the panel shows `IMG_0042.JPG`, `/photos/trip/IMG_0042.JPG`, `3.4 MB` (formatted for the active language) and `4000 × 3000`
+
+#### Scenario: Open the folder
+- **WHEN** the user opens Info for `/photos/trip/IMG_0042.JPG` and chooses the folder link `trip`
+- **THEN** the viewer closes and the library shows folder `trip`
 
 ### Requirement: Description is edited in the panel
 The panel SHALL show the description in a text field. Enter or leaving the field SHALL save a changed description; Esc in the field SHALL restore the saved value without closing the panel. Saving SHALL follow the description rules of the photo-text capability. A failed save SHALL show its error and restore the saved value.
@@ -69,14 +73,18 @@ The panel SHALL show the photo's tags as chips, each with a remove button whose 
 - **THEN** the chip `river` disappears and the photo has only `old`
 
 ### Requirement: Albums section
-The panel SHALL list the shown names of the albums the photo is in, with untitled albums shown as untitled, or say that the photo is in no album.
+The panel SHALL list the albums the photo is in as entry links with their shown names, with untitled albums shown as untitled, or say that the photo is in no album.
 
 #### Scenario: Two albums
 - **WHEN** the photo is in `Birds` and `Trip`
 - **THEN** the Albums section lists `Birds` and `Trip`
 
+#### Scenario: Open an album
+- **WHEN** the Albums section lists `Trip` and the user chooses it
+- **THEN** the viewer closes and the library shows album `Trip`
+
 ### Requirement: People section
-The panel SHALL list the people on the photo as described in the people capability, each with avatar and shown name, or say that no people are named on it. It SHALL offer adding a person to the photo, removing a person from it, and, for each unassigned detected face, a crop of the face with a choice of an existing person, a new named person or a new unknown person to assign it to.
+The panel SHALL list the people on the photo as described in the people capability, each with avatar and shown name as an entry link, or say that no people are named on it. It SHALL offer adding a person to the photo, removing a person from it, and, for each unassigned detected face, a crop of the face with a choice of an existing person, a new named person or a new unknown person to assign it to.
 
 #### Scenario: Person from Picasa
 - **WHEN** Picasa faces name `Roy Avery` on the photo
@@ -93,6 +101,10 @@ The panel SHALL list the people on the photo as described in the people capabili
 #### Scenario: Remove a person
 - **WHEN** the user removes `Roy Avery` in the People section
 - **THEN** `Roy Avery` is no longer listed and the entry has no faces of `Roy Avery`
+
+#### Scenario: Open a person
+- **WHEN** the People section lists `Roy Avery` and the user chooses his name
+- **THEN** the viewer closes and the library shows the photos of `Roy Avery`
 
 ### Requirement: Location section
 The panel SHALL show the photo's latitude and longitude with 6 decimals, whether the location comes from the camera or was set by the user, and the place name in the active language when geocoding is on and the name is known. A photo without a location SHALL be shown as having no location.
@@ -148,3 +160,14 @@ The panel SHALL show whether the photo is starred and whether it is hidden, and 
 #### Scenario: Unassigned faces
 - **WHEN** photo 7 has two detected faces, one of them matching a mark of `Roy Avery`
 - **THEN** the response lists `Roy Avery` among its people and one unassigned face, without any face descriptor
+
+### Requirement: Tag chips link to the tag
+Each tag chip in the panel SHALL show the tag icon and SHALL be an entry link to that tag, separate from its remove button. Choosing the remove button SHALL only remove the tag.
+
+#### Scenario: Open a tag
+- **WHEN** the photo has the tag `river` and the user chooses the chip's name
+- **THEN** the viewer closes and the library shows the photos tagged `river`
+
+#### Scenario: Remove does not navigate
+- **WHEN** the user chooses the remove button of the chip `river`
+- **THEN** the photo no longer has `river` and the viewer stays open

@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import type { Photo, PhotoInfo } from '../../../../shared/types.js';
 import { i18n, initI18n } from '../../i18n/index.js';
 import { DEFAULT_UI_SETTINGS, useUiSettings, type UiSettings } from '../../settings/uiSettings.js';
-import { InfoContent } from './InfoPanel.js';
+import { InfoContent, folderName } from './InfoPanel.js';
 import { NavBar } from './NavBar.js';
 import { barLayout } from './barLayout.js';
 import { coordinatesText, fileSizeText } from './infoFormat.js';
@@ -50,6 +50,23 @@ const render = (level: UiSettings['level'], data: PhotoInfo = info) => {
     />,
   ).replace(/&quot;/g, '"').replace(/&#x27;/g, "'");
 };
+
+describe('Info panel links', () => {
+  /** The labels of the entry links in markup, with the icon each shows. */
+  const links = (markup: string) => [...markup.matchAll(/<button type="button" class="entry-link[^"]*">.*?lucide-([\w-]+).*?<span[^>]*>([^<]*)<\/span><\/button>/g)]
+    .map((m) => `${m[1]}:${m[2]}`);
+
+  it('links the folder, the albums, the people and the tags to the library', () => {
+    expect(links(render('normal'))).toEqual([
+      'folder:trip', 'tag:old', 'tag:river', 'book-image:Birds', 'book-image:Trip', `user:Roy Avery`, `user:${i18n.t('info.unknownPerson')}`,
+    ]);
+  });
+
+  it('names the folder after the last part of its path', () => {
+    expect(folderName('/photos/trip/IMG_0042.JPG')).toBe('trip');
+    expect(folderName('C:\\Photos\\2024\\a.jpg')).toBe('2024');
+  });
+});
 
 describe('Info panel content', () => {
   it('shows the file, description, tags, albums, people, location and other facts', () => {

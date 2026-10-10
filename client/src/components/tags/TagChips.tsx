@@ -2,6 +2,7 @@ import React, { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Tag, X } from 'lucide-react';
 import { chipKey, tagSuggestions, typedTags, addTags, removeTag } from './tagRules.js';
+import { EntryLink } from '../../shell/EntryLink.js';
 
 interface TagChipsProps {
   tags: string[];
@@ -11,10 +12,12 @@ interface TagChipsProps {
   suggestions: string[];
   disabled?: boolean;
   autoFocus?: boolean;
+  /** Each chip's name opens the tag in the library; the remove button still only removes it */
+  linkTags?: boolean;
 }
 
 /** Tags as removable chips followed by a field to add more; Enter or a comma adds, Backspace removes the last. */
-export const TagChips: React.FC<TagChipsProps> = ({ tags, onChange, suggestions, disabled, autoFocus }) => {
+export const TagChips: React.FC<TagChipsProps> = ({ tags, onChange, suggestions, disabled, autoFocus, linkTags = false }) => {
   const { t } = useTranslation();
   const [text, setText] = useState('');
   const listId = useId();
@@ -39,8 +42,12 @@ export const TagChips: React.FC<TagChipsProps> = ({ tags, onChange, suggestions,
       <ul className="tag-chips-list list-unstyled d-flex flex-wrap gap-2 mb-2">
         {tags.map((tag) => (
           <li key={tag} className="tag-chip badge pal-badge rounded-pill d-inline-flex align-items-center gap-1 fs-6">
-            <Tag size={14} aria-hidden="true" />
-            <span dir="auto">{tag}</span>
+            {linkTags ? <EntryLink entry={{ kind: 'tag', name: tag }} label={tag} iconSize={14} className="tag-chip-link" /> : (
+              <>
+                <Tag size={14} aria-hidden="true" />
+                <span dir="auto">{tag}</span>
+              </>
+            )}
             <button
               type="button"
               className="btn btn-sm p-0 border-0 tag-chip-remove"

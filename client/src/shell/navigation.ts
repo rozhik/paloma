@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { Image, LayoutGrid, MapPin, Puzzle, Settings, Users, type LucideIcon } from 'lucide-react';
+import { Image, LayoutGrid, MapPin, Settings, Users, type LucideIcon } from 'lucide-react';
 import { usePalomaStore, type AppView } from '../store/usePalomaStore.js';
 import { allows, useLevel } from '../levels/controls.js';
 import type { Level } from '../levels/levels.js';
@@ -11,7 +11,6 @@ export const NAV_ITEMS: readonly { view: AppView; icon: LucideIcon; labelKey: `n
   { view: 'people', icon: Users, labelKey: 'nav.people' },
   { view: 'map', icon: MapPin, labelKey: 'nav.map' },
   { view: 'collage', icon: LayoutGrid, labelKey: 'nav.collage' },
-  { view: 'plugins', icon: Puzzle, labelKey: 'nav.plugins' },
   { view: 'settings', icon: Settings, labelKey: 'nav.settings' },
 ];
 

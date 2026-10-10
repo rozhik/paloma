@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { libraryQueryParams } from './library.js';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { fetchPhotoStats, libraryQueryParams } from './library.js';
 
 const NONE = { selectedFolderId: null, selectedAlbumToken: null, selectedTag: null, selectedFilter: 'all' as const, searchQuery: '' };
 
@@ -23,5 +23,16 @@ describe('libraryQueryParams', () => {
     expect(Object.fromEntries(libraryQueryParams(
       { ...NONE, selectedMemory: { year: 2016, yearsAgo: 10, from: '2016-10-03', to: '2016-10-09', album: null, title: null }, searchQuery: 'bridge' }, 'en',
     ))).toEqual({ takenFrom: '2016-10-03', takenTo: '2016-10-09', query: 'bridge', lang: 'en' });
+  });
+});
+
+describe('fetchPhotoStats', () => {
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  it('asks for the totals of the selection', async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ photoCount: 2 }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    expect(await fetchPhotoStats({ ...NONE, selectedAlbumToken: 'c9ea' }, 'en')).toEqual({ photoCount: 2 });
+    expect(fetchMock).toHaveBeenCalledWith('/api/photos/stats?album=c9ea&lang=en', expect.objectContaining({ method: 'GET' }));
   });
 });

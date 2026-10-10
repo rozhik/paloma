@@ -1,13 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Button, Alert } from 'react-bootstrap';
 import { useTranslation } from 'react-i18next';
 import { BookImage, MapPin, Pencil, Trash2 } from 'lucide-react';
 import type { Album, Photo } from '../../../shared/types.js';
 import { usePalomaStore } from '../store/usePalomaStore.js';
 import { fetchAlbums } from '../api/albums.js';
-import { apiRequest, describeError } from '../api/http.js';
 import { useFormat } from '../i18n/format.js';
-import { AlbumPropertiesModal } from './AlbumPropertiesModal.js';
+import { AlbumDialogs, type AlbumDialog } from './AlbumDialogs.js';
 import { useAllows } from '../levels/controls.js';
 import { SlideshowButton } from './slideshow/SlideshowButton.js';
 import { FaceDetectionButton } from '../faces/FaceDetectionButton.js';
@@ -19,11 +17,9 @@ interface AlbumHeaderProps {
 }
 
 export const AlbumHeader: React.FC<AlbumHeaderProps> = ({ token, photos }) => {
-  const { libraryVersion, bumpLibrary, setSelectedFilter } = usePalomaStore();
+  const { libraryVersion, setSelectedFilter } = usePalomaStore();
   const [album, setAlbum] = useState<Album | null>(null);
-  const [showProperties, setShowProperties] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [error, setError] = useState<unknown>(null);
+  const [dialog, setDialog] = useState<AlbumDialog | null>(null);
   const { t } = useTranslation();
   const { formatNumber } = useFormat();
   const canEdit = useAllows('album.editProperties');
@@ -42,18 +38,6 @@ export const AlbumHeader: React.FC<AlbumHeaderProps> = ({ token, photos }) => {
       .catch((err) => console.error('Failed to fetch albums:', err));
     return () => { cancelled = true; };
   }, [token, libraryVersion]);
-
-  const deleteAlbum = async () => {
-    setError(null);
-    try {
-      await apiRequest('DELETE', `/api/albums/${token}`);
-      setConfirmDelete(false);
-      bumpLibrary();
-    } catch (err) {
-      setConfirmDelete(false);
-      setError(err);
-    }
-  };
 
   if (!album) return null;
 
@@ -75,37 +59,20 @@ export const AlbumHeader: React.FC<AlbumHeaderProps> = ({ token, photos }) => {
           <FaceDetectionButton photos={photos} />
           <SlideshowButton photos={photos} />
           {canEdit && (
-            <button className="btn btn-outline-primary btn-lg-custom" onClick={() => setShowProperties(true)}>
+            <button className="btn btn-outline-primary btn-lg-custom" onClick={() => setDialog('properties')}>
               <Pencil size={18} />
               <span>{t('album.properties')}</span>
             </button>
           )}
           {canDelete && (
-            <button className="btn btn-outline-danger btn-lg-custom" onClick={() => setConfirmDelete(true)}>
+            <button className="btn btn-outline-danger btn-lg-custom" onClick={() => setDialog('delete')}>
               <Trash2 size={18} />
               <span>{t('album.delete')}</span>
             </button>
           )}
         </div>
       </div>
-      {error != null && (
-        <Alert variant="danger" className="mt-3 mb-0" dismissible onClose={() => setError(null)}>{describeError(error, t)}</Alert>
-      )}
-
-      <AlbumPropertiesModal album={album} show={showProperties} onHide={() => setShowProperties(false)} onSaved={bumpLibrary} />
-
-      <Modal show={confirmDelete} onHide={() => setConfirmDelete(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>{t('album.deleteTitle')}</Modal.Title>
-        </Modal.Header>
-        <Modal.Body className="fs-5">
-          {t('album.deleteBody', { name: album.name ?? t('common.untitled') })}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setConfirmDelete(false)}>{t('common.cancel')}</Button>
-          <Button variant="danger" onClick={deleteAlbum}>{t('album.deleteConfirm')}</Button>
-        </Modal.Footer>
-      </Modal>
+      <AlbumDialogs album={album} open={dialog} onClose={() => setDialog(null)} />
     </div>
   );
 };

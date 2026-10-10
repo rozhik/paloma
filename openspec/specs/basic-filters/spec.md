@@ -11,7 +11,7 @@ Paloma SHALL ship two bundled plugins with names and descriptions in every suppo
 
 #### Scenario: Fresh install
 - **WHEN** Paloma starts for the first time
-- **THEN** the Plugins view lists `basic-transforms` and `basic-effects` as bundled and on
+- **THEN** the Plugins section of Settings lists `basic-transforms` and `basic-effects` as bundled and on
 
 #### Scenario: Effects switched off
 - **WHEN** the user switches off `basic-effects`

@@ -12,6 +12,7 @@ import { useFormat } from '../../i18n/format.js';
 import { useAllows } from '../../levels/controls.js';
 import { usePalomaStore } from '../../store/usePalomaStore.js';
 import { TagChips } from '../tags/TagChips.js';
+import { EntryLink } from '../../shell/EntryLink.js';
 import { coordinatesText, entryJson, fileSizeText } from './infoFormat.js';
 
 interface InfoPanelProps {
@@ -21,6 +22,9 @@ interface InfoPanelProps {
   className?: string;
   onClose: () => void;
 }
+
+/** The name of the folder a file is in: the last part of its folder's path. */
+export const folderName = (filePath: string): string => filePath.split(/[\\/]/).filter(Boolean).slice(-2, -1)[0] ?? filePath;
 
 const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
   <section className="info-section mb-3">
@@ -58,7 +62,9 @@ export const PeopleSection: React.FC<PeopleSectionProps> = ({ people, photoId, s
             return (
               <li key={person.id} className="d-flex align-items-center gap-2 mb-1">
                 <PersonAvatar id={person.id} version={person.avatarVersion} size={28} />
-                <span dir="auto" className={`flex-grow-1 text-truncate ${person.name === null ? 'fst-italic' : ''}`}>{name}</span>
+                <span className="flex-grow-1 text-truncate">
+                  <EntryLink entry={{ kind: 'person', id: person.id }} label={name} placeholder={person.name === null} />
+                </span>
                 {onRemove && (
                   <button
                     type="button"
@@ -138,6 +144,9 @@ export const InfoContent: React.FC<{
       <Section title={t('info.file')}>
         <dl className="mb-0">
           <Fact label={t('info.file')}><span dir="auto">{photo.filename}</span></Fact>
+          <Fact label={t('info.folder')}>
+            <EntryLink entry={{ kind: 'folder', id: photo.folderId }} label={folderName(file.path)} />
+          </Fact>
           <Fact label={t('info.path')}><span dir="ltr">{file.path}</span></Fact>
           <Fact label={t('info.size')}>{fileSizeText(file.size, i18n.language)}</Fact>
           {photo.width > 0 && (
@@ -174,14 +183,16 @@ export const InfoContent: React.FC<{
       </Section>
 
       <Section title={t('info.tags')}>
-        <TagChips tags={photo.keywords} onChange={onKeywords} suggestions={knownTags} disabled={saving} />
+        <TagChips tags={photo.keywords} onChange={onKeywords} suggestions={knownTags} disabled={saving} linkTags />
       </Section>
 
       <Section title={t('info.albums')}>
         {info.albums.length === 0 ? <p className="mb-0 opacity-75">{t('info.noAlbums')}</p> : (
           <ul className="list-unstyled mb-0">
             {info.albums.map((album) => (
-              <li key={album.token} dir="auto" className={album.name === null ? 'fst-italic' : ''}>{album.name ?? t('common.untitled')}</li>
+              <li key={album.token} className="mb-1">
+                <EntryLink entry={{ kind: 'album', token: album.token }} label={album.name ?? t('common.untitled')} placeholder={album.name === null} />
+              </li>
             ))}
           </ul>
         )}

@@ -8,7 +8,6 @@ import { MovieMakerModal } from './components/MovieMakerModal.js';
 import { CollageBuilder } from './components/CollageBuilder.js';
 import { PlacesMap } from './components/PlacesMap.js';
 import { PeopleView } from './components/PeopleView.js';
-import { PluginsView } from './components/PluginsView.js';
 import { SettingsView } from './components/SettingsView.js';
 import { AlbumHeader } from './components/AlbumHeader.js';
 import { LibraryHeader } from './components/LibraryHeader.js';
@@ -94,7 +93,6 @@ export const App: React.FC = () => {
   const content = {
     library: <Library />,
     map: <PlacesMap />,
-    plugins: <PluginsView />,
     settings: <SettingsView />,
   }[currentView];
 

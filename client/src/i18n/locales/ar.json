@@ -18,9 +18,6 @@
     "photos_many": "{{count, number}} صورة",
     "photos_other": "{{count, number}} صورة"
   },
-  "language": {
-    "label": "اللغة"
-  },
   "nav": {
     "edition": "Senior Edition",
     "searchPlaceholder": "ابحث عن الصور بالاسم أو الوسوم أو التاريخ...",
@@ -28,7 +25,6 @@
     "people": "الأشخاص",
     "map": "الخريطة",
     "collage": "مجمّعة",
-    "plugins": "الإضافات",
     "settings": "الإعدادات",
     "views": "طرق العرض"
   },
@@ -450,6 +446,7 @@
     "close": "إغلاق المعلومات",
     "loading": "جارٍ التحميل…",
     "file": "الملف",
+    "folder": "المجلد",
     "path": "على القرص",
     "size": "الحجم",
     "dimensions": "الأبعاد",
@@ -565,5 +562,23 @@
     "noUnrecognizedHint": "كل وجه عُثر عليه حتى الآن يخص شخصًا ما. شغّل «العثور على الوجوه» على مجلدات أخرى للعثور على وجوه جديدة.",
     "shownOf": "عرض {{shown, number}} من {{total, number}}",
     "assignFailed": "وجوه تعذّر حفظها: {{failed, number}}. لا يمكن الكتابة في مجلداتها."
+  },
+  "entryInfo": {
+    "photos": "الصور",
+    "size": "الحجم الإجمالي",
+    "taken": "تاريخ الالتقاط",
+    "undated": "بلا تاريخ",
+    "starred": "المميزة بنجمة",
+    "geotagged": "لها موقع",
+    "modified": "المعدّلة",
+    "folders": "المجلدات",
+    "albums": "الألبومات",
+    "people": "الأشخاص",
+    "loading": "جارٍ التحميل…"
+  },
+  "entryMenu": {
+    "open": "إجراءات لـ {{name}}",
+    "map": "عرض على الخريطة",
+    "info": "معلومات"
   }
 }

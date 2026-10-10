@@ -33,10 +33,10 @@ When no language has been chosen, Paloma SHALL use the first entry in the browse
 - **THEN** the UI is in English
 
 ### Requirement: User can switch the language
-The Settings view's Language section, and from the Easy level up also the top bar, SHALL offer a language switcher that lists every supported language by its own name (for example `Deutsch`, `日本語`, `Українська`) and marks the active one. Choosing a language SHALL switch the whole UI at once without reloading the page or losing the current view, selection or open dialog.
+The Settings view's Language section SHALL offer a language switcher that lists every supported language by its own name (for example `Deutsch`, `日本語`, `Українська`) and marks the active one. The top bar SHALL NOT offer a language switcher in any skin or at any level. Choosing a language SHALL switch the whole UI at once without reloading the page or losing the current view, selection or open dialog.
 
 #### Scenario: Switch while photos are selected
-- **WHEN** the UI is in English, two photos are in the tray, and the user chooses `Українська` in the top bar
+- **WHEN** the UI is in English, two photos are in the tray, and the user chooses `Українська` in the Settings view's Language section and goes back to the library
 - **THEN** the UI is in Ukrainian and the same two photos are still in the tray
 
 #### Scenario: Native names
@@ -47,9 +47,13 @@ The Settings view's Language section, and from the Easy level up also the top ba
 - **WHEN** the user chooses `Deutsch` in the Settings view's Language section
 - **THEN** the UI, including the Settings view, is in German at once
 
+#### Scenario: No switcher in the top bar
+- **WHEN** the library is shown at any level in any skin
+- **THEN** the top bar has no language switcher
+
 #### Scenario: Child level
 - **WHEN** the level is Child
-- **THEN** the top bar has no language switcher, and the language can be changed only in the unlocked Settings view
+- **THEN** the language can be changed only in the unlocked Settings view
 
 ### Requirement: Chosen language is remembered
 A language chosen in the switcher SHALL be used on later loads of the app in the same browser, instead of the browser's preferred languages. A remembered value that is not a supported language SHALL be ignored.

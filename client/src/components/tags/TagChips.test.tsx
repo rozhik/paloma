@@ -17,4 +17,12 @@ describe('TagChips', () => {
     expect(markup).toContain(`aria-label="${i18n.t('tags.addChip')}"`);
     expect(markup.indexOf('river')).toBeLessThan(markup.indexOf('<input'));
   });
+
+  it('links each chip to its tag only when asked, keeping its remove button', () => {
+    const plain = renderToStaticMarkup(<TagChips tags={['river']} onChange={() => {}} suggestions={[]} />);
+    expect(plain).not.toContain('entry-link');
+    const linked = renderToStaticMarkup(<TagChips tags={['river']} onChange={() => {}} suggestions={[]} linkTags />);
+    expect(linked).toMatch(/<button type="button" class="entry-link[^"]*tag-chip-link[^"]*">.*lucide-tag.*>river<\/span><\/button>/);
+    expect(linked).toContain(`aria-label="${i18n.t('tags.removeChip', { name: 'river' })}"`);
+  });
 });

@@ -86,6 +86,27 @@ html[data-skin='classic'] .photo-tray {
   box-shadow: 0 -4px 20px var(--pal-overlay);
 }
 
+/* An entry and its menu button side by side */
+html[data-skin='classic'] .classic-entry > .list-group-item {
+  min-width: 0;
+}
+html[data-skin='classic'] .classic-entry-menu {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--pal-hit-min);
+  min-height: var(--pal-hit-min);
+  padding: 0;
+  color: var(--pal-text-muted);
+  border: 0;
+}
+html[data-skin='classic'] .classic-entry-menu:hover,
+html[data-skin='classic'] .classic-entry-menu[aria-expanded='true'] {
+  color: var(--pal-text);
+  background: color-mix(in srgb, var(--pal-text) 8%, transparent);
+}
+
 html[data-skin='classic'] .classic-sidebar-cover {
   width: 32px;
   height: 32px;

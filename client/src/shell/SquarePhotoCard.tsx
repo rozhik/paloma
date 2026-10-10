@@ -1,10 +1,11 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { CheckCircle, Circle, MapPin, Sliders, Star } from 'lucide-react';
+import { CheckCircle, Circle, MapPin, Star } from 'lucide-react';
 import type { Photo } from '../../../shared/types.js';
 import { usePalomaStore } from '../store/usePalomaStore.js';
 import { usePlaceLabel } from '../components/placeLabel.js';
 import { useAllows } from '../levels/controls.js';
+import { ModifiedMark } from './ModifiedMark.js';
 
 interface SquarePhotoCardProps {
   photo: Photo;
@@ -79,11 +80,11 @@ export const SquarePhotoCard: React.FC<SquarePhotoCardProps> = ({ photo, onStarT
       )}
       <div className="photo-card-thumb">
         <img src={photo.thumbnailUrl} alt={photo.filename} loading="lazy" />
+        <ModifiedMark photo={photo} size={iconSize - 3} />
       </div>
-      {(photo.edits || photo.latitude !== null) && (
+      {photo.latitude !== null && (
         <div className="square-card-badges">
-          {photo.edits && <span title={t('photo.edited')}><Sliders size={iconSize - 3} /></span>}
-          {photo.latitude !== null && <span title={placeLabel(photo) ?? undefined} aria-label={t('photo.geotagged')}><MapPin size={iconSize - 3} /></span>}
+          <span title={placeLabel(photo) ?? undefined} aria-label={t('photo.geotagged')}><MapPin size={iconSize - 3} /></span>
         </div>
       )}
     </div>

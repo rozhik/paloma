@@ -21,7 +21,7 @@ export function enterFullscreen(): void {
   }
 }
 
-function leaveFullscreen(): void {
+export function leaveFullscreen(): void {
   if (document.fullscreenElement) void document.exitFullscreen?.()?.catch(() => {});
 }
 
