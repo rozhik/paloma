@@ -7,11 +7,11 @@ Separates what is set for the whole Paloma server, which applies to every user a
 ## Requirements
 
 ### Requirement: Server settings view
-The user menu SHALL offer a Server settings view from the Normal level up to users whose role has `plugins.manage`, and, with auth off, to the single user. It SHALL have a Server section and the Plugins section. All its texts SHALL be in the active UI language.
+The user menu SHALL offer a Server settings view from the Normal level up to users whose role has `plugins.manage`, and, with auth off, to the single user. It SHALL have a Server section, the Plugins section and the AI section. All its texts SHALL be in the active UI language.
 
 #### Scenario: Administrator opens Server settings
 - **WHEN** `anna`, an administrator at level Normal, chooses Server settings in the user menu
-- **THEN** the Server settings view shows the Server section and the Plugins section
+- **THEN** the Server settings view shows the Server section, the Plugins section and the AI section
 
 #### Scenario: Editor has no Server settings
 - **WHEN** an editor opens the user menu at level Developer
