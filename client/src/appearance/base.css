@@ -1057,6 +1057,10 @@ img {
   font-weight: var(--pal-font-weight-strong);
   color: var(--pal-text);
 }
+/* The AI run's ring sits above the face detection ring when both are shown */
+.face-progress-dock.ai-progress-dock-stacked {
+  bottom: calc(var(--pal-tray-height) + var(--pal-gap) + 6rem);
+}
 
 /* ---------- Similar faces ---------- */
 .similar-faces-grid {
@@ -1114,6 +1118,9 @@ img {
   box-shadow: 0 0 0 1px var(--pal-viewer-bg), inset 0 0 0 1px var(--pal-viewer-bg);
   background: transparent;
   padding: 0;
+}
+.face-frame.object-frame {
+  border-color: var(--pal-accent);
 }
 .face-frame.unassigned {
   border-style: dashed;

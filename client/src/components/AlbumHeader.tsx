@@ -9,6 +9,7 @@ import { AlbumDialogs, type AlbumDialog } from './AlbumDialogs.js';
 import { useAllows } from '../levels/controls.js';
 import { SlideshowButton } from './slideshow/SlideshowButton.js';
 import { FaceDetectionButton } from '../faces/FaceDetectionButton.js';
+import { AiMenu } from '../ai/AiMenu.js';
 
 interface AlbumHeaderProps {
   token: string;
@@ -57,6 +58,7 @@ export const AlbumHeader: React.FC<AlbumHeaderProps> = ({ token, photos }) => {
         </div>
         <div className="d-flex gap-2 flex-shrink-0 flex-wrap">
           <FaceDetectionButton photos={photos} />
+          <AiMenu photos={photos} />
           <SlideshowButton photos={photos} />
           {canEdit && (
             <button className="btn btn-outline-primary btn-lg-custom" onClick={() => setDialog('properties')}>

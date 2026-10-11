@@ -274,7 +274,14 @@
     "album_not_granted": "你只能更改被授予访问权限的相册。",
     "outside_access": "这也会更改你看不到的照片。",
     "person_linked": "此人物已关联到用户 {{username}}。",
-    "avatar_invalid": "该文件不是可用的图片。请选择不超过 10 MB 的 JPEG、PNG 或 WebP 图片。"
+    "avatar_invalid": "该文件不是可用的图片。请选择不超过 10 MB 的 JPEG、PNG 或 WebP 图片。",
+    "ai_provider_not_found": "找不到该 AI 提供方。它的插件可能已关闭。",
+    "ai_provider_failed": "AI 提供方出错：{{message}}",
+    "ai_task_not_found": "找不到该 AI 任务。",
+    "ai_task_builtin": "内置 AI 任务不能删除。",
+    "ai_task_not_builtin": "只能重置内置 AI 任务。",
+    "ai_task_not_ready": "此 AI 任务尚未就绪。请在服务器设置中检查它的提供方和模型。",
+    "ai_run_in_progress": "另一个 AI 任务正在运行。请等待它结束。"
   },
   "geo": {
     "coordinates": "{{lat}}，{{lon}}",
@@ -389,7 +396,9 @@
     "fit": "适应屏幕",
     "info": "信息",
     "faces": "人脸",
-    "facesUnavailable": "这张照片经过拉直，无法显示人脸框。"
+    "facesUnavailable": "这张照片经过拉直，无法显示人脸框。",
+    "objects": "物体",
+    "objectsUnavailable": "由于这张照片经过拉直，无法显示物体框。"
   },
   "tags": {
     "placeholder": "输入标签后按 Enter",
@@ -724,5 +733,134 @@
     "rateLimit": "默认每分钟请求数",
     "unlimited": "无限制",
     "none": "无"
+  },
+  "ai": {
+    "title": "AI",
+    "intro": "AI 任务会查看照片，用来添加标签、查找物体或撰写描述。请为每个任务选择提供方和模型。这些设置适用于所有用户。",
+    "loading": "正在加载 AI 设置…",
+    "task": {
+      "tags": "标签",
+      "objects": "物体",
+      "description": "描述"
+    },
+    "output": {
+      "tags": "标签",
+      "objects": "带框的物体",
+      "text": "文本"
+    },
+    "problem": {
+      "no_provider": "请为此任务选择提供方。",
+      "provider_unavailable": "它的提供方不可用。请在“插件”部分开启其插件。",
+      "provider_not_configured": "它的提供方尚未设置。",
+      "no_model": "请为此任务选择模型。"
+    },
+    "providers": {
+      "title": "提供方",
+      "none": "没有可用的 AI 提供方。请在“插件”部分开启一个 AI 插件，例如 OpenAI。",
+      "plugin": "插件：{{plugin}}",
+      "configured": "已设置",
+      "notConfigured": "未设置",
+      "missing": "仍需填写：{{list}}",
+      "privacy": "使用 {{name}} 处理的照片会发送到其服务。",
+      "privacyAddress": "使用 {{name}} 处理的照片会发送到 {{address}}。",
+      "fromEnv": "在此处未保存任何值时，由服务器环境提供该值。",
+      "secretSet": "已保存。输入新值即可替换。",
+      "secretNotSet": "未设置",
+      "secretRemoved": "保存时将删除",
+      "remove": "删除",
+      "save": "保存",
+      "saved": "设置已保存。",
+      "test": "测试连接",
+      "testOk": "连接正常。"
+    },
+    "tasks": {
+      "title": "任务",
+      "intro": "AI 菜单提供这些任务。更改任务的提供方、模型、提示词、模型选项、图像大小或语言后，它会重新处理照片。",
+      "add": "添加任务",
+      "builtIn": "内置",
+      "notInMenu": "不在菜单中",
+      "ready": "就绪",
+      "edit": "编辑",
+      "reset": "重置",
+      "delete": "删除",
+      "resetTitle": "重置“{{name}}”？",
+      "resetBody": "其提示词和选项会恢复为默认值。提供方和模型保持不变。",
+      "deleteTitle": "删除“{{name}}”？",
+      "deleteBody": "它的结果也会被删除。它添加到照片的标签和描述会保留。"
+    },
+    "editor": {
+      "addTitle": "添加 AI 任务",
+      "editTitle": "编辑“{{name}}”",
+      "name": "名称",
+      "output": "结果",
+      "inMenu": "在 AI 菜单中显示",
+      "provider": "提供方",
+      "noProvider": "无提供方",
+      "unavailable": "{{id}}（不可用）",
+      "model": "模型",
+      "modelPlaceholder": "选择或输入模型",
+      "loadingModels": "正在加载模型…",
+      "modelsFailed": "无法列出模型：{{message}} 你可以输入模型名称。",
+      "modelsCount_other": "有 {{count, number}} 个可用模型",
+      "prompt": "提示词",
+      "placeholders": "插入：",
+      "modelOptions": "模型选项",
+      "taskOptions": "任务选项",
+      "default": "默认（{{value}}）"
+    },
+    "placeholder": {
+      "language": "回答语言的名称",
+      "maxTags": "最多返回的标签数",
+      "photoTags": "照片当前的标签",
+      "description": "照片当前的描述",
+      "libraryTags": "图库中最常用的 300 个标签"
+    },
+    "option": {
+      "imageSize": "图像大小（像素）",
+      "imageSizeHelp": "发送图像的长边。图像越大，细节越多，费用也越高。",
+      "parallel": "同时处理的照片数",
+      "language": "回答语言",
+      "languageUser": "运行者使用的语言",
+      "maxTags": "最多标签数",
+      "minConfidence": "最低置信度",
+      "minConfidenceHelp": "从 0 到 1。置信度较低的回答会作为结果保留，但不会添加到照片。",
+      "labelsAsTags": "同时将物体名称添加为标签",
+      "textTarget": "将文本用作",
+      "target": {
+        "description-if-empty": "描述（照片没有描述时）",
+        "description-always": "描述（替换当前描述）",
+        "none": "仅作为结果"
+      }
+    },
+    "menu": {
+      "button": "AI",
+      "label": "用于这些照片的 AI 任务",
+      "runAgain": "对所有照片重新运行",
+      "settings": "AI 设置…",
+      "running": "有 AI 任务正在运行。请等待它结束。",
+      "empty": "没有 AI 任务。管理员可以在服务器设置中添加。"
+    },
+    "run": {
+      "progress": "{{task}}：{{done, number}} / {{total, number}} 张照片",
+      "stop": "停止",
+      "cancelling": "处理完当前照片后停止…",
+      "processed_other": "{{task}}：已处理 {{count, number}} 张照片。",
+      "nothingToDo": "{{task}}：这些照片已处理过。选择“重新运行”可再次处理。",
+      "cancelled": "已停止。",
+      "tagsAdded_other": "已添加 {{count, number}} 个标签。",
+      "descriptionsSet_other": "已撰写 {{count, number}} 条描述。",
+      "failed_other": "有 {{count, number}} 张照片无法处理。",
+      "tokens": "已用令牌：发送 {{input, number}}，接收 {{output, number}}。",
+      "stoppedError": "{{task}} 已停止：{{message}}"
+    },
+    "info": {
+      "title": "AI",
+      "none": "这张照片没有 AI 结果。",
+      "run": "运行{{task}}",
+      "running": "正在运行…",
+      "byModel": "{{model}}，{{date}}",
+      "noObjects": "未找到物体。",
+      "noTags": "未找到标签。"
+    }
   }
 }

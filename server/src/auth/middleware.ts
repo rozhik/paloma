@@ -66,6 +66,8 @@ export type Requirement = 'public' | 'authenticated' | Permission;
 export interface GuardOptions {
   /** Refused to API tokens (managing credentials, sessions and tokens) */
   sessionOnly?: boolean;
+  /** Other permissions that are enough instead of the required one */
+  or?: Permission[];
 }
 
 /** A route guard, marked so a test can check that every route has exactly one. */
@@ -85,7 +87,8 @@ export function need(requirement: Requirement, options: GuardOptions = {}): Guar
     if (options.sessionOnly && principal.via === 'token') {
       return res.status(403).json(apiError('session_required', 'API tokens cannot do this; log in in the browser'));
     }
-    if (requirement !== 'authenticated' && !principal.permissions.has(requirement)) {
+    if (requirement !== 'authenticated' && !principal.permissions.has(requirement)
+      && !(options.or ?? []).some((permission) => principal.permissions.has(permission))) {
       return res.status(403).json(apiError('permission_required', `This needs the permission ${requirement}`, { permission: requirement }));
     }
     next();

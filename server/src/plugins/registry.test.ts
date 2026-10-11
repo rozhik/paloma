@@ -63,6 +63,7 @@ describe('PluginRegistry', () => {
       error: null,
       warnings: [],
       authProviders: [],
+      aiProviders: [],
       filters: [{
         name: 'sepia',
         label: 'sepia мітка',
@@ -405,5 +406,50 @@ export function activate() {
       await off.init();
       expect((await off.setEnabled('auth-pin', false)).enabled).toBe(false);
     });
+  });
+});
+
+describe('AI providers', () => {
+  const aiModule = (id: string, label = 'Vision') => `
+export function activate() {
+  return {
+    aiProviders: [{
+      id: ${JSON.stringify(id)},
+      label: { en: ${JSON.stringify(label)}, uk: ${JSON.stringify(label + ' уk')} },
+      settings: [{ name: 'apiKey', label: 'API key', type: 'secret', required: true }],
+      listModels: async () => [],
+      run: async () => ({}),
+    }],
+  };
+}
+`;
+
+  it('lists the AI providers of active plugins with localized labels', async () => {
+    writeTestPlugin(bundled, 'ai-openai', { module: aiModule('openai', 'OpenAI') });
+    const registry = newRegistry();
+    await registry.init();
+    expect(registry.get('ai-openai', 'en')?.aiProviders).toEqual([{ id: 'openai', label: 'OpenAI' }]);
+    expect(registry.getAiProvider('openai')).toMatchObject({ pluginId: 'ai-openai', definition: { id: 'openai', modelOptions: [] } });
+    expect(registry.getAiProviders().map((p) => p.definition.id)).toEqual(['openai']);
+  });
+
+  it('keeps a taken AI provider id with the bundled plugin and warns the external one', async () => {
+    writeTestPlugin(bundled, 'ai-openai', { module: aiModule('openai', 'OpenAI') });
+    writeTestPlugin(external, 'clone', { module: aiModule('openai', 'Clone') });
+    const registry = newRegistry();
+    await registry.init();
+    await registry.setEnabled('clone', true);
+    expect(registry.getAiProvider('openai')?.pluginId).toBe('ai-openai');
+    expect(registry.get('clone')?.aiProviders).toEqual([]);
+    expect(registry.get('clone')?.warnings).toEqual(['AI provider "openai" is not available: plugin "ai-openai" already provides it']);
+  });
+
+  it('removes the providers of a plugin switched off', async () => {
+    writeTestPlugin(bundled, 'ai-openai', { module: aiModule('openai') });
+    const registry = newRegistry();
+    await registry.init();
+    await registry.setEnabled('ai-openai', false);
+    expect(registry.getAiProvider('openai')).toBeUndefined();
+    expect(registry.get('ai-openai')?.aiProviders).toEqual([]);
   });
 });

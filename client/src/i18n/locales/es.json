@@ -292,7 +292,14 @@
     "album_not_granted": "Solo puedes cambiar los álbumes a los que te dieron acceso.",
     "outside_access": "Esto también cambia fotos que no puedes ver.",
     "person_linked": "Esta persona ya está vinculada con el usuario {{username}}.",
-    "avatar_invalid": "El archivo no es una imagen utilizable. Elige una imagen JPEG, PNG o WebP de 10 MB como máximo."
+    "avatar_invalid": "El archivo no es una imagen utilizable. Elige una imagen JPEG, PNG o WebP de 10 MB como máximo.",
+    "ai_provider_not_found": "No se encontró el proveedor de IA. Puede que su complemento esté desactivado.",
+    "ai_provider_failed": "El proveedor de IA falló: {{message}}",
+    "ai_task_not_found": "No se encontró la tarea de IA.",
+    "ai_task_builtin": "Una tarea de IA integrada no se puede eliminar.",
+    "ai_task_not_builtin": "Solo se pueden restablecer las tareas de IA integradas.",
+    "ai_task_not_ready": "Esta tarea de IA no está lista. Revisa su proveedor y modelo en la configuración del servidor.",
+    "ai_run_in_progress": "Hay otra tarea de IA en curso. Espera a que termine."
   },
   "geo": {
     "coordinates": "{{lat}}; {{lon}}",
@@ -417,7 +424,9 @@
     "fit": "Ajustar a la pantalla",
     "info": "Información",
     "faces": "Caras",
-    "facesUnavailable": "Los marcos de las caras no se pueden mostrar en esta foto por el enderezado."
+    "facesUnavailable": "Los marcos de las caras no se pueden mostrar en esta foto por el enderezado.",
+    "objects": "Objetos",
+    "objectsUnavailable": "Los marcos de objetos no se pueden mostrar en esta foto por su enderezado."
   },
   "tags": {
     "placeholder": "Escribe una etiqueta y pulsa Intro",
@@ -756,5 +765,144 @@
     "rateLimit": "Solicitudes por minuto predeterminadas",
     "unlimited": "Sin límite",
     "none": "Ninguna"
+  },
+  "ai": {
+    "title": "IA",
+    "intro": "Las tareas de IA examinan las fotos para añadir etiquetas, encontrar objetos o escribir descripciones. Elige un proveedor y un modelo para cada tarea. Esta configuración se aplica a todos los usuarios.",
+    "loading": "Cargando la configuración de IA…",
+    "task": {
+      "tags": "Etiquetas",
+      "objects": "Objetos",
+      "description": "Descripción"
+    },
+    "output": {
+      "tags": "Etiquetas",
+      "objects": "Objetos con marcos",
+      "text": "Texto"
+    },
+    "problem": {
+      "no_provider": "Elige un proveedor para esta tarea.",
+      "provider_unavailable": "Su proveedor no está disponible. Activa su complemento en la sección Complementos.",
+      "provider_not_configured": "Su proveedor aún no está configurado.",
+      "no_model": "Elige un modelo para esta tarea."
+    },
+    "providers": {
+      "title": "Proveedores",
+      "none": "No hay ningún proveedor de IA. Activa un complemento de IA, como OpenAI, en la sección Complementos.",
+      "plugin": "Complemento: {{plugin}}",
+      "configured": "Configurado",
+      "notConfigured": "Sin configurar",
+      "missing": "Aún falta: {{list}}",
+      "privacy": "Las fotos procesadas con {{name}} se envían a su servicio.",
+      "privacyAddress": "Las fotos procesadas con {{name}} se envían a {{address}}.",
+      "fromEnv": "El entorno del servidor da este valor mientras aquí no se guarde nada.",
+      "secretSet": "Guardado. Escribe para reemplazarlo.",
+      "secretNotSet": "Sin definir",
+      "secretRemoved": "Se quitará al guardar",
+      "remove": "Quitar",
+      "save": "Guardar",
+      "saved": "La configuración se ha guardado.",
+      "test": "Probar la conexión",
+      "testOk": "La conexión funciona."
+    },
+    "tasks": {
+      "title": "Tareas",
+      "intro": "Los menús de IA ofrecen estas tareas. Tras cambiar el proveedor, el modelo, el prompt, las opciones del modelo, el tamaño de imagen o el idioma, una tarea vuelve a procesar las fotos.",
+      "add": "Añadir tarea",
+      "builtIn": "Integrada",
+      "notInMenu": "No está en los menús",
+      "ready": "Lista",
+      "edit": "Editar",
+      "reset": "Restablecer",
+      "delete": "Eliminar",
+      "resetTitle": "¿Restablecer «{{name}}»?",
+      "resetBody": "Su prompt y sus opciones vuelven a los valores predeterminados. Su proveedor y su modelo se mantienen.",
+      "deleteTitle": "¿Eliminar «{{name}}»?",
+      "deleteBody": "También se eliminan sus resultados. Las etiquetas y descripciones que añadió a las fotos se mantienen."
+    },
+    "editor": {
+      "addTitle": "Añadir una tarea de IA",
+      "editTitle": "Editar «{{name}}»",
+      "name": "Nombre",
+      "output": "Resultado",
+      "inMenu": "Mostrar en los menús de IA",
+      "provider": "Proveedor",
+      "noProvider": "Sin proveedor",
+      "unavailable": "{{id}} (no disponible)",
+      "model": "Modelo",
+      "modelPlaceholder": "Elige o escribe un modelo",
+      "loadingModels": "Cargando modelos…",
+      "modelsFailed": "No se pudieron listar los modelos: {{message}} Puedes escribir el nombre de un modelo.",
+      "modelsCount_one": "{{count, number}} modelo disponible",
+      "modelsCount_many": "{{count, number}} de modelos disponibles",
+      "modelsCount_other": "{{count, number}} modelos disponibles",
+      "prompt": "Prompt",
+      "placeholders": "Insertar:",
+      "modelOptions": "Opciones del modelo",
+      "taskOptions": "Opciones de la tarea",
+      "default": "Predeterminado ({{value}})"
+    },
+    "placeholder": {
+      "language": "el nombre del idioma de la respuesta",
+      "maxTags": "el número máximo de etiquetas",
+      "photoTags": "las etiquetas actuales de la foto",
+      "description": "la descripción actual de la foto",
+      "libraryTags": "las 300 etiquetas más usadas de la biblioteca"
+    },
+    "option": {
+      "imageSize": "Tamaño de imagen, píxeles",
+      "imageSizeHelp": "El lado largo de la imagen enviada. Una imagen más grande muestra más detalle y cuesta más.",
+      "parallel": "Fotos a la vez",
+      "language": "Idioma de la respuesta",
+      "languageUser": "El idioma de quien la ejecuta",
+      "maxTags": "Máximo de etiquetas",
+      "minConfidence": "Confianza mínima",
+      "minConfidenceHelp": "De 0 a 1. Las respuestas menos seguras se guardan como resultados, pero no se añaden a las fotos.",
+      "labelsAsTags": "Añadir también los nombres de objetos como etiquetas",
+      "textTarget": "Usar el texto como",
+      "target": {
+        "description-if-empty": "Descripción, si la foto no tiene",
+        "description-always": "Descripción, reemplazando la actual",
+        "none": "Solo resultado"
+      }
+    },
+    "menu": {
+      "button": "IA",
+      "label": "Tareas de IA para estas fotos",
+      "runAgain": "Volver a ejecutar en todas las fotos",
+      "settings": "Configuración de IA…",
+      "running": "Hay una tarea de IA en curso. Espera a que termine.",
+      "empty": "No hay tareas de IA. Un administrador puede añadirlas en la configuración del servidor."
+    },
+    "run": {
+      "progress": "{{task}}: {{done, number}} de {{total, number}} fotos",
+      "stop": "Detener",
+      "cancelling": "Deteniendo tras las fotos en curso…",
+      "processed_one": "{{task}}: {{count, number}} foto procesada.",
+      "processed_many": "{{task}}: {{count, number}} de fotos procesadas.",
+      "processed_other": "{{task}}: {{count, number}} fotos procesadas.",
+      "nothingToDo": "{{task}}: estas fotos ya se procesaron. Elige «Volver a ejecutar» para procesarlas de nuevo.",
+      "cancelled": "Detenido.",
+      "tagsAdded_one": "{{count, number}} etiqueta añadida.",
+      "tagsAdded_many": "{{count, number}} de etiquetas añadidas.",
+      "tagsAdded_other": "{{count, number}} etiquetas añadidas.",
+      "descriptionsSet_one": "{{count, number}} descripción escrita.",
+      "descriptionsSet_many": "{{count, number}} de descripciones escritas.",
+      "descriptionsSet_other": "{{count, number}} descripciones escritas.",
+      "failed_one": "{{count, number}} foto no se pudo procesar.",
+      "failed_many": "{{count, number}} de fotos no se pudieron procesar.",
+      "failed_other": "{{count, number}} fotos no se pudieron procesar.",
+      "tokens": "Tokens usados: {{input, number}} enviados, {{output, number}} recibidos.",
+      "stoppedError": "{{task}} se detuvo: {{message}}"
+    },
+    "info": {
+      "title": "IA",
+      "none": "No hay resultados de IA para esta foto.",
+      "run": "Ejecutar {{task}}",
+      "running": "En curso…",
+      "byModel": "{{model}}, {{date}}",
+      "noObjects": "No se encontraron objetos.",
+      "noTags": "No se encontraron etiquetas."
+    }
   }
 }

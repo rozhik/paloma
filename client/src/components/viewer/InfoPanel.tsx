@@ -10,6 +10,7 @@ import { PersonAvatar } from '../../people/PersonAvatar.js';
 import { PersonPicker } from '../../people/PersonPicker.js';
 import { useFormat } from '../../i18n/format.js';
 import { useAllows } from '../../levels/controls.js';
+import { InfoPanelAi } from '../../ai/InfoPanelAi.js';
 import { usePalomaStore } from '../../store/usePalomaStore.js';
 import { TagChips } from '../tags/TagChips.js';
 import { EntryLink } from '../../shell/EntryLink.js';
@@ -129,6 +130,7 @@ export const InfoContent: React.FC<{
   const showJson = useAllows('info.json');
   const editPeople = useAllows('info.people.edit');
   const editText = useAllows('info.edit');
+  const showAi = useAllows('info.ai');
   const { photo, file } = info;
   const saved = photo.caption ?? '';
   const [caption, setCaption] = useState(saved);
@@ -219,6 +221,12 @@ export const InfoContent: React.FC<{
           onAssign={editPeople ? onAssignFace : undefined}
         />
       </Section>
+
+      {showAi && (
+        <Section title={t('ai.info.title')}>
+          <InfoPanelAi photoId={photo.id} />
+        </Section>
+      )}
 
       <Section title={t('info.location')}>
         {photo.latitude === null || photo.longitude === null ? <p className="mb-0 opacity-75">{t('info.noLocation')}</p> : (

@@ -108,3 +108,44 @@ describe('docs/plugins.md auth provider example', () => {
     }
   });
 });
+
+describe('docs/plugins.md AI provider example', () => {
+  const aiModule = () => {
+    const match = /<!-- ai-file: index\.js -->\n```js\n([\s\S]*?)```/.exec(fs.readFileSync(DOC, 'utf-8'));
+    return match![1];
+  };
+
+  it('loads as an AI provider and turns the service answer into tags', async () => {
+    const folder = path.join(tmp, 'ai-external', 'paloma-home-tagger');
+    fs.mkdirSync(folder, { recursive: true });
+    fs.writeFileSync(path.join(folder, 'paloma-plugin.json'), JSON.stringify({
+      id: 'home-tagger', name: 'Home tagger', description: 'Home tagger', version: '1.0.0', apiVersion: 1, server: 'index.js',
+    }));
+    fs.writeFileSync(path.join(folder, 'package.json'), '{ "type": "module" }');
+    fs.writeFileSync(path.join(folder, 'index.js'), aiModule());
+
+    const registry = new PluginRegistry({
+      bundledDir: path.join(tmp, 'ai-bundled'),
+      externalDir: path.join(tmp, 'ai-external'),
+      stateFile: path.join(tmp, 'ai-plugins.json'),
+    });
+    await registry.init();
+    const info = await registry.setEnabled('home-tagger', true);
+    expect(info).toMatchObject({ status: 'active', warnings: [], aiProviders: [{ id: 'home-tagger', label: 'Home tagger' }] });
+
+    const provider = registry.getAiProvider('home-tagger')!.definition;
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify([{ label: 'cat', score: 0.9 }, { label: 'sofa', score: 0.7 }])));
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      const ctx = { settings: { url: 'http://tagger.test' }, env: {}, signal: new AbortController().signal, log: { info() {}, warn() {}, error() {} } };
+      const answer = await provider.run({
+        model: 'default', prompt: '', output: 'tags', language: 'English', maxTags: 1, options: {},
+        image: { data: Buffer.from('jpeg'), mimeType: 'image/jpeg', width: 1, height: 1 },
+      }, ctx);
+      expect(answer).toEqual({ tags: [{ name: 'cat', confidence: 0.9 }] });
+      expect(fetchMock).toHaveBeenCalledWith('http://tagger.test/tag', expect.objectContaining({ method: 'POST' }));
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+});

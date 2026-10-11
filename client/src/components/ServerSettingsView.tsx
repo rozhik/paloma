@@ -6,6 +6,7 @@ import type { ServerInfo } from '../../../shared/types.js';
 import { fetchServerInfo } from '../api/server.js';
 import { describeError } from '../api/http.js';
 import { PluginsList } from './PluginsList.js';
+import { AiSection } from '../ai/AiSection.js';
 
 const Fact: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
   <div className="row py-2 border-bottom">
@@ -47,7 +48,7 @@ export const ServerSection: React.FC<{ info: ServerInfo }> = ({ info }) => {
   );
 };
 
-/** Server settings, from the user menu: the server's configuration and the plugins. They apply to everyone. */
+/** Server settings, from the user menu: the server's configuration, the plugins and AI. They apply to everyone. */
 export const ServerSettingsView: React.FC = () => {
   const { t } = useTranslation();
   const [info, setInfo] = useState<ServerInfo | null>(null);
@@ -67,6 +68,7 @@ export const ServerSettingsView: React.FC = () => {
         {error && <Alert variant="danger" className="fs-5">{error}</Alert>}
         {info && <ServerSection info={info} />}
         <PluginsList />
+        <AiSection />
       </div>
     </main>
   );

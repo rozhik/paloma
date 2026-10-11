@@ -274,7 +274,14 @@
     "album_not_granted": "変更できるのはアクセスを許可されたアルバムだけです。",
     "outside_access": "これはあなたが見られない写真も変更します。",
     "person_linked": "この人物はすでにユーザー {{username}} とリンクされています。",
-    "avatar_invalid": "このファイルは使用できる画像ではありません。10 MB までの JPEG、PNG、WebP 画像を選んでください。"
+    "avatar_invalid": "このファイルは使用できる画像ではありません。10 MB までの JPEG、PNG、WebP 画像を選んでください。",
+    "ai_provider_not_found": "AI プロバイダーが見つかりません。プラグインがオフになっている可能性があります。",
+    "ai_provider_failed": "AI プロバイダーでエラーが発生しました：{{message}}",
+    "ai_task_not_found": "AI タスクが見つかりません。",
+    "ai_task_builtin": "組み込みの AI タスクは削除できません。",
+    "ai_task_not_builtin": "リセットできるのは組み込みの AI タスクだけです。",
+    "ai_task_not_ready": "この AI タスクはまだ準備ができていません。サーバー設定でプロバイダーとモデルを確認してください。",
+    "ai_run_in_progress": "別の AI タスクが実行中です。終わるまでお待ちください。"
   },
   "geo": {
     "coordinates": "{{lat}}、{{lon}}",
@@ -389,7 +396,9 @@
     "fit": "画面に合わせる",
     "info": "情報",
     "faces": "顔",
-    "facesUnavailable": "この写真は傾き補正されているため、顔の枠を表示できません。"
+    "facesUnavailable": "この写真は傾き補正されているため、顔の枠を表示できません。",
+    "objects": "物体",
+    "objectsUnavailable": "この写真は傾き補正されているため、物体の枠を表示できません。"
   },
   "tags": {
     "placeholder": "タグを入力して Enter を押してください",
@@ -724,5 +733,134 @@
     "rateLimit": "既定の 1 分あたりのリクエスト数",
     "unlimited": "上限なし",
     "none": "なし"
+  },
+  "ai": {
+    "title": "AI",
+    "intro": "AI タスクは写真を見て、タグの追加、物体の検出、説明の作成を行います。タスクごとにプロバイダーとモデルを選んでください。この設定はすべてのユーザーに適用されます。",
+    "loading": "AI 設定を読み込んでいます…",
+    "task": {
+      "tags": "タグ",
+      "objects": "物体",
+      "description": "説明"
+    },
+    "output": {
+      "tags": "タグ",
+      "objects": "枠付きの物体",
+      "text": "テキスト"
+    },
+    "problem": {
+      "no_provider": "このタスクのプロバイダーを選んでください。",
+      "provider_unavailable": "プロバイダーを利用できません。「プラグイン」でそのプラグインをオンにしてください。",
+      "provider_not_configured": "プロバイダーがまだ設定されていません。",
+      "no_model": "このタスクのモデルを選んでください。"
+    },
+    "providers": {
+      "title": "プロバイダー",
+      "none": "利用できる AI プロバイダーがありません。「プラグイン」で OpenAI などの AI プラグインをオンにしてください。",
+      "plugin": "プラグイン：{{plugin}}",
+      "configured": "設定済み",
+      "notConfigured": "未設定",
+      "missing": "まだ必要な項目：{{list}}",
+      "privacy": "{{name}} で処理する写真は、そのサービスに送信されます。",
+      "privacyAddress": "{{name}} で処理する写真は {{address}} に送信されます。",
+      "fromEnv": "ここに何も保存されていない間は、サーバーの環境変数の値が使われます。",
+      "secretSet": "保存済み。入力すると置き換えます。",
+      "secretNotSet": "未設定",
+      "secretRemoved": "保存すると削除されます",
+      "remove": "削除",
+      "save": "保存",
+      "saved": "設定を保存しました。",
+      "test": "接続をテスト",
+      "testOk": "接続できました。"
+    },
+    "tasks": {
+      "title": "タスク",
+      "intro": "AI メニューにはこれらのタスクが表示されます。プロバイダー、モデル、プロンプト、モデルのオプション、画像サイズ、言語を変更すると、タスクは写真を処理し直します。",
+      "add": "タスクを追加",
+      "builtIn": "組み込み",
+      "notInMenu": "メニューに表示しない",
+      "ready": "準備完了",
+      "edit": "編集",
+      "reset": "リセット",
+      "delete": "削除",
+      "resetTitle": "「{{name}}」をリセットしますか？",
+      "resetBody": "プロンプトとオプションが既定値に戻ります。プロバイダーとモデルはそのままです。",
+      "deleteTitle": "「{{name}}」を削除しますか？",
+      "deleteBody": "その結果も削除されます。写真に追加したタグと説明は残ります。"
+    },
+    "editor": {
+      "addTitle": "AI タスクを追加",
+      "editTitle": "「{{name}}」を編集",
+      "name": "名前",
+      "output": "結果",
+      "inMenu": "AI メニューに表示",
+      "provider": "プロバイダー",
+      "noProvider": "プロバイダーなし",
+      "unavailable": "{{id}}（利用不可）",
+      "model": "モデル",
+      "modelPlaceholder": "モデルを選ぶか入力",
+      "loadingModels": "モデルを読み込んでいます…",
+      "modelsFailed": "モデルの一覧を取得できませんでした：{{message}} モデル名を入力できます。",
+      "modelsCount_other": "{{count, number}} 個のモデルを利用可能",
+      "prompt": "プロンプト",
+      "placeholders": "挿入：",
+      "modelOptions": "モデルのオプション",
+      "taskOptions": "タスクのオプション",
+      "default": "既定（{{value}}）"
+    },
+    "placeholder": {
+      "language": "回答する言語の名前",
+      "maxTags": "返すタグの最大数",
+      "photoTags": "写真の現在のタグ",
+      "description": "写真の現在の説明",
+      "libraryTags": "ライブラリで最もよく使われる 300 個のタグ"
+    },
+    "option": {
+      "imageSize": "画像サイズ（ピクセル）",
+      "imageSizeHelp": "送信する画像の長辺です。大きいほど細部がわかりますが、費用も増えます。",
+      "parallel": "同時に処理する写真",
+      "language": "回答の言語",
+      "languageUser": "実行する人の言語",
+      "maxTags": "タグの最大数",
+      "minConfidence": "最低信頼度",
+      "minConfidenceHelp": "0 から 1。信頼度の低い回答は結果として残りますが、写真には追加されません。",
+      "labelsAsTags": "物体の名前もタグとして追加",
+      "textTarget": "テキストの使い道",
+      "target": {
+        "description-if-empty": "説明（写真に説明がないとき）",
+        "description-always": "説明（現在の説明を置き換え）",
+        "none": "結果のみ"
+      }
+    },
+    "menu": {
+      "button": "AI",
+      "label": "これらの写真の AI タスク",
+      "runAgain": "すべての写真でもう一度実行",
+      "settings": "AI 設定…",
+      "running": "AI タスクが実行中です。終わるまでお待ちください。",
+      "empty": "AI タスクがありません。管理者がサーバー設定で追加できます。"
+    },
+    "run": {
+      "progress": "{{task}}：{{total, number}} 枚中 {{done, number}} 枚",
+      "stop": "停止",
+      "cancelling": "処理中の写真のあとで停止します…",
+      "processed_other": "{{task}}：{{count, number}} 枚の写真を処理しました。",
+      "nothingToDo": "{{task}}：これらの写真は処理済みです。もう一度処理するには「もう一度実行」を選んでください。",
+      "cancelled": "停止しました。",
+      "tagsAdded_other": "{{count, number}} 個のタグを追加しました。",
+      "descriptionsSet_other": "{{count, number}} 件の説明を書きました。",
+      "failed_other": "{{count, number}} 枚の写真を処理できませんでした。",
+      "tokens": "使用トークン：送信 {{input, number}}、受信 {{output, number}}。",
+      "stoppedError": "{{task}} が停止しました：{{message}}"
+    },
+    "info": {
+      "title": "AI",
+      "none": "この写真の AI 結果はありません。",
+      "run": "{{task}}を実行",
+      "running": "実行中…",
+      "byModel": "{{model}}、{{date}}",
+      "noObjects": "物体は見つかりませんでした。",
+      "noTags": "タグは見つかりませんでした。"
+    }
   }
 }

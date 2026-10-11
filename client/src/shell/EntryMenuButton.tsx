@@ -68,21 +68,27 @@ export const EntryMenuButton: React.FC<EntryMenuButtonProps> = ({ entry, name, c
         </Dropdown.Toggle>
         {show && createPortal(
           <Dropdown.Menu className="entry-menu-items shadow" popperConfig={{ strategy: 'fixed' }}>
-            {items.map(({ id, label: itemLabel, icon: Icon, danger, run }) => (
-              <Dropdown.Item
-                key={id}
-                as="button"
-                type="button"
-                className={`d-flex align-items-center gap-2 ${danger ? 'text-danger' : ''}`}
-                data-entry-action={id}
-                onClick={() => {
-                  setShow(false);
-                  run();
-                }}
-              >
-                <Icon size={18} aria-hidden="true" />
-                <span>{itemLabel}</span>
-              </Dropdown.Item>
+            {items.map(({ id, key, label: itemLabel, icon: Icon, danger, disabled, hint, header, run }) => (
+              <React.Fragment key={key}>
+                {header && <Dropdown.Header>{header}</Dropdown.Header>}
+                <Dropdown.Item
+                  as="button"
+                  type="button"
+                  disabled={disabled}
+                  className={danger ? 'text-danger' : undefined}
+                  data-entry-action={id}
+                  onClick={() => {
+                    setShow(false);
+                    run();
+                  }}
+                >
+                  <span className="d-flex align-items-center gap-2">
+                    <Icon size={18} aria-hidden="true" />
+                    <span>{itemLabel}</span>
+                  </span>
+                  {hint && <small className="d-block text-wrap text-secondary ms-4">{hint}</small>}
+                </Dropdown.Item>
+              </React.Fragment>
             ))}
           </Dropdown.Menu>,
           document.body,

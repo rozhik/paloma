@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import Database from 'better-sqlite3';
-import { addMissingPhotoColumns, createAuthTables, createPeopleTables, createTextTables, dropMvpEdits, migrateAlbumTables } from './columns.js';
+import { addMissingPhotoColumns, createAiTables, createAuthTables, createPeopleTables, createTextTables, dropMvpEdits, migrateAlbumTables } from './columns.js';
 
 describe('addMissingPhotoColumns', () => {
   it('adds caption, keywords and is_hidden to an old photos table and keeps its rows', () => {
@@ -205,5 +205,20 @@ describe('createAuthTables', () => {
     for (const table of ['user_access', 'user_identities', 'sessions', 'api_tokens', 'user_quotas']) {
       expect(sqlite.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get(), table).toEqual({ n: 0 });
     }
+  });
+});
+
+describe('createAiTables', () => {
+  it('creates the AI tables on an existing database, once', () => {
+    const sqlite = new Database(':memory:');
+    sqlite.exec('CREATE TABLE photos (id INTEGER PRIMARY KEY AUTOINCREMENT, filename TEXT NOT NULL); INSERT INTO photos (filename) VALUES (\'a.jpg\')');
+    createAiTables(sqlite);
+    createAiTables(sqlite);
+    const tables = (sqlite.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all() as Array<{ name: string }>).map((t) => t.name);
+    expect(tables).toEqual(expect.arrayContaining(['ai_results', 'ai_objects']));
+    sqlite.pragma('foreign_keys = ON');
+    sqlite.exec(`INSERT INTO ai_results VALUES (1, 'tags', 'f', 'h', 'openai', 'm', 'tags', '[]', NULL, NULL, '')`);
+    sqlite.exec('DELETE FROM photos');
+    expect(sqlite.prepare('SELECT count(*) AS n FROM ai_results').get()).toEqual({ n: 0 });
   });
 });

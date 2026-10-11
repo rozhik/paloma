@@ -319,7 +319,14 @@
     "album_not_granted": "يمكنك تغيير الألبومات التي مُنحت حق الوصول إليها فقط.",
     "outside_access": "سيغيّر هذا أيضًا صورًا لا يمكنك رؤيتها.",
     "person_linked": "هذا الشخص مرتبط بالفعل بالمستخدم {{username}}.",
-    "avatar_invalid": "الملف ليس صورة صالحة. اختر صورة JPEG أو PNG أو WebP بحجم 10 م.ب على الأكثر."
+    "avatar_invalid": "الملف ليس صورة صالحة. اختر صورة JPEG أو PNG أو WebP بحجم 10 م.ب على الأكثر.",
+    "ai_provider_not_found": "لم يُعثر على مزوّد الذكاء الاصطناعي. ربما تكون إضافته متوقفة.",
+    "ai_provider_failed": "فشل مزوّد الذكاء الاصطناعي: {{message}}",
+    "ai_task_not_found": "لم يُعثر على مهمة الذكاء الاصطناعي.",
+    "ai_task_builtin": "لا يمكن حذف مهمة ذكاء اصطناعي مدمجة.",
+    "ai_task_not_builtin": "لا يمكن إعادة تعيين إلا مهام الذكاء الاصطناعي المدمجة.",
+    "ai_task_not_ready": "مهمة الذكاء الاصطناعي هذه ليست جاهزة. تحقّق من مزوّدها ونموذجها في إعدادات الخادم.",
+    "ai_run_in_progress": "هناك مهمة ذكاء اصطناعي أخرى قيد التشغيل. انتظر حتى تنتهي."
   },
   "geo": {
     "coordinates": "{{lat}}، {{lon}}",
@@ -459,7 +466,9 @@
     "fit": "ملاءمة الشاشة",
     "info": "معلومات",
     "faces": "الوجوه",
-    "facesUnavailable": "لا يمكن عرض إطارات الوجوه لهذه الصورة بسبب تسويتها."
+    "facesUnavailable": "لا يمكن عرض إطارات الوجوه لهذه الصورة بسبب تسويتها.",
+    "objects": "الكائنات",
+    "objectsUnavailable": "لا يمكن عرض إطارات الكائنات لهذه الصورة بسبب تقويمها."
   },
   "tags": {
     "placeholder": "اكتب وسمًا واضغط Enter",
@@ -804,5 +813,159 @@
     "rateLimit": "الطلبات الافتراضية في الدقيقة",
     "unlimited": "بلا حد",
     "none": "لا شيء"
+  },
+  "ai": {
+    "title": "الذكاء الاصطناعي",
+    "intro": "تنظر مهام الذكاء الاصطناعي في الصور لإضافة وسوم أو العثور على كائنات أو كتابة أوصاف. اختر مزوّدًا ونموذجًا لكل مهمة. تنطبق هذه الإعدادات على جميع المستخدمين.",
+    "loading": "جارٍ تحميل إعدادات الذكاء الاصطناعي…",
+    "task": {
+      "tags": "الوسوم",
+      "objects": "الكائنات",
+      "description": "الوصف"
+    },
+    "output": {
+      "tags": "وسوم",
+      "objects": "كائنات بإطارات",
+      "text": "نص"
+    },
+    "problem": {
+      "no_provider": "اختر مزوّدًا لهذه المهمة.",
+      "provider_unavailable": "مزوّدها غير متاح. شغّل إضافته في قسم الإضافات.",
+      "provider_not_configured": "مزوّدها لم يُهيّأ بعد.",
+      "no_model": "اختر نموذجًا لهذه المهمة."
+    },
+    "providers": {
+      "title": "المزوّدون",
+      "none": "لا يتوفر أي مزوّد ذكاء اصطناعي. شغّل إضافة ذكاء اصطناعي مثل OpenAI في قسم الإضافات.",
+      "plugin": "الإضافة: {{plugin}}",
+      "configured": "مُهيّأ",
+      "notConfigured": "غير مُهيّأ",
+      "missing": "لا يزال مطلوبًا: {{list}}",
+      "privacy": "تُرسل الصور المعالجة باستخدام {{name}} إلى خدمته.",
+      "privacyAddress": "تُرسل الصور المعالجة باستخدام {{name}} إلى {{address}}.",
+      "fromEnv": "تعطي بيئة الخادم هذه القيمة ما دام لم يُحفظ شيء هنا.",
+      "secretSet": "محفوظ. اكتب لاستبداله.",
+      "secretNotSet": "غير محدد",
+      "secretRemoved": "سيُحذف عند الحفظ",
+      "remove": "إزالة",
+      "save": "حفظ",
+      "saved": "تم حفظ الإعدادات.",
+      "test": "اختبار الاتصال",
+      "testOk": "الاتصال يعمل."
+    },
+    "tasks": {
+      "title": "المهام",
+      "intro": "تعرض قوائم الذكاء الاصطناعي هذه المهام. بعد تغيير مزوّد المهمة أو نموذجها أو موجّهها أو خيارات النموذج أو حجم الصورة أو اللغة، تعالج المهمة الصور من جديد.",
+      "add": "إضافة مهمة",
+      "builtIn": "مدمجة",
+      "notInMenu": "ليست في القوائم",
+      "ready": "جاهزة",
+      "edit": "تعديل",
+      "reset": "إعادة تعيين",
+      "delete": "حذف",
+      "resetTitle": "إعادة تعيين «{{name}}»؟",
+      "resetBody": "يعود موجّهها وخياراتها إلى القيم الافتراضية. يبقى مزوّدها ونموذجها.",
+      "deleteTitle": "حذف «{{name}}»؟",
+      "deleteBody": "تُحذف نتائجها أيضًا. تبقى الوسوم والأوصاف التي أضافتها إلى الصور."
+    },
+    "editor": {
+      "addTitle": "إضافة مهمة ذكاء اصطناعي",
+      "editTitle": "تعديل «{{name}}»",
+      "name": "الاسم",
+      "output": "النتيجة",
+      "inMenu": "العرض في قوائم الذكاء الاصطناعي",
+      "provider": "المزوّد",
+      "noProvider": "بلا مزوّد",
+      "unavailable": "{{id}} (غير متاح)",
+      "model": "النموذج",
+      "modelPlaceholder": "اختر نموذجًا أو اكتبه",
+      "loadingModels": "جارٍ تحميل النماذج…",
+      "modelsFailed": "تعذّر سرد النماذج: {{message}} يمكنك كتابة اسم نموذج.",
+      "modelsCount_zero": "لا توجد نماذج متاحة ({{count, number}})",
+      "modelsCount_one": "نموذج واحد متاح ({{count, number}})",
+      "modelsCount_two": "نموذجان متاحان ({{count, number}})",
+      "modelsCount_few": "{{count, number}} نماذج متاحة",
+      "modelsCount_many": "{{count, number}} نموذجًا متاحًا",
+      "modelsCount_other": "{{count, number}} نموذج متاح",
+      "prompt": "الموجّه",
+      "placeholders": "إدراج:",
+      "modelOptions": "خيارات النموذج",
+      "taskOptions": "خيارات المهمة",
+      "default": "الافتراضي ({{value}})"
+    },
+    "placeholder": {
+      "language": "اسم لغة الإجابة",
+      "maxTags": "أكبر عدد من الوسوم",
+      "photoTags": "وسوم الصورة الحالية",
+      "description": "وصف الصورة الحالي",
+      "libraryTags": "أكثر 300 وسم استخدامًا في المكتبة"
+    },
+    "option": {
+      "imageSize": "حجم الصورة بالبكسل",
+      "imageSizeHelp": "الضلع الأطول للصورة المرسلة. الصورة الأكبر تُظهر تفاصيل أكثر وتكلّف أكثر.",
+      "parallel": "صور في الوقت نفسه",
+      "language": "لغة الإجابة",
+      "languageUser": "لغة من يشغّلها",
+      "maxTags": "أكبر عدد من الوسوم",
+      "minConfidence": "أدنى ثقة",
+      "minConfidenceHelp": "من 0 إلى 1. تُحفظ الإجابات الأقل ثقة كنتائج لكنها لا تُضاف إلى الصور.",
+      "labelsAsTags": "إضافة أسماء الكائنات كوسوم أيضًا",
+      "textTarget": "استخدام النص بوصفه",
+      "target": {
+        "description-if-empty": "الوصف، عندما لا يكون للصورة وصف",
+        "description-always": "الوصف، بدلًا من الوصف الحالي",
+        "none": "نتيجة فقط"
+      }
+    },
+    "menu": {
+      "button": "الذكاء الاصطناعي",
+      "label": "مهام الذكاء الاصطناعي لهذه الصور",
+      "runAgain": "التشغيل مجددًا على كل الصور",
+      "settings": "إعدادات الذكاء الاصطناعي…",
+      "running": "هناك مهمة ذكاء اصطناعي قيد التشغيل. انتظر حتى تنتهي.",
+      "empty": "لا توجد مهام ذكاء اصطناعي. يمكن للمسؤول إضافتها في إعدادات الخادم."
+    },
+    "run": {
+      "progress": "{{task}}: {{done, number}} من {{total, number}} صورة",
+      "stop": "إيقاف",
+      "cancelling": "سيتوقف بعد الصور الجارية معالجتها…",
+      "processed_zero": "{{task}}: لم تُعالج أي صورة ({{count, number}}).",
+      "processed_one": "{{task}}: عولجت صورة واحدة ({{count, number}}).",
+      "processed_two": "{{task}}: عولجت صورتان ({{count, number}}).",
+      "processed_few": "{{task}}: عولجت {{count, number}} صور.",
+      "processed_many": "{{task}}: عولجت {{count, number}} صورة.",
+      "processed_other": "{{task}}: عولجت {{count, number}} صورة.",
+      "nothingToDo": "{{task}}: عولجت هذه الصور من قبل. اختر «التشغيل مجددًا» لمعالجتها مرة أخرى.",
+      "cancelled": "توقف.",
+      "tagsAdded_zero": "لم يُضف أي وسم ({{count, number}}).",
+      "tagsAdded_one": "أُضيف وسم واحد ({{count, number}}).",
+      "tagsAdded_two": "أُضيف وسمان ({{count, number}}).",
+      "tagsAdded_few": "أُضيفت {{count, number}} وسوم.",
+      "tagsAdded_many": "أُضيف {{count, number}} وسمًا.",
+      "tagsAdded_other": "أُضيف {{count, number}} وسم.",
+      "descriptionsSet_zero": "لم يُكتب أي وصف ({{count, number}}).",
+      "descriptionsSet_one": "كُتب وصف واحد ({{count, number}}).",
+      "descriptionsSet_two": "كُتب وصفان ({{count, number}}).",
+      "descriptionsSet_few": "كُتبت {{count, number}} أوصاف.",
+      "descriptionsSet_many": "كُتب {{count, number}} وصفًا.",
+      "descriptionsSet_other": "كُتب {{count, number}} وصف.",
+      "failed_zero": "لم تفشل معالجة أي صورة ({{count, number}}).",
+      "failed_one": "تعذّرت معالجة صورة واحدة ({{count, number}}).",
+      "failed_two": "تعذّرت معالجة صورتين ({{count, number}}).",
+      "failed_few": "تعذّرت معالجة {{count, number}} صور.",
+      "failed_many": "تعذّرت معالجة {{count, number}} صورة.",
+      "failed_other": "تعذّرت معالجة {{count, number}} صورة.",
+      "tokens": "الرموز المستخدمة: {{input, number}} مُرسلة، {{output, number}} مُستلمة.",
+      "stoppedError": "توقفت {{task}}: {{message}}"
+    },
+    "info": {
+      "title": "الذكاء الاصطناعي",
+      "none": "لا توجد نتائج ذكاء اصطناعي لهذه الصورة.",
+      "run": "تشغيل {{task}}",
+      "running": "قيد التشغيل…",
+      "byModel": "{{model}}، {{date}}",
+      "noObjects": "لم يُعثر على كائنات.",
+      "noTags": "لم يُعثر على وسوم."
+    }
   }
 }

@@ -280,7 +280,14 @@
     "album_not_granted": "You can change only albums you were given access to.",
     "outside_access": "This also changes photos you cannot see.",
     "person_linked": "This person is already linked with the user {{username}}.",
-    "avatar_invalid": "The file is not a usable picture. Choose a JPEG, PNG or WebP image of at most 10 MB."
+    "avatar_invalid": "The file is not a usable picture. Choose a JPEG, PNG or WebP image of at most 10 MB.",
+    "ai_provider_not_found": "The AI provider was not found. Its plugin may be off.",
+    "ai_provider_failed": "The AI provider failed: {{message}}",
+    "ai_task_not_found": "The AI task was not found.",
+    "ai_task_builtin": "A built-in AI task cannot be deleted.",
+    "ai_task_not_builtin": "Only built-in AI tasks can be reset.",
+    "ai_task_not_ready": "This AI task is not ready. Check its provider and model in Server settings.",
+    "ai_run_in_progress": "Another AI task is running. Wait until it ends."
   },
   "geo": {
     "coordinates": "{{lat}}, {{lon}}",
@@ -400,7 +407,9 @@
     "fit": "Fit to screen",
     "info": "Info",
     "faces": "Faces",
-    "facesUnavailable": "Face frames cannot be shown for this photo because of its straightening."
+    "facesUnavailable": "Face frames cannot be shown for this photo because of its straightening.",
+    "objects": "Objects",
+    "objectsUnavailable": "Object frames cannot be shown for this photo because of its straightening."
   },
   "tags": {
     "placeholder": "Type a tag and press Enter",
@@ -737,5 +746,139 @@
     "rateLimit": "Default requests per minute",
     "unlimited": "No limit",
     "none": "None"
+  },
+  "ai": {
+    "title": "AI",
+    "intro": "AI tasks look at photos to add tags, find objects or write descriptions. Choose a provider and a model for each task. These settings apply to every user.",
+    "loading": "Loading AI settings…",
+    "task": {
+      "tags": "Tags",
+      "objects": "Objects",
+      "description": "Description"
+    },
+    "output": {
+      "tags": "Tags",
+      "objects": "Objects with frames",
+      "text": "Text"
+    },
+    "problem": {
+      "no_provider": "Choose a provider for this task.",
+      "provider_unavailable": "Its provider is not available. Switch on its plugin in the Plugins section.",
+      "provider_not_configured": "Its provider is not set up yet.",
+      "no_model": "Choose a model for this task."
+    },
+    "providers": {
+      "title": "Providers",
+      "none": "No AI provider is available. Switch on an AI plugin, such as OpenAI, in the Plugins section.",
+      "plugin": "Plugin: {{plugin}}",
+      "configured": "Set up",
+      "notConfigured": "Not set up",
+      "missing": "Still needed: {{list}}",
+      "privacy": "Photos processed with {{name}} are sent to its service.",
+      "privacyAddress": "Photos processed with {{name}} are sent to {{address}}.",
+      "fromEnv": "The server's environment gives this while nothing is saved here.",
+      "secretSet": "Saved. Type to replace it.",
+      "secretNotSet": "Not set",
+      "secretRemoved": "Removed when you save",
+      "remove": "Remove",
+      "save": "Save",
+      "saved": "The settings have been saved.",
+      "test": "Test connection",
+      "testOk": "The connection works."
+    },
+    "tasks": {
+      "title": "Tasks",
+      "intro": "The AI menus offer these tasks. After a change of a task's provider, model, prompt, model options, image size or language, it processes photos again.",
+      "add": "Add task",
+      "builtIn": "Built in",
+      "notInMenu": "Not in menus",
+      "ready": "Ready",
+      "edit": "Edit",
+      "reset": "Reset",
+      "delete": "Delete",
+      "resetTitle": "Reset {{name}}?",
+      "resetBody": "Its prompt and options go back to their defaults. Its provider and model stay.",
+      "deleteTitle": "Delete {{name}}?",
+      "deleteBody": "Its results are deleted too. Tags and descriptions it added to photos stay."
+    },
+    "editor": {
+      "addTitle": "Add an AI task",
+      "editTitle": "Edit {{name}}",
+      "name": "Name",
+      "output": "Result",
+      "inMenu": "Show in AI menus",
+      "provider": "Provider",
+      "noProvider": "No provider",
+      "unavailable": "{{id}} (not available)",
+      "model": "Model",
+      "modelPlaceholder": "Choose or type a model",
+      "loadingModels": "Loading models…",
+      "modelsFailed": "The models could not be listed: {{message}} You can type a model name.",
+      "modelsCount_one": "{{count, number}} model available",
+      "modelsCount_other": "{{count, number}} models available",
+      "prompt": "Prompt",
+      "placeholders": "Insert:",
+      "modelOptions": "Model options",
+      "taskOptions": "Task options",
+      "default": "Default ({{value}})"
+    },
+    "placeholder": {
+      "language": "the name of the answer language",
+      "maxTags": "the most tags to return",
+      "photoTags": "the photo's current tags",
+      "description": "the photo's current description",
+      "libraryTags": "the 300 tags used most in the library"
+    },
+    "option": {
+      "imageSize": "Image size, pixels",
+      "imageSizeHelp": "The long edge of the image sent. A larger image shows more detail and costs more.",
+      "parallel": "Photos at once",
+      "language": "Answer language",
+      "languageUser": "The language of whoever runs it",
+      "maxTags": "Most tags",
+      "minConfidence": "Minimum confidence",
+      "minConfidenceHelp": "From 0 to 1. Less confident answers are kept as results but not added to photos.",
+      "labelsAsTags": "Also add object names as tags",
+      "textTarget": "Use the text as",
+      "target": {
+        "description-if-empty": "The description, when the photo has none",
+        "description-always": "The description, replacing the current one",
+        "none": "A result only"
+      }
+    },
+    "menu": {
+      "button": "AI",
+      "label": "AI tasks for these photos",
+      "runAgain": "Run again on all photos",
+      "settings": "AI settings…",
+      "running": "An AI task is running. Wait until it ends.",
+      "empty": "No AI tasks. An administrator can add them in Server settings."
+    },
+    "run": {
+      "progress": "{{task}}: {{done, number}} of {{total, number}} photos",
+      "stop": "Stop",
+      "cancelling": "Stopping after the photos in progress…",
+      "processed_one": "{{task}}: {{count, number}} photo processed.",
+      "processed_other": "{{task}}: {{count, number}} photos processed.",
+      "nothingToDo": "{{task}}: these photos have already been processed. Choose “Run again” to process them again.",
+      "cancelled": "Stopped.",
+      "tagsAdded_one": "{{count, number}} tag added.",
+      "tagsAdded_other": "{{count, number}} tags added.",
+      "descriptionsSet_one": "{{count, number}} description written.",
+      "descriptionsSet_other": "{{count, number}} descriptions written.",
+      "failed_one": "{{count, number}} photo could not be processed.",
+      "failed_other": "{{count, number}} photos could not be processed.",
+      "tokens": "Tokens used: {{input, number}} sent, {{output, number}} received.",
+      "stoppedError": "{{task}} stopped: {{message}}"
+    },
+    "info": {
+      "title": "AI",
+      "none": "No AI results for this photo.",
+      "run": "Run {{task}}",
+      "running": "Running…",
+      "byModel": "{{model}}, {{date}}",
+      "noObjects": "No objects found.",
+      "noTags": "No tags found."
+    }
   }
 }

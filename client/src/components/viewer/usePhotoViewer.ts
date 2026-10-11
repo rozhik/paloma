@@ -77,6 +77,10 @@ export function usePhotoViewer(viewer: ViewerState) {
   const facesOn = useUiSettings((state) => state.showFaces);
   const showFaces = canFaces && facesOn;
   const toggleFaces = () => useUiSettings.getState().update({ showFaces: !useUiSettings.getState().showFaces });
+  const canObjects = useAllows('viewer.objects');
+  const objectsOn = useUiSettings((state) => state.showObjects);
+  const showObjects = canObjects && objectsOn;
+  const toggleObjects = () => useUiSettings.getState().update({ showObjects: !useUiSettings.getState().showObjects });
 
   const barSize = useSkin().skin.viewerBarSize;
   const navEdge = useUiSettings((state) => state.navBar);
@@ -287,7 +291,7 @@ export function usePhotoViewer(viewer: ViewerState) {
     setShowGrid, stage, full, zoom, preview, setZoom, onStageResize, zoomBy, fit: () => setZoomChoice('fit'),
     canPrev, canNext, prev, next, close, openFrame, applyFrame, cancelFrame, setFrameRatio, chooseFilter, lastStep,
     paletteValues, blocked, setBlocked, saveMessage, canInfo, showInfo, toggleInfo: () => setInfoOpen((open) => !open),
-    closeInfo: () => setInfoOpen(false), previewSteps, canFaces, canAssignFaces, showFaces, toggleFaces,
+    closeInfo: () => setInfoOpen(false), previewSteps, canFaces, canAssignFaces, showFaces, toggleFaces, canObjects, showObjects, toggleObjects,
   };
 }
 

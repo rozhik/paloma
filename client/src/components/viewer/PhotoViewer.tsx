@@ -8,6 +8,7 @@ import { CropOverlay, StraightenGrid } from '../CropOverlay.js';
 import { usePhotoViewer } from './usePhotoViewer.js';
 import { ZoomStage } from './ZoomStage.js';
 import { FaceFrames } from './FaceFrames.js';
+import { ObjectFrames } from '../../ai/ObjectFrames.js';
 
 /** The photo viewer, shown over the library while a photo is open. */
 export const PhotoViewer: React.FC = () => {
@@ -56,6 +57,7 @@ const ViewerScreen: React.FC<{ viewer: ViewerState }> = ({ viewer }) => {
         {v.showFaces && !frame && !preview.loading && (
           <FaceFrames photoId={photo.id} steps={v.previewSteps} canAssign={v.canAssignFaces} />
         )}
+        {v.showObjects && !frame && !preview.loading && <ObjectFrames photoId={photo.id} steps={v.previewSteps} />}
       </ZoomStage>
 
       <ViewerChrome model={v} />

@@ -16,7 +16,7 @@ afterAll(() => cleanup());
 
 describe('OFF_PRINCIPAL', () => {
   it('has every permission and the whole library', () => {
-    expect([...principal.OFF_PRINCIPAL.permissions]).toHaveLength(8);
+    expect([...principal.OFF_PRINCIPAL.permissions]).toHaveLength(9);
     expect(principal.OFF_PRINCIPAL).toMatchObject({ user: null, access: { all: true }, via: 'off' });
   });
 });
@@ -25,7 +25,7 @@ describe('principalFor', () => {
   it('gives a user their role permissions and stored access', async () => {
     const ben = await users.createUser({ username: 'ben', roleId: 'editor', password: 'correct horse', access: { all: false, albums: ['trip'] } });
     const result = (await principal.principalFor(ben.id, { via: 'session', sessionId: 's1' }))!;
-    expect([...result.permissions]).toEqual(['library.view', 'photos.edit', 'albums.manage', 'people.manage', 'export', 'account.tokens']);
+    expect([...result.permissions]).toEqual(['library.view', 'photos.edit', 'albums.manage', 'people.manage', 'ai.run', 'export', 'account.tokens']);
     expect(result).toMatchObject({ via: 'session', sessionId: 's1', access: { all: false, folders: [], albums: ['trip'] } });
   });
 

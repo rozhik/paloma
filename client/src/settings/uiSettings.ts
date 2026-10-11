@@ -39,11 +39,13 @@ export interface UiSettings {
   slideshowInterval: SlideshowInterval;
   /** Face frames drawn over the photo in the viewer */
   showFaces: boolean;
+  /** Frames of objects found by AI drawn over the photo in the viewer */
+  showObjects: boolean;
 }
 
 export const DEFAULT_UI_SETTINGS: UiSettings = {
   navBar: 'top', editBar: 'left', skin: 'classic', theme: 'system', sidebarCollapsed: false, collapsedSidebarLists: [],
-  level: DEFAULT_LEVEL, pin: null, slideshowInterval: 5, showFaces: false,
+  level: DEFAULT_LEVEL, pin: null, slideshowInterval: 5, showFaces: false, showObjects: false,
 };
 
 /** Key under which the settings are kept in `localStorage`, as JSON. */
@@ -92,6 +94,7 @@ export function parseUiSettings(raw: string | null): UiSettings {
       ? stored.slideshowInterval
       : DEFAULT_UI_SETTINGS.slideshowInterval,
     showFaces: typeof stored.showFaces === 'boolean' ? stored.showFaces : DEFAULT_UI_SETTINGS.showFaces,
+    showObjects: typeof stored.showObjects === 'boolean' ? stored.showObjects : DEFAULT_UI_SETTINGS.showObjects,
   };
 }
 
@@ -138,6 +141,7 @@ const settingsOf = (state: UiSettings): UiSettings => ({
   ...normalizeLevel(state.level, state.pin),
   slideshowInterval: state.slideshowInterval,
   showFaces: state.showFaces,
+  showObjects: state.showObjects,
 });
 
 /** The current UI settings; changes are remembered at once, so open views follow without a reload. */

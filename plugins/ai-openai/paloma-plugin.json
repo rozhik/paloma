@@ -1,0 +1,33 @@
+{
+  "id": "ai-openai",
+  "name": {
+    "en": "OpenAI",
+    "zh-Hans": "OpenAI",
+    "es": "OpenAI",
+    "ar": "OpenAI",
+    "pt-BR": "OpenAI",
+    "fr": "OpenAI",
+    "de": "OpenAI",
+    "ja": "OpenAI",
+    "ru": "OpenAI",
+    "id": "OpenAI",
+    "uk": "OpenAI"
+  },
+  "description": {
+    "en": "AI tasks with the OpenAI API or a compatible server (Ollama, LM Studio, vLLM). Photos you process are sent to the address set in Server settings → AI.",
+    "zh-Hans": "通过 OpenAI API 或兼容服务器（Ollama、LM Studio、vLLM）运行 AI 任务。处理的照片会发送到“服务器设置 → AI”中设置的地址。",
+    "es": "Tareas de IA con la API de OpenAI o un servidor compatible (Ollama, LM Studio, vLLM). Las fotos que proceses se envían a la dirección indicada en Configuración del servidor → IA.",
+    "ar": "مهام الذكاء الاصطناعي عبر واجهة OpenAI أو خادم متوافق (Ollama وLM Studio وvLLM). تُرسل الصور التي تعالجها إلى العنوان المحدد في إعدادات الخادم ← الذكاء الاصطناعي.",
+    "pt-BR": "Tarefas de IA com a API da OpenAI ou um servidor compatível (Ollama, LM Studio, vLLM). As fotos processadas são enviadas ao endereço definido em Configurações do servidor → IA.",
+    "fr": "Tâches d’IA avec l’API OpenAI ou un serveur compatible (Ollama, LM Studio, vLLM). Les photos traitées sont envoyées à l’adresse définie dans Paramètres du serveur → IA.",
+    "de": "KI-Aufgaben mit der OpenAI-API oder einem kompatiblen Server (Ollama, LM Studio, vLLM). Verarbeitete Fotos werden an die Adresse aus Servereinstellungen → KI gesendet.",
+    "ja": "OpenAI API または互換サーバー（Ollama、LM Studio、vLLM）で AI タスクを実行します。処理する写真は「サーバー設定 → AI」で設定したアドレスに送信されます。",
+    "ru": "AI-задачи через OpenAI API или совместимый сервер (Ollama, LM Studio, vLLM). Обрабатываемые фото отправляются по адресу из «Настройки сервера → AI».",
+    "id": "Tugas AI dengan API OpenAI atau server yang kompatibel (Ollama, LM Studio, vLLM). Foto yang diproses dikirim ke alamat di Pengaturan server → AI.",
+    "uk": "AI-задачі через OpenAI API або сумісний сервер (Ollama, LM Studio, vLLM). Оброблювані фото надсилаються на адресу з «Налаштування сервера → AI»."
+  },
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "level": "normal",
+  "server": "index.js"
+}

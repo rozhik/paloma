@@ -8,6 +8,7 @@ import { useAllows } from '../levels/controls.js';
 import { usePalomaStore } from '../store/usePalomaStore.js';
 import { SlideshowButton } from '../components/slideshow/SlideshowButton.js';
 import { FaceDetectionButton } from '../faces/FaceDetectionButton.js';
+import { AiMenu } from '../ai/AiMenu.js';
 import { PersonAvatar } from './PersonAvatar.js';
 import { PersonEditorModal } from './PersonEditor.js';
 
@@ -68,6 +69,7 @@ export const PersonHeader: React.FC<PersonHeaderProps> = ({ person, photos, onSa
           </ButtonGroup>
         )}
         {mode === 'photos' && <FaceDetectionButton photos={photos} />}
+        {mode === 'photos' && <AiMenu photos={photos} />}
         {mode === 'photos' && <SlideshowButton photos={photos} />}
       </div>
       <PersonEditorModal

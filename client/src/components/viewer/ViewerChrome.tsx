@@ -47,6 +47,8 @@ export const ViewerChrome: React.FC<ViewerChromeProps> = ({ model: v, className 
         infoOpen={v.showInfo}
         onFaces={v.canFaces ? v.toggleFaces : undefined}
         facesOn={v.showFaces}
+        onObjects={v.canObjects ? v.toggleObjects : undefined}
+        objectsOn={v.showObjects}
       />
 
       {v.showInfo && <InfoPanel className={className} photo={v.photo} style={infoPanelStyle(v.layout)} onClose={v.closeInfo} />}

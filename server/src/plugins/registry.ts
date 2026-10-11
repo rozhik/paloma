@@ -2,9 +2,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import sharp from 'sharp';
-import type { AuthProviderInfo, FilterInfo, FilterParamInfo, PluginInfo } from '../../../shared/types.js';
+import type { AiProviderSummary, AuthProviderInfo, FilterInfo, FilterParamInfo, PluginInfo } from '../../../shared/types.js';
 import {
-  PLUGIN_API_VERSION, type AuthProviderDefinition, type FilterDefinition, type ParamDefinition, type PluginHost, type PluginModule,
+  PLUGIN_API_VERSION, type AiProviderDefinition, type AuthProviderDefinition, type FilterDefinition, type ParamDefinition, type PluginHost, type PluginModule,
 } from './api.js';
 import { checkContributions } from './contributions.js';
 import { discoverPlugins, type DiscoveredPlugin } from './discovery.js';
@@ -26,6 +26,13 @@ export interface RegisteredAuthProvider {
   definition: AuthProviderDefinition;
 }
 
+/** An AI provider of an active plugin. */
+export interface RegisteredAiProvider {
+  pluginId: string;
+  definition: AiProviderDefinition & { settings: NonNullable<AiProviderDefinition['settings']>; modelOptions: NonNullable<AiProviderDefinition['modelOptions']> };
+  host: PluginHost;
+}
+
 interface PluginEntry {
   discovered: DiscoveredPlugin;
   module: PluginModule | null;
@@ -35,6 +42,8 @@ interface PluginEntry {
   contributed: FilterDefinition[];
   /** Auth providers returned by the last successful activate() */
   providers: AuthProviderDefinition[];
+  /** AI providers returned by the last successful activate() */
+  aiProviders: AiProviderDefinition[];
   /** Absolute paths of the contributed filters' usable icons, by filter name */
   icons: Map<string, string>;
   contributionWarnings: string[];
@@ -69,7 +78,7 @@ function makeHost(id: string): PluginHost {
   };
 }
 
-function paramInfo(param: ParamDefinition, lang: string): FilterParamInfo {
+export function paramInfo(param: ParamDefinition, lang: string): FilterParamInfo {
   const label = localize(param.label, lang);
   switch (param.type) {
     case 'number':
@@ -126,6 +135,7 @@ export class PluginRegistry {
   private entries: PluginEntry[] = [];
   private filters = new Map<string, RegisteredFilter>();
   private providers = new Map<string, RegisteredAuthProvider>();
+  private aiProviders = new Map<string, RegisteredAiProvider>();
   private state: PluginState;
   private initPromise: Promise<void> | null = null;
   /** Raised on every switch, so callers can tell that available filters may have changed */
@@ -146,6 +156,7 @@ export class PluginRegistry {
         loadError: null,
         contributed: [],
         providers: [],
+        aiProviders: [],
         icons: new Map(),
         contributionWarnings: [],
         conflictWarnings: [],
@@ -181,6 +192,7 @@ export class PluginRegistry {
       const checked = checkContributions(await entry.module.activate(entry.host));
       entry.contributed = checked.filters;
       entry.providers = checked.authProviders;
+      entry.aiProviders = checked.aiProviders;
       entry.icons = new Map();
       for (const filter of checked.filters) {
         if (filter.icon === undefined) continue;
@@ -194,6 +206,7 @@ export class PluginRegistry {
       entry.loadError = err instanceof Error ? err.message : String(err);
       entry.contributed = [];
       entry.providers = [];
+      entry.aiProviders = [];
       entry.icons = new Map();
       entry.contributionWarnings = [];
       console.error(`Plugin ${id} failed to load: ${entry.loadError}`);
@@ -201,8 +214,8 @@ export class PluginRegistry {
   }
 
   /**
-   * Registers the filters and auth providers of active plugins: bundled first, then external by id; a taken
-   * filter name or provider id loses.
+   * Registers the filters, auth providers and AI providers of active plugins: bundled first, then external by
+   * id; a taken filter name or provider id loses.
    */
   private rebuildFilters(): void {
     const order = (entry: PluginEntry) => [entry.discovered.source === 'bundled' ? 0 : 1, entry.discovered.id] as const;
@@ -214,6 +227,7 @@ export class PluginRegistry {
 
     this.filters = new Map();
     this.providers = new Map();
+    this.aiProviders = new Map();
     for (const entry of this.entries) entry.conflictWarnings = [];
     for (const entry of active) {
       const manifest = entry.discovered.manifest!;
@@ -238,6 +252,14 @@ export class PluginRegistry {
         }
         this.providers.set(definition.id, { pluginId: manifest.id, definition });
       }
+      for (const definition of entry.aiProviders) {
+        const owner = this.aiProviders.get(definition.id);
+        if (owner) {
+          entry.conflictWarnings.push(`AI provider "${definition.id}" is not available: plugin "${owner.pluginId}" already provides it`);
+          continue;
+        }
+        this.aiProviders.set(definition.id, { pluginId: manifest.id, definition: definition as RegisteredAiProvider['definition'], host: entry.host });
+      }
     }
   }
 
@@ -248,6 +270,15 @@ export class PluginRegistry {
 
   getAuthProvider(id: string): RegisteredAuthProvider | undefined {
     return this.providers.get(id);
+  }
+
+  /** AI providers of active plugins, bundled first, then external by plugin id. */
+  getAiProviders(): RegisteredAiProvider[] {
+    return [...this.aiProviders.values()];
+  }
+
+  getAiProvider(id: string): RegisteredAiProvider | undefined {
+    return this.aiProviders.get(id);
   }
 
   /**
@@ -295,6 +326,9 @@ export class PluginRegistry {
     const authProviders: AuthProviderInfo[] = status !== 'active' ? [] : entry.providers
       .filter((definition) => this.providers.get(definition.id)?.pluginId === discovered.id)
       .map((definition) => authProviderInfo(definition, lang));
+    const aiProviders: AiProviderSummary[] = status !== 'active' ? [] : entry.aiProviders
+      .filter((definition) => this.aiProviders.get(definition.id)?.pluginId === discovered.id)
+      .map((definition) => ({ id: definition.id, label: localize(definition.label, lang) }));
     return {
       id: discovered.id,
       name: partial.name ? localize(partial.name, lang) : path.basename(discovered.folder),
@@ -308,6 +342,7 @@ export class PluginRegistry {
       warnings: on ? [...entry.contributionWarnings, ...entry.conflictWarnings] : [],
       filters,
       authProviders,
+      aiProviders,
     };
   }
 

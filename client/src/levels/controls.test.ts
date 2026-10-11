@@ -37,6 +37,10 @@ describe('control levels', () => {
     for (const id of changing) expect([allows('easy', id), allows('normal', id)], id).toEqual([false, true]);
   });
 
+  it('offer AI from Normal: running tasks, object frames and AI results', () => {
+    for (const id of ['ai.run', 'viewer.objects', 'info.ai'] as const) expect([allows('easy', id), allows('normal', id)], id).toEqual([false, true]);
+  });
+
   it('show memories from Easy, not at Child', () => {
     expect([allows('child', 'sidebar.memories'), allows('easy', 'sidebar.memories')]).toEqual([false, true]);
   });
@@ -79,12 +83,20 @@ describe('control permissions', () => {
     'sidebar.albums', 'sidebar.shortcuts', 'sidebar.memories', 'sidebar.folders', 'sidebar.tags', 'sidebar.people',
     'photo.open', 'photo.select', 'viewer.navigate', 'viewer.zoom', 'viewer.info', 'viewer.faces', 'slideshow',
     'entry.menu', 'entry.info', 'search', 'people.choose', 'info.people', 'info.exif', 'info.json', 'tray.clear', 'tray.print',
+    'viewer.objects', 'info.ai',
   ];
 
   it('give every control that changes something a permission', () => {
     for (const id of Object.keys(CONTROL_LEVELS) as ControlId[]) {
       expect(READ_ONLY.includes(id) || CONTROL_PERMISSIONS[id] !== undefined, id).toBe(true);
     }
+  });
+
+  it('let only ai.run start AI tasks; viewers still see object frames and results', () => {
+    signIn(['library.view']);
+    expect([allows('developer', 'ai.run'), allows('normal', 'viewer.objects'), allows('normal', 'info.ai')]).toEqual([false, true, true]);
+    signIn(['library.view', 'ai.run']);
+    expect(allows('normal', 'ai.run')).toBe(true);
   });
 
   it('offer a viewer only Clear and Print in the tray', () => {

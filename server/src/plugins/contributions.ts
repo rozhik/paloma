@@ -1,10 +1,12 @@
 import type { FilterGroup, RelativeRect } from '../../../shared/types.js';
-import type { AuthProviderDefinition, FilterDefinition, ParamDefinition, PluginContributions } from './api.js';
+import type { AiProviderDefinition, AuthProviderDefinition, FilterDefinition, ParamDefinition, PluginContributions } from './api.js';
 import { COMPLEXITY_LEVELS, isComplexityLevel, isLocalizedText } from './manifest.js';
 
 const FILTER_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const GROUPS: readonly FilterGroup[] = ['basic', 'tuning', 'effects'];
-const KNOWN_KEYS = new Set(['filters', 'authProviders']);
+const KNOWN_KEYS = new Set(['filters', 'authProviders', 'aiProviders']);
+const SETTING_TYPES = ['text', 'secret', 'number', 'boolean', 'choice'];
+const SETTING_NAME = /^[A-Za-z][A-Za-z0-9_]*$/;
 const PROVIDER_ID = /^[a-z0-9][a-z0-9-]*$/;
 const PROVIDER_KINDS = ['credentials', 'bearer'];
 /** Keys of an edit step that are not parameters */
@@ -13,6 +15,7 @@ const RESERVED_PARAMS = new Set(['filter', 'enabled']);
 export interface CheckedContributions {
   filters: FilterDefinition[];
   authProviders: AuthProviderDefinition[];
+  aiProviders: AiProviderDefinition[];
   warnings: string[];
 }
 
@@ -116,6 +119,95 @@ function providerProblem(provider: unknown): string | null {
   return null;
 }
 
+/** Why an AI provider setting definition is unusable, or null when it is fine. */
+function settingProblem(setting: unknown, seen: Set<string>): string | null {
+  if (!isPlainObject(setting)) return 'a setting is not an object';
+  const { name, type } = setting;
+  if (typeof name !== 'string' || !SETTING_NAME.test(name)) return `setting name ${JSON.stringify(name)} is invalid`;
+  if (seen.has(name)) return `setting "${name}" is declared twice`;
+  seen.add(name);
+  if (!isLocalizedText(setting.label)) return `setting "${name}" has no valid label`;
+  if (!SETTING_TYPES.includes(type as string)) return `setting "${name}" has unknown type ${JSON.stringify(type)}`;
+  if (setting.required !== undefined && typeof setting.required !== 'boolean') return `setting "${name}" has a "required" that is not a boolean`;
+  if (setting.help !== undefined && !isLocalizedText(setting.help)) return `setting "${name}" has an invalid help text`;
+  const isNumber = (n: unknown): n is number => typeof n === 'number' && Number.isFinite(n);
+  const fallback = setting.default;
+  switch (type) {
+    case 'secret':
+      return fallback === undefined ? null : `setting "${name}" is a secret and cannot have a default`;
+    case 'text':
+      return fallback === undefined || typeof fallback === 'string' ? null : `setting "${name}" needs a text default`;
+    case 'boolean':
+      return fallback === undefined || typeof fallback === 'boolean' ? null : `setting "${name}" needs a boolean default`;
+    case 'number': {
+      const { min, max } = setting;
+      if ((min !== undefined && !isNumber(min)) || (max !== undefined && !isNumber(max)) || (isNumber(min) && isNumber(max) && min > max)) {
+        return `setting "${name}" needs numbers min <= max`;
+      }
+      if (fallback === undefined) return null;
+      if (!isNumber(fallback) || (isNumber(min) && fallback < min) || (isNumber(max) && fallback > max)) return `setting "${name}" has a default outside its range`;
+      return null;
+    }
+    default: {
+      const { options } = setting;
+      if (!Array.isArray(options) || options.length === 0) return `setting "${name}" needs options`;
+      if (!options.every((option) => isPlainObject(option) && (typeof option.value === 'string' || isNumber(option.value)) && isLocalizedText(option.label))) {
+        return `setting "${name}" has an option without a value or label`;
+      }
+      return fallback === undefined || options.some((option) => option.value === fallback) ? null : `setting "${name}" has a default that is not one of its options`;
+    }
+  }
+}
+
+/** Why an AI provider definition is unusable, or null when it is fine. */
+function aiProviderProblem(provider: unknown): string | null {
+  if (!isPlainObject(provider)) return 'an AI provider is not an object';
+  const { id } = provider;
+  if (typeof id !== 'string' || !PROVIDER_ID.test(id)) return `AI provider id ${JSON.stringify(id)} is invalid`;
+  if (!isLocalizedText(provider.label)) return `AI provider "${id}" has no valid label`;
+  if (typeof provider.listModels !== 'function') return `AI provider "${id}" has no listModels function`;
+  if (typeof provider.run !== 'function') return `AI provider "${id}" has no run function`;
+  for (const key of ['test', 'missingSettings', 'settingFromEnv']) {
+    if (provider[key] !== undefined && typeof provider[key] !== 'function') return `AI provider "${id}" has a ${key} that is not a function`;
+  }
+  if (provider.settings !== undefined && !Array.isArray(provider.settings)) return `AI provider "${id}" has settings that are not a list`;
+  const settings = new Set<string>();
+  for (const setting of (provider.settings as unknown[] | undefined) ?? []) {
+    const problem = settingProblem(setting, settings);
+    if (problem) return `AI provider "${id}": ${problem}`;
+  }
+  if (provider.modelOptions !== undefined && !Array.isArray(provider.modelOptions)) return `AI provider "${id}" has model options that are not a list`;
+  const options = new Set<string>();
+  for (const option of (provider.modelOptions as unknown[] | undefined) ?? []) {
+    if (isPlainObject(option) && option.type === 'rect') return `AI provider "${id}": model option "${String(option.name)}" cannot be a rectangle`;
+    const problem = paramProblem(option, options);
+    if (problem) return `AI provider "${id}": model option ${problem.replace(/^parameter /, '')}`;
+  }
+  return null;
+}
+
+function checkAiProviders(value: unknown, warnings: string[]): AiProviderDefinition[] {
+  if (value === undefined) return [];
+  if (!Array.isArray(value)) {
+    warnings.push('"aiProviders" is not a list and is ignored');
+    return [];
+  }
+  const providers: AiProviderDefinition[] = [];
+  const ids = new Set<string>();
+  for (const provider of value) {
+    const problem = aiProviderProblem(provider);
+    if (problem) {
+      warnings.push(`${problem}; the AI provider is not available`);
+    } else if (ids.has(provider.id)) {
+      warnings.push(`AI provider "${provider.id}" is declared twice; the second one is ignored`);
+    } else {
+      ids.add(provider.id);
+      providers.push({ ...provider, settings: provider.settings ?? [], modelOptions: provider.modelOptions ?? [] });
+    }
+  }
+  return providers;
+}
+
 function checkProviders(value: unknown, warnings: string[]): AuthProviderDefinition[] {
   if (value === undefined) return [];
   if (!Array.isArray(value)) {
@@ -173,5 +265,6 @@ export function checkContributions(value: unknown): CheckedContributions {
     }
   }
   const authProviders = checkProviders(contributions.authProviders, warnings);
-  return { filters, authProviders, warnings };
+  const aiProviders = checkAiProviders(contributions.aiProviders, warnings);
+  return { filters, authProviders, aiProviders, warnings };
 }

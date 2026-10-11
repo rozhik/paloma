@@ -4,6 +4,7 @@ import type { Photo } from '../../../shared/types.js';
 import { useFormat } from '../i18n/format.js';
 import { SlideshowButton } from './slideshow/SlideshowButton.js';
 import { FaceDetectionButton } from '../faces/FaceDetectionButton.js';
+import { AiMenu } from '../ai/AiMenu.js';
 
 interface TagHeaderProps {
   tag: string;
@@ -23,6 +24,7 @@ export const TagHeader: React.FC<TagHeaderProps> = ({ tag, photos }) => {
       </h4>
       <div className="d-flex gap-2 flex-wrap">
         <FaceDetectionButton photos={photos} />
+        <AiMenu photos={photos} />
         <SlideshowButton photos={photos} />
       </div>
     </div>

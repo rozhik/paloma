@@ -272,3 +272,34 @@ export function createAuthTables(sqlite: Database.Database): void {
   // A person is at most one user
   sqlite.exec('CREATE UNIQUE INDEX IF NOT EXISTS users_person ON users(person_id) WHERE person_id IS NOT NULL');
 }
+
+/** AI results: the last result of each task per photo, and the objects of `objects` tasks. */
+export function createAiTables(sqlite: Database.Database): void {
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS ai_results (
+      photo_id INTEGER NOT NULL REFERENCES photos(id) ON DELETE CASCADE,
+      task_id TEXT NOT NULL,
+      fingerprint TEXT NOT NULL,
+      file_hash TEXT NOT NULL,
+      provider TEXT NOT NULL,
+      model TEXT NOT NULL,
+      output TEXT NOT NULL,
+      result TEXT NOT NULL,
+      input_tokens INTEGER,
+      output_tokens INTEGER,
+      created_at TEXT NOT NULL,
+      PRIMARY KEY (photo_id, task_id)
+    );
+    CREATE INDEX IF NOT EXISTS ai_results_task ON ai_results(task_id);
+
+    CREATE TABLE IF NOT EXISTS ai_objects (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      photo_id INTEGER NOT NULL REFERENCES photos(id) ON DELETE CASCADE,
+      task_id TEXT NOT NULL,
+      label TEXT NOT NULL,
+      confidence REAL,
+      rect TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS ai_objects_photo ON ai_objects(photo_id);
+  `);
+}

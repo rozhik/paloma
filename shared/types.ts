@@ -74,6 +74,8 @@ export interface PluginInfo {
   filters: FilterInfo[];
   /** Auth providers the plugin provides; empty unless it is active */
   authProviders: AuthProviderInfo[];
+  /** AI providers the plugin provides; empty unless it is active */
+  aiProviders: AiProviderSummary[];
 }
 
 /** `credentials`: a login form with the fields it declares; `bearer`: a credential sent with each request. */
@@ -442,6 +444,13 @@ export type ApiErrorCode =
   | 'person_linked'
   | 'avatar_invalid'
   | 'rate_limited'
+  | 'ai_provider_not_found'
+  | 'ai_provider_failed'
+  | 'ai_task_not_found'
+  | 'ai_task_builtin'
+  | 'ai_task_not_builtin'
+  | 'ai_task_not_ready'
+  | 'ai_run_in_progress'
   | 'internal';
 
 /** Body of every API error response. `error` is English text for clients that do not know the code. */
@@ -499,8 +508,8 @@ export interface GeoPlaces {
 
 /**
  * What a user may do. `library.view`: see the library; `photos.edit`: stars, descriptions, tags, edits and
- * locations; `albums.manage`: albums; `people.manage`: people and faces; `export`: exports and movies;
- * `account.tokens`: personal API tokens; `plugins.manage`: switching plugins; `users.manage`: users, roles,
+ * locations; `albums.manage`: albums; `people.manage`: people and faces; `ai.run`: running AI tasks on photos; `export`: exports and movies;
+ * `account.tokens`: personal API tokens; `plugins.manage`: switching plugins and configuring AI; `users.manage`: users, roles,
  * sessions and tokens of everyone.
  */
 export type Permission =
@@ -508,6 +517,7 @@ export type Permission =
   | 'photos.edit'
   | 'albums.manage'
   | 'people.manage'
+  | 'ai.run'
   | 'export'
   | 'account.tokens'
   | 'plugins.manage'
@@ -665,4 +675,175 @@ export interface ServerInfo {
   sessionDays: number;
   /** Default API requests per minute per user and token; null when unlimited */
   rateLimit: number | null;
+}
+
+// --- AI providers, tasks and runs ---
+
+/** What an AI task asks for: tags for the photo, objects with boxes, or a text. */
+export type AiOutputKind = 'tags' | 'objects' | 'text';
+
+/** An AI provider as `GET /api/plugins` lists it, with its label in the requested language. */
+export interface AiProviderSummary {
+  id: string;
+  label: string;
+}
+
+export type AiSettingType = 'text' | 'secret' | 'number' | 'boolean' | 'choice';
+
+/**
+ * A setting of an AI provider as `GET /api/ai/providers` lists it. A secret's value is never sent: `set` says
+ * whether one is saved, `fromEnv` that the server environment gives it instead.
+ */
+export interface AiSettingInfo {
+  name: string;
+  label: string;
+  type: AiSettingType;
+  required: boolean;
+  help?: string;
+  default?: string | number | boolean;
+  min?: number;
+  max?: number;
+  options?: { value: string | number; label: string }[];
+  /** The saved value; null when none is saved (and always for a secret) */
+  value: string | number | boolean | null;
+  /** Secrets only: whether a value is saved */
+  set?: boolean;
+  /** No value is saved and the provider uses one from the server environment */
+  fromEnv?: boolean;
+}
+
+/** A model option of a provider: like a filter parameter, without rectangles. */
+export type AiModelOptionInfo = Exclude<FilterParamInfo, { type: 'rect' }>;
+
+/** `GET /api/ai/providers`: an AI provider of an active plugin with its settings and status. */
+export interface AiProviderInfo {
+  id: string;
+  pluginId: string;
+  label: string;
+  settings: AiSettingInfo[];
+  status: 'configured' | 'not_configured';
+  /** Names of the settings that still need a value */
+  missing: string[];
+  modelOptions: AiModelOptionInfo[];
+}
+
+/** `GET /api/ai/providers/:id/models`: one model of a provider. */
+export interface AiModelInfo {
+  id: string;
+  label: string;
+}
+
+/** Where the text of a `text` task goes. */
+export type AiTextTarget = 'description-if-empty' | 'description-always' | 'none';
+
+export interface AiTaskOptions {
+  /** Long edge of the image sent, in pixels */
+  imageSize: number;
+  /** `user`: the UI language of who starts the run; otherwise a language tag */
+  language: string;
+  /** Photos processed at once */
+  parallel: number;
+  /** `tags` tasks */
+  maxTags?: number;
+  /** `tags` and `objects` tasks: answers with a lower confidence are not applied */
+  minConfidence?: number;
+  /** `objects` tasks: object labels are also added as tags */
+  labelsAsTags?: boolean;
+  /** `text` tasks */
+  textTarget?: AiTextTarget;
+}
+
+/** Why a task cannot run. */
+export type AiTaskProblem = 'no_provider' | 'provider_unavailable' | 'provider_not_configured' | 'no_model';
+
+/** `GET /api/ai/tasks`: one AI task. */
+export interface AiTask {
+  id: string;
+  builtIn: boolean;
+  /** Null for a built-in task whose name was never changed; the client shows its name in the UI language */
+  name: string | null;
+  output: AiOutputKind;
+  /** Offered in the AI menus */
+  inMenu: boolean;
+  provider: string | null;
+  model: string | null;
+  prompt: string;
+  modelOptions: Record<string, string | number | boolean>;
+  options: AiTaskOptions;
+  ready: boolean;
+  problem: AiTaskProblem | null;
+}
+
+/** `POST /api/ai/tasks` and `PATCH /api/ai/tasks/:id`: the fields to set. */
+export type AiTaskInput = Partial<Pick<AiTask, 'name' | 'output' | 'inMenu' | 'provider' | 'model' | 'prompt' | 'modelOptions'>>
+  & { options?: Partial<AiTaskOptions> };
+
+export interface AiTag {
+  name: string;
+  confidence: number | null;
+}
+
+/** An object found on a photo, its rectangle in the unedited, upright photo. */
+export interface AiObject {
+  label: string;
+  rect: RelativeRect;
+  confidence: number | null;
+}
+
+/** `GET /api/photos/:id/ai`: the last result of one task on the photo's current content. */
+export interface PhotoAiResult {
+  taskId: string;
+  /** As `AiTask.name` */
+  taskName: string | null;
+  output: AiOutputKind;
+  provider: string;
+  model: string;
+  createdAt: string;
+  tags?: AiTag[];
+  objects?: AiObject[];
+  text?: string;
+  inputTokens: number | null;
+  outputTokens: number | null;
+}
+
+export type AiRunState = 'running' | 'cancelling' | 'finished' | 'cancelled' | 'stopped';
+
+/** An AI run: the one in progress, or how the last one ended. */
+export interface AiRunInfo {
+  id: string;
+  taskId: string;
+  taskName: string | null;
+  output: AiOutputKind;
+  state: AiRunState;
+  /** Photos the run has to process */
+  total: number;
+  /** Photos done, failed ones included */
+  done: number;
+  failed: number;
+  tagsAdded: number;
+  descriptionsSet: number;
+  inputTokens: number;
+  outputTokens: number;
+  /** Why the run stopped early */
+  error: string | null;
+  /** The first failures, with the photo and the message */
+  failures: { photoId: number; message: string }[];
+  /** Ids of the photos processed, so views showing them can reload */
+  photoIds: number[];
+  startedAt: string;
+  endedAt: string | null;
+}
+
+/** `GET /api/ai/runs/current`. */
+export interface AiRunStatus {
+  current: AiRunInfo | null;
+  last: AiRunInfo | null;
+}
+
+/** `POST /api/ai/runs`. */
+export interface AiRunRequest {
+  taskId: string;
+  photoIds: number[];
+  /** Process photos already processed with the same task configuration, too */
+  again?: boolean;
 }

@@ -19,6 +19,7 @@ export type ControlId =
   | 'viewer.navigate' | 'viewer.zoom' | 'viewer.editBar' | 'viewer.info' | 'viewer.faces' | 'viewer.faces.assign'
   | 'info.exif' | 'info.json' | 'info.edit' | 'info.people' | 'info.people.edit'
   | 'people.choose' | 'people.edit' | 'faces.detect' | 'faces.similar' | 'faces.unrecognized'
+  | 'ai.run' | 'viewer.objects' | 'info.ai'
   | 'search' | 'slideshow'
   | 'user.menu' | 'user.logout' | 'account.tokens'
   | 'entry.menu' | 'entry.info'
@@ -97,6 +98,10 @@ export const CONTROL_LEVELS: Record<ControlId, Level> = {
   'faces.similar': 'normal',
   // The Unrecognized entry of the People list and naming the faces there
   'faces.unrecognized': 'normal',
+  // AI: running tasks from the AI menus and the Info panel; object frames in the viewer; AI results in the Info panel
+  'ai.run': 'normal',
+  'viewer.objects': 'normal',
+  'info.ai': 'normal',
 
   'info.exif': 'pro',
 
@@ -130,6 +135,7 @@ export const CONTROL_PERMISSIONS: Partial<Record<ControlId, Permission>> = {
   'faces.detect': 'people.manage',
   'faces.similar': 'people.manage',
   'faces.unrecognized': 'people.manage',
+  'ai.run': 'ai.run',
   'tray.export': 'export',
   'tray.movie': 'export',
   'tray.collage': 'export',

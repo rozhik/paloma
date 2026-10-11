@@ -6,7 +6,7 @@ import type { Level } from './levels.js';
 const filter = (name: string, level: Level): FilterInfo => ({ name, label: name, group: 'effects', params: [], level });
 const plugin = (id: string, level: Level, filters: FilterInfo[], status: PluginInfo['status'] = 'active'): PluginInfo => ({
   id, name: id, description: '', version: '1', source: 'bundled', level, enabled: status !== 'off', status, error: null,
-  warnings: [], filters, authProviders: [],
+  warnings: [], filters, authProviders: [], aiProviders: [],
 });
 
 const plugins = [

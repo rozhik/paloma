@@ -22,7 +22,7 @@ describe('UI settings', () => {
   it('defaults to the navigation bar on top and the edit bar on the left, Classic and the system theme', () => {
     expect(DEFAULT_UI_SETTINGS).toEqual({
       navBar: 'top', editBar: 'left', skin: 'classic', theme: 'system', sidebarCollapsed: false, collapsedSidebarLists: [],
-      level: 'normal', pin: null, slideshowInterval: 5, showFaces: false,
+      level: 'normal', pin: null, slideshowInterval: 5, showFaces: false, showObjects: false,
     });
     expect(loadUiSettings(memoryStorage())).toEqual(DEFAULT_UI_SETTINGS);
     expect(loadUiSettings(null)).toEqual(DEFAULT_UI_SETTINGS);

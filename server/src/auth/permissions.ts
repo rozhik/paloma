@@ -6,6 +6,7 @@ export const PERMISSIONS = [
   'photos.edit',
   'albums.manage',
   'people.manage',
+  'ai.run',
   'export',
   'account.tokens',
   'plugins.manage',

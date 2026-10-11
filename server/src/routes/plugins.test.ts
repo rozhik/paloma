@@ -62,6 +62,7 @@ describe('GET /api/plugins', () => {
     const { status, body } = await send('GET', '/plugins?lang=uk');
     expect(status).toBe(200);
     expect(body.map((p: { id: string; source: string; status: string }) => [p.id, p.source, p.status])).toEqual([
+      ['ai-openai', 'bundled', 'active'],
       ['auth-password', 'bundled', 'active'],
       ['auth-token', 'bundled', 'active'],
       ['basic-effects', 'bundled', 'active'],
@@ -75,6 +76,8 @@ describe('GET /api/plugins', () => {
       ['brightness', 'Яскравість'], ['contrast', 'Контраст'], ['bw', 'Чорно-біле'], ['sepia', 'Сепія'],
     ]);
     expect(byId('film-grain')).toMatchObject({ name: 'Плівкове зерно', filters: [] });
+    expect(byId('ai-openai')).toMatchObject({ name: 'OpenAI', aiProviders: [{ id: 'openai', label: 'OpenAI' }], filters: [], authProviders: [] });
+    expect(byId('basic-effects').aiProviders).toEqual([]);
     expect(byId('future').error).toBe('the plugin needs plugin API 2, while Paloma supports 1');
   });
 

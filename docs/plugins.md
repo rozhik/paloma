@@ -1,6 +1,6 @@
 # Writing Paloma plugins
 
-A Paloma plugin is a folder of JavaScript code that adds features to Paloma without changes to Paloma itself. In plugin API version 1, plugins add **image filters**, which are the steps of a photo's non-destructive edit chain, such as crop, sepia or film grain, and **auth providers**, which are ways to log in or to authenticate API requests when [users are switched on](users-and-auth.md).
+A Paloma plugin is a folder of JavaScript code that adds features to Paloma without changes to Paloma itself. In plugin API version 1, plugins add **image filters**, which are the steps of a photo's non-destructive edit chain, such as crop, sepia or film grain, **auth providers**, which are ways to log in or to authenticate API requests when [users are switched on](users-and-auth.md), and **AI providers**, which look at photos for [AI tasks](ai.md).
 
 > **Plugins are trusted code.** A plugin's module runs inside the Paloma server with the same rights as Paloma: it can read and write any file the server can. Install only plugins you trust. External plugins stay **off** until you switch them on in **user menu → Server settings → Plugins**, and the code of a plugin that is off is never run.
 
@@ -20,7 +20,7 @@ Then restart Paloma. The plugin is listed in **user menu → Server settings →
 
 If a plugin needs npm packages, it should ship them or tell you to run `npm install` in its folder.
 
-Paloma's own filters and login methods ship as **bundled plugins** in the repository's `plugins/` folder (`basic-transforms`, `basic-effects`, `auth-password`, `auth-token`). They use the same API as external plugins and are good examples. Bundled plugins are on until you switch them off.
+Paloma's own filters and login methods ship as **bundled plugins** in the repository's `plugins/` folder (`basic-transforms`, `basic-effects`, `auth-password`, `auth-token`, `ai-openai`). They use the same API as external plugins and are good examples. Bundled plugins are on until you switch them off.
 
 ## Folder layout
 
@@ -99,7 +99,7 @@ export function activate(host) {
 - `host.sharp`: Paloma's [sharp](https://sharp.pixelplumbing.com/), so you need no image library of your own.
 - `host.log.info/warn/error(message)`: logs with your plugin id as a prefix.
 
-Keys of the returned object other than `filters` and `authProviders` are ignored with a warning in this API version. Later versions will add new kinds of contributions there, for example a map provider.
+Keys of the returned object other than `filters`, `authProviders` and `aiProviders` are ignored with a warning in this API version. Later versions will add new kinds of contributions there, for example a map provider.
 
 If `activate` throws, or the module does not export it, the plugin shows the error in **Server settings → Plugins** and the rest of Paloma keeps working. Switching the plugin on again retries `activate`.
 
@@ -212,6 +212,79 @@ export function activate() {
           const user = await ctx.findUserByUsername(process.env.PALOMA_HOME_USER ?? 'home');
           // Only looking, whatever the user's role allows
           return user ? { userId: user.id, permissions: ['library.view'] } : null;
+        },
+      },
+    ],
+  };
+}
+```
+
+## AI providers
+
+**AI providers** look at one photo at a time and answer with tags, objects with boxes, or a text. How administrators set them up and run tasks is described in [AI tasks](ai.md). Administrators enter their settings in **Server settings → AI** and choose a provider and a model for each **AI task** (Tags, Objects, Description, and tasks they add). Paloma builds the prompt, prepares the image, runs the tasks as a background job, stores the results and applies tags and descriptions. A provider only talks to its service. The bundled `ai-openai` plugin is the best example to read.
+
+A plugin returns its providers in `aiProviders`:
+
+| Field | Meaning |
+| :--- | :--- |
+| `id` | Unique across plugins: lowercase letters, digits and hyphens. A taken id is not available, and your plugin shows a warning. A bundled provider wins, then the external plugin whose id sorts first. |
+| `label` | Shown in Server settings; a string or an object by language. |
+| `settings` | What an administrator enters, each `{ name, label, type, required?, default?, help?, min?, max?, options? }` with type `text`, `secret`, `number`, `boolean` or `choice`. Paloma keeps the values in its data folder. A `secret` is never sent to the browser or logged, and cannot have a default. |
+| `missingSettings({ settings, env })` | Optional: names of settings that still need a value for the current values, beyond those marked `required`. `ai-openai` needs an API key only for OpenAI's own address. |
+| `settingFromEnv(name, { env })` | Optional: whether a setting without a saved value comes from the server's environment, so Server settings can say so. |
+| `modelOptions` | Optional: options of the model that each task sets, declared like filter parameters (`number`, `boolean` or `choice`; no `rect`). |
+| `listModels(ctx)` | The models for the saved settings, each `{ id, label? }`. Throw an `Error` with a message for the administrator when the service fails. |
+| `test(ctx)` | Optional: throws with a message when the service cannot be used. Without it, the connection test calls `listModels`. |
+| `run(request, ctx)` | Answers about one photo (below). |
+
+`ctx` has `settings` (saved values with defaults filled in), `env` (the server's environment), `signal` (pass it to `fetch`, so a stopping server cancels your request) and `log`.
+
+`request` has:
+
+- `model`: the task's model id.
+- `prompt`: the task's prompt with its placeholders filled in.
+- `output`: `tags`, `objects` or `text`: what to answer with.
+- `image`: `{ data, mimeType: 'image/jpeg', width, height }`: the photo upright, without edits, resized to the task's image size.
+- `language`: the English name of the language to answer in, e.g. `Ukrainian`.
+- `maxTags`: for `tags`, the most tags to return.
+- `options`: the task's model options, defaults filled in.
+
+Return `{ tags: [{ name, confidence? }] }`, `{ objects: [{ label, rect: { left, top, right, bottom }, confidence? }] }` or `{ text }`, and optionally `usage: { inputTokens, outputTokens }`. Rectangles are fractions 0..1 of the image you got, and confidences are 0..1. Paloma clips rectangles to the image and drops empty tags and labels, so you need not.
+
+When a call fails, throw an `Error` with a `kind`, so Paloma can react: `auth` (credentials refused), `unreachable` (no answer), `rate-limit` (Paloma waits `retryAfterMs` or a few seconds and retries up to three times), `bad-answer` or `other`. A run stops after five photos in a row fail with `auth` or `unreachable`. Any other error counts as a failed photo.
+
+> **Photos leave the computer.** Whatever your provider sends goes to its service. Say in your plugin's description where photos are sent.
+
+This example tags photos with a tagging service on the local network, whose address the administrator enters:
+
+<!-- ai-file: index.js -->
+```js
+// @ts-check
+export function activate() {
+  return {
+    aiProviders: [
+      {
+        id: 'home-tagger',
+        label: { en: 'Home tagger', uk: 'Домашній тегувальник' },
+        settings: [
+          { name: 'url', label: { en: 'Service address', uk: 'Адреса сервісу' }, type: 'text', required: true, default: 'http://tagger.local:8080' },
+        ],
+        async listModels() {
+          return [{ id: 'default', label: 'Default' }];
+        },
+        async run(request, ctx) {
+          if (request.output !== 'tags') throw Object.assign(new Error('Home tagger only gives tags'), { kind: 'other' });
+          let response;
+          try {
+            response = await fetch(`${ctx.settings.url}/tag`, {
+              method: 'POST', headers: { 'Content-Type': request.image.mimeType }, body: request.image.data, signal: ctx.signal,
+            });
+          } catch (err) {
+            throw Object.assign(new Error(`Home tagger cannot be reached: ${err}`), { kind: 'unreachable' });
+          }
+          if (!response.ok) throw Object.assign(new Error(`Home tagger answered ${response.status}`), { kind: 'other' });
+          const labels = /** @type {{ label: string, score: number }[]} */ (await response.json());
+          return { tags: labels.slice(0, request.maxTags).map((l) => ({ name: l.label, confidence: l.score })) };
         },
       },
     ],

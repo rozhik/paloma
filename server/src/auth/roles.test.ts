@@ -23,10 +23,15 @@ describe('built-in roles', () => {
   it('lists admin, editor and viewer first with their permissions', async () => {
     const list = await roles.listRoles();
     expect(list.slice(0, 3).map((r) => [r.id, r.builtIn, r.permissions])).toEqual([
-      ['admin', true, ['library.view', 'photos.edit', 'albums.manage', 'people.manage', 'export', 'account.tokens', 'plugins.manage', 'users.manage']],
-      ['editor', true, ['library.view', 'photos.edit', 'albums.manage', 'people.manage', 'export', 'account.tokens']],
+      ['admin', true, ['library.view', 'photos.edit', 'albums.manage', 'people.manage', 'ai.run', 'export', 'account.tokens', 'plugins.manage', 'users.manage']],
+      ['editor', true, ['library.view', 'photos.edit', 'albums.manage', 'people.manage', 'ai.run', 'export', 'account.tokens']],
       ['viewer', true, ['library.view']],
     ]);
+  });
+
+  it('gives ai.run to admin and editor, not to viewer', async () => {
+    const list = await roles.listRoles();
+    expect(list.slice(0, 3).map((r) => [r.id, r.permissions.includes('ai.run')])).toEqual([['admin', true], ['editor', true], ['viewer', false]]);
   });
 
   it('names them in the requested language', async () => {

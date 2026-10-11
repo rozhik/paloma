@@ -3,7 +3,7 @@ import { config } from '../config.js';
 import { PluginRegistry } from './registry.js';
 import { STATE_FILE_NAME } from './state.js';
 
-export { PluginRegistry, PluginRegistryError, type RegisteredAuthProvider, type RegisteredFilter } from './registry.js';
+export { PluginRegistry, PluginRegistryError, type RegisteredAiProvider, type RegisteredAuthProvider, type RegisteredFilter } from './registry.js';
 
 /** The server's plugins: bundled ones from the repo and external ones from PALOMA_PLUGINS_DIR. */
 export const pluginRegistry = new PluginRegistry({

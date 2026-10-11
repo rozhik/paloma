@@ -274,7 +274,14 @@
     "album_not_granted": "Anda hanya dapat mengubah album yang aksesnya diberikan kepada Anda.",
     "outside_access": "Ini juga mengubah foto yang tidak dapat Anda lihat.",
     "person_linked": "Orang ini sudah ditautkan dengan pengguna {{username}}.",
-    "avatar_invalid": "File bukan gambar yang dapat digunakan. Pilih gambar JPEG, PNG, atau WebP maksimal 10 MB."
+    "avatar_invalid": "File bukan gambar yang dapat digunakan. Pilih gambar JPEG, PNG, atau WebP maksimal 10 MB.",
+    "ai_provider_not_found": "Penyedia AI tidak ditemukan. Plugin-nya mungkin nonaktif.",
+    "ai_provider_failed": "Penyedia AI gagal: {{message}}",
+    "ai_task_not_found": "Tugas AI tidak ditemukan.",
+    "ai_task_builtin": "Tugas AI bawaan tidak dapat dihapus.",
+    "ai_task_not_builtin": "Hanya tugas AI bawaan yang dapat diatur ulang.",
+    "ai_task_not_ready": "Tugas AI ini belum siap. Periksa penyedia dan modelnya di Pengaturan server.",
+    "ai_run_in_progress": "Tugas AI lain sedang berjalan. Tunggu hingga selesai."
   },
   "geo": {
     "coordinates": "{{lat}}; {{lon}}",
@@ -389,7 +396,9 @@
     "fit": "Paskan ke layar",
     "info": "Info",
     "faces": "Wajah",
-    "facesUnavailable": "Bingkai wajah tidak dapat ditampilkan untuk foto ini karena pelurusannya."
+    "facesUnavailable": "Bingkai wajah tidak dapat ditampilkan untuk foto ini karena pelurusannya.",
+    "objects": "Objek",
+    "objectsUnavailable": "Bingkai objek tidak dapat ditampilkan untuk foto ini karena pelurusannya."
   },
   "tags": {
     "placeholder": "Ketik tag lalu tekan Enter",
@@ -724,5 +733,134 @@
     "rateLimit": "Permintaan per menit bawaan",
     "unlimited": "Tanpa batas",
     "none": "Tidak ada"
+  },
+  "ai": {
+    "title": "AI",
+    "intro": "Tugas AI melihat foto untuk menambahkan tag, menemukan objek, atau menulis deskripsi. Pilih penyedia dan model untuk setiap tugas. Pengaturan ini berlaku untuk semua pengguna.",
+    "loading": "Memuat pengaturan AI…",
+    "task": {
+      "tags": "Tag",
+      "objects": "Objek",
+      "description": "Deskripsi"
+    },
+    "output": {
+      "tags": "Tag",
+      "objects": "Objek dengan bingkai",
+      "text": "Teks"
+    },
+    "problem": {
+      "no_provider": "Pilih penyedia untuk tugas ini.",
+      "provider_unavailable": "Penyedianya tidak tersedia. Aktifkan plugin-nya di bagian Plugin.",
+      "provider_not_configured": "Penyedianya belum diatur.",
+      "no_model": "Pilih model untuk tugas ini."
+    },
+    "providers": {
+      "title": "Penyedia",
+      "none": "Tidak ada penyedia AI. Aktifkan plugin AI, seperti OpenAI, di bagian Plugin.",
+      "plugin": "Plugin: {{plugin}}",
+      "configured": "Sudah diatur",
+      "notConfigured": "Belum diatur",
+      "missing": "Masih diperlukan: {{list}}",
+      "privacy": "Foto yang diproses dengan {{name}} dikirim ke layanannya.",
+      "privacyAddress": "Foto yang diproses dengan {{name}} dikirim ke {{address}}.",
+      "fromEnv": "Lingkungan server memberikan nilai ini selama belum ada yang disimpan di sini.",
+      "secretSet": "Tersimpan. Ketik untuk menggantinya.",
+      "secretNotSet": "Belum diisi",
+      "secretRemoved": "Dihapus saat disimpan",
+      "remove": "Hapus",
+      "save": "Simpan",
+      "saved": "Pengaturan telah disimpan.",
+      "test": "Uji koneksi",
+      "testOk": "Koneksi berfungsi."
+    },
+    "tasks": {
+      "title": "Tugas",
+      "intro": "Menu AI menawarkan tugas-tugas ini. Setelah penyedia, model, prompt, opsi model, ukuran gambar, atau bahasa tugas diubah, tugas itu memproses foto lagi.",
+      "add": "Tambah tugas",
+      "builtIn": "Bawaan",
+      "notInMenu": "Tidak di menu",
+      "ready": "Siap",
+      "edit": "Edit",
+      "reset": "Atur ulang",
+      "delete": "Hapus",
+      "resetTitle": "Atur ulang “{{name}}”?",
+      "resetBody": "Prompt dan opsinya kembali ke bawaan. Penyedia dan modelnya tetap.",
+      "deleteTitle": "Hapus “{{name}}”?",
+      "deleteBody": "Hasilnya juga dihapus. Tag dan deskripsi yang ditambahkannya ke foto tetap ada."
+    },
+    "editor": {
+      "addTitle": "Tambah tugas AI",
+      "editTitle": "Edit “{{name}}”",
+      "name": "Nama",
+      "output": "Hasil",
+      "inMenu": "Tampilkan di menu AI",
+      "provider": "Penyedia",
+      "noProvider": "Tanpa penyedia",
+      "unavailable": "{{id}} (tidak tersedia)",
+      "model": "Model",
+      "modelPlaceholder": "Pilih atau ketik model",
+      "loadingModels": "Memuat model…",
+      "modelsFailed": "Model tidak dapat dicantumkan: {{message}} Anda dapat mengetik nama model.",
+      "modelsCount_other": "{{count, number}} model tersedia",
+      "prompt": "Prompt",
+      "placeholders": "Sisipkan:",
+      "modelOptions": "Opsi model",
+      "taskOptions": "Opsi tugas",
+      "default": "Bawaan ({{value}})"
+    },
+    "placeholder": {
+      "language": "nama bahasa jawaban",
+      "maxTags": "jumlah tag terbanyak",
+      "photoTags": "tag foto saat ini",
+      "description": "deskripsi foto saat ini",
+      "libraryTags": "300 tag yang paling sering dipakai di pustaka"
+    },
+    "option": {
+      "imageSize": "Ukuran gambar, piksel",
+      "imageSizeHelp": "Sisi panjang gambar yang dikirim. Gambar lebih besar menampilkan lebih banyak detail dan biayanya lebih tinggi.",
+      "parallel": "Foto sekaligus",
+      "language": "Bahasa jawaban",
+      "languageUser": "Bahasa orang yang menjalankannya",
+      "maxTags": "Tag terbanyak",
+      "minConfidence": "Keyakinan minimum",
+      "minConfidenceHelp": "Dari 0 hingga 1. Jawaban yang kurang yakin disimpan sebagai hasil, tetapi tidak ditambahkan ke foto.",
+      "labelsAsTags": "Tambahkan juga nama objek sebagai tag",
+      "textTarget": "Gunakan teks sebagai",
+      "target": {
+        "description-if-empty": "Deskripsi, jika foto belum punya",
+        "description-always": "Deskripsi, menggantikan yang sekarang",
+        "none": "Hanya hasil"
+      }
+    },
+    "menu": {
+      "button": "AI",
+      "label": "Tugas AI untuk foto-foto ini",
+      "runAgain": "Jalankan lagi pada semua foto",
+      "settings": "Pengaturan AI…",
+      "running": "Tugas AI sedang berjalan. Tunggu hingga selesai.",
+      "empty": "Tidak ada tugas AI. Administrator dapat menambahkannya di Pengaturan server."
+    },
+    "run": {
+      "progress": "{{task}}: {{done, number}} dari {{total, number}} foto",
+      "stop": "Hentikan",
+      "cancelling": "Berhenti setelah foto yang sedang diproses…",
+      "processed_other": "{{task}}: {{count, number}} foto diproses.",
+      "nothingToDo": "{{task}}: foto-foto ini sudah diproses. Pilih “Jalankan lagi” untuk memprosesnya lagi.",
+      "cancelled": "Dihentikan.",
+      "tagsAdded_other": "{{count, number}} tag ditambahkan.",
+      "descriptionsSet_other": "{{count, number}} deskripsi ditulis.",
+      "failed_other": "{{count, number}} foto tidak dapat diproses.",
+      "tokens": "Token terpakai: {{input, number}} dikirim, {{output, number}} diterima.",
+      "stoppedError": "{{task}} berhenti: {{message}}"
+    },
+    "info": {
+      "title": "AI",
+      "none": "Tidak ada hasil AI untuk foto ini.",
+      "run": "Jalankan {{task}}",
+      "running": "Berjalan…",
+      "byModel": "{{model}}, {{date}}",
+      "noObjects": "Tidak ada objek yang ditemukan.",
+      "noTags": "Tidak ada tag yang ditemukan."
+    }
   }
 }

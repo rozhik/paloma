@@ -283,7 +283,14 @@
     "album_not_granted": "Sie können nur Alben ändern, für die Sie Zugriff erhalten haben.",
     "outside_access": "Das ändert auch Fotos, die Sie nicht sehen können.",
     "person_linked": "Diese Person ist bereits mit dem Benutzer {{username}} verknüpft.",
-    "avatar_invalid": "Die Datei ist kein verwendbares Bild. Wählen Sie ein JPEG-, PNG- oder WebP-Bild mit höchstens 10 MB."
+    "avatar_invalid": "Die Datei ist kein verwendbares Bild. Wählen Sie ein JPEG-, PNG- oder WebP-Bild mit höchstens 10 MB.",
+    "ai_provider_not_found": "Der KI-Anbieter wurde nicht gefunden. Sein Plugin ist vielleicht ausgeschaltet.",
+    "ai_provider_failed": "Der KI-Anbieter ist fehlgeschlagen: {{message}}",
+    "ai_task_not_found": "Die KI-Aufgabe wurde nicht gefunden.",
+    "ai_task_builtin": "Eine eingebaute KI-Aufgabe kann nicht gelöscht werden.",
+    "ai_task_not_builtin": "Nur eingebaute KI-Aufgaben können zurückgesetzt werden.",
+    "ai_task_not_ready": "Diese KI-Aufgabe ist nicht bereit. Prüfen Sie Anbieter und Modell in den Servereinstellungen.",
+    "ai_run_in_progress": "Eine andere KI-Aufgabe läuft. Warten Sie, bis sie endet."
   },
   "geo": {
     "coordinates": "{{lat}}; {{lon}}",
@@ -403,7 +410,9 @@
     "fit": "An Bildschirm anpassen",
     "info": "Info",
     "faces": "Gesichter",
-    "facesUnavailable": "Gesichtsrahmen können für dieses Foto wegen der Ausrichtung nicht angezeigt werden."
+    "facesUnavailable": "Gesichtsrahmen können für dieses Foto wegen der Ausrichtung nicht angezeigt werden.",
+    "objects": "Objekte",
+    "objectsUnavailable": "Objektrahmen können für dieses Foto wegen seiner Begradigung nicht angezeigt werden."
   },
   "tags": {
     "placeholder": "Tag eingeben und Enter drücken",
@@ -740,5 +749,139 @@
     "rateLimit": "Standard-Anfragen pro Minute",
     "unlimited": "Keine Grenze",
     "none": "Keine"
+  },
+  "ai": {
+    "title": "KI",
+    "intro": "KI-Aufgaben sehen sich Fotos an, um Tags hinzuzufügen, Objekte zu finden oder Beschreibungen zu schreiben. Wählen Sie für jede Aufgabe einen Anbieter und ein Modell. Diese Einstellungen gelten für alle Benutzer.",
+    "loading": "KI-Einstellungen werden geladen…",
+    "task": {
+      "tags": "Tags",
+      "objects": "Objekte",
+      "description": "Beschreibung"
+    },
+    "output": {
+      "tags": "Tags",
+      "objects": "Objekte mit Rahmen",
+      "text": "Text"
+    },
+    "problem": {
+      "no_provider": "Wählen Sie einen Anbieter für diese Aufgabe.",
+      "provider_unavailable": "Ihr Anbieter ist nicht verfügbar. Schalten Sie sein Plugin im Bereich Plugins ein.",
+      "provider_not_configured": "Ihr Anbieter ist noch nicht eingerichtet.",
+      "no_model": "Wählen Sie ein Modell für diese Aufgabe."
+    },
+    "providers": {
+      "title": "Anbieter",
+      "none": "Kein KI-Anbieter verfügbar. Schalten Sie im Bereich Plugins ein KI-Plugin ein, etwa OpenAI.",
+      "plugin": "Plugin: {{plugin}}",
+      "configured": "Eingerichtet",
+      "notConfigured": "Nicht eingerichtet",
+      "missing": "Noch nötig: {{list}}",
+      "privacy": "Mit {{name}} verarbeitete Fotos werden an dessen Dienst gesendet.",
+      "privacyAddress": "Mit {{name}} verarbeitete Fotos werden an {{address}} gesendet.",
+      "fromEnv": "Die Serverumgebung liefert diesen Wert, solange hier nichts gespeichert ist.",
+      "secretSet": "Gespeichert. Tippen Sie, um ihn zu ersetzen.",
+      "secretNotSet": "Nicht gesetzt",
+      "secretRemoved": "Wird beim Speichern entfernt",
+      "remove": "Entfernen",
+      "save": "Speichern",
+      "saved": "Die Einstellungen wurden gespeichert.",
+      "test": "Verbindung testen",
+      "testOk": "Die Verbindung funktioniert."
+    },
+    "tasks": {
+      "title": "Aufgaben",
+      "intro": "Die KI-Menüs bieten diese Aufgaben an. Nach einer Änderung von Anbieter, Modell, Prompt, Modelloptionen, Bildgröße oder Sprache verarbeitet eine Aufgabe Fotos erneut.",
+      "add": "Aufgabe hinzufügen",
+      "builtIn": "Eingebaut",
+      "notInMenu": "Nicht in Menüs",
+      "ready": "Bereit",
+      "edit": "Bearbeiten",
+      "reset": "Zurücksetzen",
+      "delete": "Löschen",
+      "resetTitle": "„{{name}}“ zurücksetzen?",
+      "resetBody": "Prompt und Optionen kehren zu ihren Standardwerten zurück. Anbieter und Modell bleiben.",
+      "deleteTitle": "„{{name}}“ löschen?",
+      "deleteBody": "Ihre Ergebnisse werden ebenfalls gelöscht. Tags und Beschreibungen, die sie Fotos hinzugefügt hat, bleiben."
+    },
+    "editor": {
+      "addTitle": "KI-Aufgabe hinzufügen",
+      "editTitle": "„{{name}}“ bearbeiten",
+      "name": "Name",
+      "output": "Ergebnis",
+      "inMenu": "In KI-Menüs anzeigen",
+      "provider": "Anbieter",
+      "noProvider": "Kein Anbieter",
+      "unavailable": "{{id}} (nicht verfügbar)",
+      "model": "Modell",
+      "modelPlaceholder": "Modell wählen oder eingeben",
+      "loadingModels": "Modelle werden geladen…",
+      "modelsFailed": "Die Modelle konnten nicht aufgelistet werden: {{message}} Sie können einen Modellnamen eingeben.",
+      "modelsCount_one": "{{count, number}} Modell verfügbar",
+      "modelsCount_other": "{{count, number}} Modelle verfügbar",
+      "prompt": "Prompt",
+      "placeholders": "Einfügen:",
+      "modelOptions": "Modelloptionen",
+      "taskOptions": "Aufgabenoptionen",
+      "default": "Standard ({{value}})"
+    },
+    "placeholder": {
+      "language": "der Name der Antwortsprache",
+      "maxTags": "die höchste Zahl an Tags",
+      "photoTags": "die aktuellen Tags des Fotos",
+      "description": "die aktuelle Beschreibung des Fotos",
+      "libraryTags": "die 300 häufigsten Tags der Bibliothek"
+    },
+    "option": {
+      "imageSize": "Bildgröße, Pixel",
+      "imageSizeHelp": "Die lange Seite des gesendeten Bildes. Ein größeres Bild zeigt mehr Details und kostet mehr.",
+      "parallel": "Fotos gleichzeitig",
+      "language": "Antwortsprache",
+      "languageUser": "Die Sprache dessen, der sie startet",
+      "maxTags": "Höchstens Tags",
+      "minConfidence": "Mindestsicherheit",
+      "minConfidenceHelp": "Von 0 bis 1. Unsicherere Antworten werden als Ergebnisse behalten, aber nicht zu Fotos hinzugefügt.",
+      "labelsAsTags": "Objektnamen auch als Tags hinzufügen",
+      "textTarget": "Text verwenden als",
+      "target": {
+        "description-if-empty": "Beschreibung, wenn das Foto keine hat",
+        "description-always": "Beschreibung, die aktuelle ersetzend",
+        "none": "Nur Ergebnis"
+      }
+    },
+    "menu": {
+      "button": "KI",
+      "label": "KI-Aufgaben für diese Fotos",
+      "runAgain": "Für alle Fotos erneut ausführen",
+      "settings": "KI-Einstellungen…",
+      "running": "Eine KI-Aufgabe läuft. Warten Sie, bis sie endet.",
+      "empty": "Keine KI-Aufgaben. Ein Administrator kann sie in den Servereinstellungen hinzufügen."
+    },
+    "run": {
+      "progress": "{{task}}: {{done, number}} von {{total, number}} Fotos",
+      "stop": "Anhalten",
+      "cancelling": "Wird nach den laufenden Fotos angehalten…",
+      "processed_one": "{{task}}: {{count, number}} Foto verarbeitet.",
+      "processed_other": "{{task}}: {{count, number}} Fotos verarbeitet.",
+      "nothingToDo": "{{task}}: Diese Fotos wurden bereits verarbeitet. Wählen Sie „Erneut ausführen“, um sie noch einmal zu verarbeiten.",
+      "cancelled": "Angehalten.",
+      "tagsAdded_one": "{{count, number}} Tag hinzugefügt.",
+      "tagsAdded_other": "{{count, number}} Tags hinzugefügt.",
+      "descriptionsSet_one": "{{count, number}} Beschreibung geschrieben.",
+      "descriptionsSet_other": "{{count, number}} Beschreibungen geschrieben.",
+      "failed_one": "{{count, number}} Foto konnte nicht verarbeitet werden.",
+      "failed_other": "{{count, number}} Fotos konnten nicht verarbeitet werden.",
+      "tokens": "Verwendete Tokens: {{input, number}} gesendet, {{output, number}} empfangen.",
+      "stoppedError": "{{task}} angehalten: {{message}}"
+    },
+    "info": {
+      "title": "KI",
+      "none": "Keine KI-Ergebnisse für dieses Foto.",
+      "run": "{{task}} ausführen",
+      "running": "Läuft…",
+      "byModel": "{{model}}, {{date}}",
+      "noObjects": "Keine Objekte gefunden.",
+      "noTags": "Keine Tags gefunden."
+    }
   }
 }

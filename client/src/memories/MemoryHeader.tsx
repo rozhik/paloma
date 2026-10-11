@@ -6,6 +6,7 @@ import type { MemorySelection } from '../store/usePalomaStore.js';
 import { useFormat } from '../i18n/format.js';
 import { SlideshowButton } from '../components/slideshow/SlideshowButton.js';
 import { FaceDetectionButton } from '../faces/FaceDetectionButton.js';
+import { AiMenu } from '../ai/AiMenu.js';
 import { memoryName } from './memoryName.js';
 
 interface MemoryHeaderProps {
@@ -30,6 +31,7 @@ export const MemoryHeader: React.FC<MemoryHeaderProps> = ({ memory, photos }) =>
       </div>
       <div className="d-flex gap-2 flex-wrap">
         <FaceDetectionButton photos={photos} />
+        <AiMenu photos={photos} />
         <SlideshowButton photos={photos} />
       </div>
     </div>

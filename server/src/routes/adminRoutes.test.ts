@@ -41,7 +41,7 @@ describe('admin API', () => {
 
   it('lists the permissions with texts in the requested language', async () => {
     const { body } = await anna.get('/admin/permissions?lang=uk');
-    expect(body).toHaveLength(8);
+    expect(body).toHaveLength(9);
     expect(body[0]).toEqual({ id: 'library.view', label: 'Перегляд бібліотеки', description: expect.any(String) });
   });
 

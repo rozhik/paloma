@@ -11,7 +11,7 @@ beforeAll(async () => {
 
 const plugin = (id: string, authProviders: PluginInfo['authProviders']): PluginInfo => ({
   id, name: `Plugin ${id}`, description: '', version: '1.0.0', source: 'bundled', level: 'normal', enabled: true, status: 'active',
-  error: null, warnings: [], filters: [], authProviders,
+  error: null, warnings: [], filters: [], authProviders, aiProviders: [],
 });
 
 describe('AdminView', () => {

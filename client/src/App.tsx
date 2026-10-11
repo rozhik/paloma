@@ -21,6 +21,7 @@ import { usePerson } from './people/usePerson.js';
 import { SimilarFaces } from './faces/SimilarFaces.js';
 import { UnrecognizedFaces } from './faces/UnrecognizedFaces.js';
 import { FaceDetectionOverlay } from './faces/FaceDetectionProgress.js';
+import { AiRunOverlay } from './ai/AiRunProgress.js';
 import { Slideshow } from './components/slideshow/Slideshow.js';
 import { useLibraryPhotos } from './shell/useLibraryPhotos.js';
 import { useAppearanceSync, useSkin } from './appearance/runtime.js';
@@ -121,6 +122,7 @@ export const App: React.FC = () => {
 
       {/* Over whatever view opened it, which stays mounted with its scroll position */}
       <FaceDetectionOverlay />
+      <AiRunOverlay />
 
       <PhotoViewer />
 

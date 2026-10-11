@@ -35,6 +35,7 @@ import { config } from '../config.js';
 import { asyncRoute, sendFileOr404 } from './asyncRoute.js';
 import { registerAuthRoutes } from './auth.js';
 import { registerAdminRoutes } from './admin.js';
+import { registerAiRoutes } from './ai.js';
 import { authenticate, need, principalOf } from '../auth/middleware.js';
 import { grantAlbum } from '../auth/users.js';
 import { andVisible, isFileHashVisible } from '../auth/scope.js';
@@ -55,6 +56,7 @@ router.use(authenticate());
 router.use(rateLimit());
 registerAuthRoutes(router);
 registerAdminRoutes(router);
+registerAiRoutes(router);
 
 /** Sends an API result: its status with its body. */
 const send = (res: Response, result: { status: number; body: unknown }) => res.status(result.status).json(result.body);

@@ -1,13 +1,14 @@
 import { describe, it, expect, beforeAll, afterEach } from 'vitest';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import type { Photo, PhotoInfo } from '../../../../shared/types.js';
+import type { AiTask, Photo, PhotoAiResult, PhotoInfo } from '../../../../shared/types.js';
 import { i18n, initI18n } from '../../i18n/index.js';
 import { DEFAULT_UI_SETTINGS, useUiSettings, type UiSettings } from '../../settings/uiSettings.js';
 import { InfoContent, folderName } from './InfoPanel.js';
 import { NavBar } from './NavBar.js';
 import { barLayout } from './barLayout.js';
 import { coordinatesText, fileSizeText } from './infoFormat.js';
+import { AiResultsView } from '../../ai/InfoPanelAi.js';
 
 /** Sets UI settings for a server render: zustand renders its initial state there, so that is changed too. */
 function setSettings(patch: Partial<UiSettings>) {
@@ -104,6 +105,45 @@ describe('Info panel content', () => {
       ...info, albums: [], people: [], exif: null, photo: { ...photo, latitude: null, longitude: null, locationSource: null },
     });
     for (const key of ['info.noAlbums', 'info.noPeople', 'info.noLocation', 'info.noExif'] as const) expect(markup).toContain(i18n.t(key));
+  });
+});
+
+describe('Info panel AI section', () => {
+  const results: PhotoAiResult[] = [
+    { taskId: 'tags', taskName: null, output: 'tags', provider: 'openai', model: 'gpt-x', createdAt: '2026-10-11T10:00:00.000Z', tags: [{ name: 'bridge', confidence: 0.9 }], inputTokens: 1, outputTokens: 1 },
+    { taskId: 'objects', taskName: null, output: 'objects', provider: 'openai', model: 'gpt-x', createdAt: '2026-10-11T10:00:00.000Z', objects: [{ label: 'dog', rect: { left: 0, top: 0, right: 1, bottom: 1 }, confidence: 0.92 }], inputTokens: null, outputTokens: null },
+    { taskId: 't-1', taskName: 'Story', output: 'text', provider: 'openai', model: 'gpt-y', createdAt: '2026-10-11T10:00:00.000Z', text: 'An old bridge over a river', inputTokens: null, outputTokens: null },
+  ];
+  const task = (patch: Partial<AiTask>): AiTask => ({
+    id: 'description', builtIn: true, name: null, output: 'text', inMenu: true, provider: 'openai', model: 'gpt-x', prompt: 'p', modelOptions: {},
+    options: { imageSize: 1024, language: 'user', parallel: 2 }, ready: true, problem: null, ...patch,
+  });
+  const view = (node: React.ReactElement) => renderToStaticMarkup(node).replace(/&quot;/g, '"').replace(/&#x27;/g, "'");
+
+  it('is shown from Normal', () => {
+    expect(render('easy')).not.toContain(`>${i18n.t('ai.info.title')}<`);
+    expect(render('normal')).toContain(`>${i18n.t('ai.info.title')}<`);
+  });
+
+  it('lists each result with its task, model, and tags, object labels or text', () => {
+    const markup = view(<AiResultsView results={results} tasks={[]} running={false} />);
+    for (const text of [i18n.t('ai.task.tags'), 'bridge', i18n.t('ai.task.objects'), 'dog 92%', 'Story', 'An old bridge over a river', 'gpt-y']) {
+      expect(markup, text).toContain(text);
+    }
+  });
+
+  it('says when there are no results, and offers ready tasks to run on this photo', () => {
+    const markup = view(<AiResultsView results={[]} tasks={[task({}), task({ id: 'tags', ready: false, problem: 'no_model' })]} running={false} onRun={() => {}} />);
+    expect(markup).toContain(i18n.t('ai.info.none'));
+    expect(markup).toContain(i18n.t('ai.info.run', { task: i18n.t('ai.task.description') }));
+    expect(markup).not.toContain(i18n.t('ai.info.run', { task: i18n.t('ai.task.tags') }));
+  });
+
+  it('offers no Run without ai.run, and disables it while a run exists', () => {
+    expect(view(<AiResultsView results={[]} tasks={[task({})]} running={false} />)).not.toContain('<button');
+    const markup = view(<AiResultsView results={[]} tasks={[task({})]} running onRun={() => {}} />);
+    expect(markup).toMatch(/<button[^>]*disabled=""/);
+    expect(markup).toContain(i18n.t('ai.info.running'));
   });
 });
 

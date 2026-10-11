@@ -274,3 +274,35 @@ export const userQuotas = sqliteTable('user_quotas', {
 }, (table) => ({
   pk: primaryKey({ columns: [table.userId, table.kind] }),
 }));
+
+// The last result of each AI task per photo; `result` is JSON: tags (`[{name, confidence}]`), text, or `[]` for objects
+export const aiResults = sqliteTable('ai_results', {
+  photoId: integer('photo_id').notNull().references(() => photos.id, { onDelete: 'cascade' }),
+  taskId: text('task_id').notNull(),
+  // What the result depends on (provider, model, prompt, options, language); another one counts as not processed
+  fingerprint: text('fingerprint').notNull(),
+  // The content the result is about; results for older content are not shown
+  fileHash: text('file_hash').notNull(),
+  provider: text('provider').notNull(),
+  model: text('model').notNull(),
+  output: text('output').notNull(),
+  result: text('result').notNull(),
+  inputTokens: integer('input_tokens'),
+  outputTokens: integer('output_tokens'),
+  createdAt: text('created_at').notNull(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.photoId, table.taskId] }),
+  byTask: index('ai_results_task').on(table.taskId),
+}));
+
+// Objects found by AI tasks, in the unedited, upright photo
+export const aiObjects = sqliteTable('ai_objects', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  photoId: integer('photo_id').notNull().references(() => photos.id, { onDelete: 'cascade' }),
+  taskId: text('task_id').notNull(),
+  label: text('label').notNull(),
+  confidence: real('confidence'),
+  rect: text('rect').notNull(), // JSON RelativeRect
+}, (table) => ({
+  byPhoto: index('ai_objects_photo').on(table.photoId),
+}));

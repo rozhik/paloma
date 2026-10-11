@@ -154,10 +154,104 @@ export interface BearerProviderDefinition extends AuthProviderBase {
 
 export type AuthProviderDefinition = CredentialsProviderDefinition | BearerProviderDefinition;
 
+// --- AI providers ---
+
+export type AiOutputKind = 'tags' | 'objects' | 'text';
+
+/** A setting of an AI provider, entered by an administrator in Server settings → AI. */
+export interface AiSettingDefinition {
+  name: string;
+  label: LocalizedText;
+  /** `secret` values are never sent to clients or logged */
+  type: 'text' | 'secret' | 'number' | 'boolean' | 'choice';
+  required?: boolean;
+  default?: string | number | boolean;
+  help?: LocalizedText;
+  /** `number` settings */
+  min?: number;
+  max?: number;
+  /** `choice` settings */
+  options?: { value: string | number; label: LocalizedText }[];
+}
+
+/** A model option, set per task; like a filter parameter, without rectangles. */
+export type AiModelOptionDefinition = NumberParamDefinition | BooleanParamDefinition | ChoiceParamDefinition;
+
+/** What Paloma gives an AI provider on each call. */
+export interface AiContext {
+  /** The saved settings, with the declared defaults filled in; settings without a value are absent */
+  settings: Record<string, string | number | boolean>;
+  /** The server's environment, for providers that take values from it when none is saved */
+  env: Record<string, string | undefined>;
+  /** Aborted when the server stops; providers pass it to their requests */
+  signal: AbortSignal;
+  log: PluginLog;
+}
+
+/** One photo to look at. */
+export interface AiRequest {
+  model: string;
+  /** The task's prompt with its placeholders filled in */
+  prompt: string;
+  output: AiOutputKind;
+  /** The photo upright (EXIF orientation applied), without edits, resized to the task's image size */
+  image: { data: Buffer; mimeType: 'image/jpeg'; width: number; height: number };
+  /** English name of the language the answer should be in, e.g. `Ukrainian` */
+  language: string;
+  /** `tags` tasks: the most tags to return */
+  maxTags?: number;
+  /** Every declared model option, defaults filled in */
+  options: Record<string, string | number | boolean>;
+}
+
+/** The answer about one photo; Paloma checks it and drops what is unusable. */
+export interface AiAnswer {
+  tags?: { name: string; confidence?: number }[];
+  /** Rectangles as fractions 0..1 of the image sent */
+  objects?: { label: string; rect: RelativeRect; confidence?: number }[];
+  text?: string;
+  usage?: { inputTokens?: number; outputTokens?: number };
+}
+
+/**
+ * How a provider call failed, so Paloma can react: `auth` (credentials refused or missing), `unreachable`
+ * (no answer), `rate-limit` (retried after `retryAfterMs`), `bad-answer` (unusable reply), `other`.
+ */
+export type AiErrorKind = 'auth' | 'unreachable' | 'rate-limit' | 'bad-answer' | 'other';
+
+/**
+ * What a provider throws to say how a call failed: an `Error` with a `kind` and, for `rate-limit`, optionally
+ * `retryAfterMs`. Plugins cannot import Paloma's code, so any error with these properties counts; an error
+ * without a known `kind` counts as `other`.
+ */
+export interface AiProviderError extends Error {
+  kind: AiErrorKind;
+  retryAfterMs?: number;
+}
+
+/** A service that looks at a photo and answers with tags, objects or a text. */
+export interface AiProviderDefinition {
+  /** Unique across plugins; lowercase letters, digits and hyphens */
+  id: string;
+  label: LocalizedText;
+  settings?: AiSettingDefinition[];
+  /** Names of settings that still need a value for the current values, beyond the `required` ones */
+  missingSettings?(ctx: Pick<AiContext, 'settings' | 'env'>): string[];
+  /** Whether a setting without a saved value is given by the environment (shown in Server settings) */
+  settingFromEnv?(name: string, ctx: Pick<AiContext, 'env'>): boolean;
+  modelOptions?: AiModelOptionDefinition[];
+  listModels(ctx: AiContext): Promise<{ id: string; label?: string }[]>;
+  /** Throws with a message for the user when the service cannot be used; without it, listModels() is the test */
+  test?(ctx: AiContext): Promise<void>;
+  run(request: AiRequest, ctx: AiContext): Promise<AiAnswer>;
+}
+
 export interface PluginContributions {
   filters?: FilterDefinition[];
   /** Ways to log in or to authenticate requests */
   authProviders?: AuthProviderDefinition[];
+  /** Services that look at photos for AI tasks */
+  aiProviders?: AiProviderDefinition[];
 }
 
 /** The shape of a plugin's server module. */
