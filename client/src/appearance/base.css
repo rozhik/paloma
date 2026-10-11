@@ -106,6 +106,19 @@ body {
   --bs-dropdown-link-active-color: var(--pal-accent-text);
 }
 .popover { --bs-popover-bg: var(--pal-surface-raised); --bs-popover-body-color: var(--pal-text); --bs-popover-border-color: var(--pal-border); }
+
+/*
+ * Every popup fits the window and scrolls when its content does not. A dialog keeps its header and footer in
+ * view and scrolls its body, as Bootstrap's `scrollable` dialogs do, for every dialog, also when a form wraps the
+ * body and footer. Menus and popovers scroll inside themselves.
+ */
+.modal-dialog { height: calc(100% - var(--bs-modal-margin) * 2); }
+.modal-content { max-height: 100%; overflow: hidden; }
+.modal-content > form { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+.modal-body { overflow-y: auto; overscroll-behavior: contain; }
+.modal-header, .modal-footer { flex-shrink: 0; }
+.dropdown-menu { max-height: min(70dvh, 40rem); overflow-y: auto; overscroll-behavior: contain; }
+.popover { max-height: calc(100dvh - 1rem); overflow-y: auto; }
 .card { --bs-card-bg: var(--pal-surface); --bs-card-color: var(--pal-text); --bs-card-border-color: var(--pal-border); }
 .form-control, .form-select { background-color: var(--pal-surface); color: var(--pal-text); border-color: var(--pal-border); }
 .form-control::placeholder { color: var(--pal-text-muted); }
@@ -1018,6 +1031,8 @@ img {
   inset-inline-end: calc(var(--pal-gap) * 2);
   z-index: 1040;
   max-width: min(28rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - var(--pal-tray-height) - var(--pal-gap) * 3);
+  overflow-y: auto;
 }
 .face-progress {
   position: relative;

@@ -40,7 +40,7 @@ The viewer's background, the photo tray and the navigation bar change color with
 
 ## Skins
 
-Each skin builds three parts of the screen its own way: the **app frame** (navigation, folder sidebar and photo tray), the **library grid** with its photo cards, and the **viewer's bars** around an open photo. The other views (map, people, collage, settings) and the dialogs are shared by all skins; they take the skin's sizes and fonts and the theme's colors.
+Each skin builds three parts of the screen its own way: the **app frame** (navigation, folder sidebar and photo tray), the **library grid** with its photo cards, and the **viewer's bars** around an open photo. The other views (map, people, collage, settings) and the dialogs are shared by all skins; they take the skin's sizes and fonts and the theme's colors. Every dialog, menu and popover fits the window: a dialog keeps its header and footer in view and scrolls its body, and menus and popovers scroll inside themselves (rules in `base.css`, for every dialog whether or not it is created with `scrollable`).
 
 ### Classic
 
