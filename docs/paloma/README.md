@@ -39,7 +39,10 @@
 | **5. Організація та геодані** | Локальне розпізнавання облич (`@vladmandic/face-api`), карта (`leaflet`), пакетні операції | [05-organizer-tools.md](05-organizer-tools.md) |
 | **6. Збереження та метадані** | Схема SQLite, структура `.paloma.json`, підтримка EXIF/XMP, `.paloma/originals` | [06-storage-and-metadata.md](06-storage-and-metadata.md) |
 | **7. Зовнішні залежності** | Вичерпний перелік усіх npm-пакетів та бібліотек | [external-dep.md](external-dep.md) |
-| **8. Покроковий план (Roadmap)** | Детальний чек-лист розробки Paloma по етапах | [detailed-todo.md](detailed-todo.md) |
+| **8. Immich API ↔ Paloma** | Порівняння REST-поверхні Immich з поточним API Paloma | [07-immich-api-comparison.md](07-immich-api-comparison.md) |
+| **9. Immich: файли, папки, дублікати** | Як Immich зберігає assets, сканує external libraries, Folder View і dedup | [08-immich-files-folders-duplicates.md](08-immich-files-folders-duplicates.md) |
+| **10. Immich: users / auth / rights** | Користувачі, ролі, OAuth, API keys, permissions, sharing | [09-immich-users-auth.md](09-immich-users-auth.md) |
+| **11. Покроковий план (Roadmap)** | Детальний чек-лист розробки Paloma по етапах | [detailed-todo.md](detailed-todo.md) |
 
 ---
 
