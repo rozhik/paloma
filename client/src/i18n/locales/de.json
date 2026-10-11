@@ -290,7 +290,10 @@
     "ai_task_builtin": "Eine eingebaute KI-Aufgabe kann nicht gelöscht werden.",
     "ai_task_not_builtin": "Nur eingebaute KI-Aufgaben können zurückgesetzt werden.",
     "ai_task_not_ready": "Diese KI-Aufgabe ist nicht bereit. Prüfen Sie Anbieter und Modell in den Servereinstellungen.",
-    "ai_run_in_progress": "Eine andere KI-Aufgabe läuft. Warten Sie, bis sie endet."
+    "ai_run_in_progress": "Eine andere KI-Aufgabe läuft. Warten Sie, bis sie endet.",
+    "read_only_field": "Dieses Feld kann nicht geändert werden.",
+    "object_not_found": "Nicht gefunden.",
+    "origin_not_allowed": "Anfragen von dieser Webseite sind nicht erlaubt."
   },
   "geo": {
     "coordinates": "{{lat}}; {{lon}}",
@@ -747,6 +750,11 @@
     "pluginsDir": "Ordner für externe Plugins",
     "sessionDays": "Tage, die eine Anmeldung ohne Nutzung gilt",
     "rateLimit": "Standard-Anfragen pro Minute",
+    "mcp": "MCP für KI-Clients",
+    "mcpOn": "An",
+    "mcpOff": "Aus",
+    "mcpToken": "KI-Clients verbinden sich mit einem persönlichen API-Token (Konto → API-Token).",
+    "mcpNoToken": "Solange Benutzer aus sind, ist kein Token nötig.",
     "unlimited": "Keine Grenze",
     "none": "Keine"
   },

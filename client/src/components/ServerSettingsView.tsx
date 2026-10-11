@@ -22,7 +22,10 @@ const Paths: React.FC<{ paths: string[]; none: string }> = ({ paths, none }) =>
   );
 
 /** The read-only Server section: what the server was started with. */
-export const ServerSection: React.FC<{ info: ServerInfo }> = ({ info }) => {
+/** The address this page was loaded from, which also serves the API (directly or through the dev proxy). */
+const pageOrigin = (): string => (typeof window === 'undefined' ? '' : window.location.origin);
+
+export const ServerSection: React.FC<{ info: ServerInfo; origin?: string }> = ({ info, origin = pageOrigin() }) => {
   const { t } = useTranslation();
   const path = (value: string) => <span dir="ltr" className="text-break font-monospace">{value}</span>;
   return (
@@ -43,6 +46,17 @@ export const ServerSection: React.FC<{ info: ServerInfo }> = ({ info }) => {
         <Fact label={t('server.pluginsDir')}>{path(info.pluginsDir)}</Fact>
         <Fact label={t('server.sessionDays')}>{info.sessionDays}</Fact>
         <Fact label={t('server.rateLimit')}>{info.rateLimit ?? t('server.unlimited')}</Fact>
+        <Fact label={t('server.mcp')}>
+          <Badge bg={info.mcp.enabled ? 'success' : 'secondary'} className="fs-6">
+            {info.mcp.enabled ? t('server.mcpOn') : t('server.mcpOff')}
+          </Badge>
+          {info.mcp.enabled && (
+            <div className="mt-1">
+              {path(`${origin}${info.mcp.path}`)}
+              <div className="text-secondary">{info.authMode === 'on' ? t('server.mcpToken') : t('server.mcpNoToken')}</div>
+            </div>
+          )}
+        </Fact>
       </dl>
     </section>
   );

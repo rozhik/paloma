@@ -24,10 +24,10 @@ async function photoFile(photoId: number) {
 
 /**
  * `POST /api/photos/:id/preview`: the photo rendered through the given, unsaved steps and fitted within
- * `maxSize`×`maxSize`, as WebP, with the size the steps give at full resolution. The steps are validated
+ * `maxSize`×`maxSize`, as WebP (or JPEG), with the size the steps give at full resolution. The steps are validated
  * as when saving; nothing is saved.
  */
-export async function renderPreview(photoId: number, body: unknown): Promise<ImageResult> {
+export async function renderPreview(photoId: number, body: unknown, format: 'webp' | 'jpeg' = 'webp'): Promise<ImageResult> {
   const value = (typeof body === 'object' && body !== null && !Array.isArray(body) ? body : {}) as Record<string, unknown>;
   const check = validateChain(value.edits, libraryLookup);
   if (!check.ok) return { status: 400, body: editsInvalid(check.problem) };
@@ -45,12 +45,10 @@ export async function renderPreview(photoId: number, body: unknown): Promise<Ima
       stepTimeoutMs: PREVIEW_STEP_TIMEOUT_MS,
       label: found.photo.filePath,
     });
-    const image = await rendered.image
-      .resize({ width: maxSize, height: maxSize, fit: 'inside', withoutEnlargement: true })
-      .webp({ quality: 85 })
-      .toBuffer();
+    const fitted = rendered.image.resize({ width: maxSize, height: maxSize, fit: 'inside', withoutEnlargement: true });
+    const image = await (format === 'jpeg' ? fitted.jpeg({ quality: 80 }) : fitted.webp({ quality: 85 })).toBuffer();
     return {
-      status: 200, kind: 'buffer', image, type: 'image/webp',
+      status: 200, kind: 'buffer', image, type: `image/${format}`,
       fullSize: { width: rendered.fullWidth, height: rendered.fullHeight },
     };
   } catch (err) {

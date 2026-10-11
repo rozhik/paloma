@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import path from 'node:path';
 import {
-  DEFAULT_GEOCODER_URL, DEFAULT_RATE_LIMIT, DEFAULT_SESSION_DAYS, DEFAULT_TILE_ATTRIBUTION, DEFAULT_TILE_URL, authConfig, config, geoConfig,
+  DEFAULT_GEOCODER_URL, DEFAULT_RATE_LIMIT, DEFAULT_SESSION_DAYS, DEFAULT_TILE_ATTRIBUTION, DEFAULT_TILE_URL, authConfig, config, geoConfig, mcpConfig,
   pluginsDirOf,
 } from './config.js';
 
@@ -75,5 +75,19 @@ describe('authConfig', () => {
     expect(() => authConfig({ PALOMA_SESSION_DAYS: '0' })).toThrow(/PALOMA_SESSION_DAYS/);
     expect(() => authConfig({ PALOMA_RATE_LIMIT: '-1' })).toThrow(/PALOMA_RATE_LIMIT/);
     expect(() => authConfig({ PALOMA_RATE_LIMIT: 'many' })).toThrow(/PALOMA_RATE_LIMIT/);
+  });
+});
+
+describe('mcpConfig', () => {
+  it('is on when PALOMA_MCP is not set', () => {
+    expect(mcpConfig({})).toEqual({ enabled: true });
+  });
+
+  it('is off with PALOMA_MCP=off', () => {
+    expect(mcpConfig({ PALOMA_MCP: ' Off ' })).toEqual({ enabled: false });
+  });
+
+  it('refuses another value, naming PALOMA_MCP and the allowed values', () => {
+    expect(() => mcpConfig({ PALOMA_MCP: 'yes' })).toThrow(/PALOMA_MCP must be "on" or "off"/);
   });
 });

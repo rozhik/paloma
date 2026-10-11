@@ -88,7 +88,7 @@ function pickCover(copies: readonly AlbumCopy[], members: Member[]): Member | un
 }
 
 /** Album photos in the library that the current request may see, by album token. */
-async function loadMembers(tokens?: readonly string[]): Promise<Map<string, Member[]>> {
+export async function loadMembers(tokens?: readonly string[]): Promise<Map<string, Member[]>> {
   const query = (where?: readonly string[]) => all(db.select({
     token: albumPhotos.token,
     id: photos.id,
@@ -196,7 +196,7 @@ function isName(value: unknown): value is string {
 }
 
 /** Library folders that define the album or have a photo in it. */
-async function albumFolders(token: string): Promise<string[]> {
+export async function albumFolders(token: string): Promise<string[]> {
   const defining = (await all(db.select({ path: folders.path })
     .from(folderAlbums)
     .innerJoin(folders, eq(folderAlbums.folderId, folders.id))

@@ -299,7 +299,10 @@
     "ai_task_builtin": "Uma tarefa de IA integrada não pode ser excluída.",
     "ai_task_not_builtin": "Só tarefas de IA integradas podem ser redefinidas.",
     "ai_task_not_ready": "Esta tarefa de IA não está pronta. Verifique o provedor e o modelo dela nas configurações do servidor.",
-    "ai_run_in_progress": "Outra tarefa de IA está em andamento. Aguarde até que termine."
+    "ai_run_in_progress": "Outra tarefa de IA está em andamento. Aguarde até que termine.",
+    "read_only_field": "Este campo não pode ser alterado.",
+    "object_not_found": "Não encontrado.",
+    "origin_not_allowed": "Solicitações desta página da web não são permitidas."
   },
   "geo": {
     "coordinates": "{{lat}}; {{lon}}",
@@ -763,6 +766,11 @@
     "pluginsDir": "Pasta de plugins externos",
     "sessionDays": "Dias que um login dura sem uso",
     "rateLimit": "Solicitações por minuto padrão",
+    "mcp": "MCP para clientes de IA",
+    "mcpOn": "Ativado",
+    "mcpOff": "Desativado",
+    "mcpToken": "Clientes de IA se conectam com um token de API pessoal (Conta → Tokens de API).",
+    "mcpNoToken": "Nenhum token é necessário enquanto os usuários estiverem desativados.",
     "unlimited": "Sem limite",
     "none": "Nenhuma"
   },

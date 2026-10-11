@@ -116,6 +116,36 @@ function embeddedState(file: { embeddedCaption: string | null; embeddedKeywords:
   return { captionEmbedded: file.embeddedCaption !== null, keywordsEmbedded: parseKeywords(file.embeddedKeywords).length > 0 };
 }
 
+/** What the sidecar needs to know about a photo file to store its text and location. */
+export interface PhotoFileFacts {
+  exifLatitude: number | null;
+  embeddedCaption: string | null;
+  embeddedKeywords: string | null;
+}
+
+/** The photo file facts of several photos, by id. */
+export async function photoFileFacts(ids: readonly number[]): Promise<Map<number, PhotoFileFacts>> {
+  const rows = await chunked(ids, BATCH_SIZE, (chunk) => all(db.select({
+    id: photos.id, exifLatitude: photos.exifLatitude, embeddedCaption: photos.embeddedCaption, embeddedKeywords: photos.embeddedKeywords,
+  }).from(photos).where(inArray(photos.id, chunk))));
+  return new Map(rows.map(({ id, ...facts }) => [id, facts]));
+}
+
+/**
+ * The sidecar change that sets a photo's fields to these values: clearing text keeps `""`/`[]` when the file has
+ * embedded text, clearing a location stores `null` when the camera has one. Values left out are not changed.
+ */
+export function photoFieldPatch(
+  file: PhotoFileFacts,
+  values: Pick<FieldPatch, 'star' | 'hidden' | 'caption' | 'keywords' | 'edits'> & { location?: Geotag | null },
+): FieldPatch {
+  const { location, ...fields } = values;
+  const patch: FieldPatch = { ...fields };
+  if (location !== undefined) patch.geotag = geotagPatch(location, file);
+  if (patch.caption !== undefined || patch.keywords !== undefined) Object.assign(patch, embeddedState(file));
+  return patch;
+}
+
 /** Validates a PATCH body into a field patch; returns an error body for an invalid one. */
 export function parsePhotoPatch(body: unknown): FieldPatch | ApiError {
   if (typeof body !== 'object' || body === null || Array.isArray(body)) {
@@ -231,12 +261,10 @@ export async function updatePhoto(photoId: number, body: unknown): Promise<ApiRe
 
   const photo = await getApiPhoto(photoId);
   if (!photo?.folderPath) return { status: 404, body: apiError('photo_not_found', 'Photo not found') };
-  const file = (await get(db.select({ exifLatitude: photos.exifLatitude, embeddedCaption: photos.embeddedCaption, embeddedKeywords: photos.embeddedKeywords })
-    .from(photos).where(eq(photos.id, photoId))))!;
-  if (patch.geotag !== undefined && patch.geotag !== false) patch.geotag = geotagPatch(patch.geotag, file);
-  Object.assign(patch, embeddedState(file));
-
-  const failed = await savePhotoPatch(photo, patch);
+  const file = (await photoFileFacts([photoId])).get(photoId)!;
+  const { geotag, ...fields } = patch;
+  const location = geotag === false ? undefined : geotag;
+  const failed = await savePhotoPatch(photo, photoFieldPatch(file, { ...fields, ...(location !== undefined ? { location } : {}) }));
   if (failed) return failed;
   if (patch.geotag !== undefined) placeResolver.wake();
   return { status: 200, body: (await getApiPhoto(photoId))! };
@@ -256,13 +284,11 @@ export async function setPhotosLocation(body: unknown): Promise<ApiResult<Photo[
   const refs = await loadPhotos(ids);
   if (!refs) return { status: 404, body: apiError('photo_not_found', 'Photo not found') };
 
-  const exif = new Map((await chunked(ids, BATCH_SIZE, (chunk) => all(db.select({ id: photos.id, exifLatitude: photos.exifLatitude })
-    .from(photos).where(inArray(photos.id, chunk)))))
-    .map((row) => [row.id, row]));
+  const files = await photoFileFacts(ids);
   const patches = new Map<string, Record<string, FieldPatch>>();
   for (const ref of refs) {
     const folderPatches = patches.get(ref.folderPath) ?? {};
-    folderPatches[ref.filename] = { geotag: geotagPatch(parsed, exif.get(ref.id)!) };
+    folderPatches[ref.filename] = photoFieldPatch(files.get(ref.id)!, { location: parsed });
     patches.set(ref.folderPath, folderPatches);
   }
 
@@ -301,7 +327,8 @@ export async function changePhotosKeywords(body: unknown): Promise<ApiResult<Pho
   if (!refs) return { status: 404, body: apiError('photo_not_found', 'Photo not found') };
 
   const rows = new Map((await chunked(ids, BATCH_SIZE, (chunk) => all(db.select({
-    id: photos.id, keywords: photos.keywords, embeddedCaption: photos.embeddedCaption, embeddedKeywords: photos.embeddedKeywords,
+    id: photos.id, keywords: photos.keywords, exifLatitude: photos.exifLatitude, embeddedCaption: photos.embeddedCaption,
+    embeddedKeywords: photos.embeddedKeywords,
   }).from(photos).where(inArray(photos.id, chunk))))).map((row) => [row.id, row]));
   const removed = new Set(remove.map(textKey));
   const patches = new Map<string, Record<string, FieldPatch>>();
@@ -311,7 +338,7 @@ export async function changePhotosKeywords(body: unknown): Promise<ApiResult<Pho
     const keywords = uniqueKeywords([...current, ...add]).filter((keyword) => !removed.has(textKey(keyword)));
     if (JSON.stringify(keywords) === JSON.stringify(current)) continue;
     const folderPatches = patches.get(ref.folderPath) ?? {};
-    folderPatches[ref.filename] = { keywords, ...embeddedState(row) };
+    folderPatches[ref.filename] = photoFieldPatch(row, { keywords });
     patches.set(ref.folderPath, folderPatches);
   }
 

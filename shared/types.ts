@@ -451,6 +451,9 @@ export type ApiErrorCode =
   | 'ai_task_not_builtin'
   | 'ai_task_not_ready'
   | 'ai_run_in_progress'
+  | 'read_only_field'
+  | 'object_not_found'
+  | 'origin_not_allowed'
   | 'internal';
 
 /** Body of every API error response. `error` is English text for clients that do not know the code. */
@@ -675,6 +678,8 @@ export interface ServerInfo {
   sessionDays: number;
   /** Default API requests per minute per user and token; null when unlimited */
   rateLimit: number | null;
+  /** The MCP endpoint for AI clients, from `PALOMA_MCP` */
+  mcp: { enabled: boolean; path: string };
 }
 
 // --- AI providers, tasks and runs ---
@@ -846,4 +851,165 @@ export interface AiRunRequest {
   photoIds: number[];
   /** Process photos already processed with the same task configuration, too */
   again?: boolean;
+}
+
+// --- Object documents and changesets (`/api/objects`, `/api/changes`, MCP) ---
+
+/** The kinds of library objects that have a document. */
+export type ObjectType = 'photo' | 'album' | 'person' | 'folder' | 'tag';
+
+/** The kinds of objects a changeset can create, change or delete. */
+export type ChangeableType = 'photo' | 'album' | 'person';
+
+/** A photo as one JSON document. `star`, `hidden`, `caption`, `tags`, `location`, `albums`, `people` and `edits` can be changed. */
+export interface PhotoDocument {
+  type: 'photo';
+  id: number;
+  folder: { id: number; path: string };
+  fileName: string;
+  width: number;
+  height: number;
+  /** Bytes, as of the last scan */
+  fileSize: number;
+  /** When the photo was taken, ISO 8601 as read from the file; null when unknown */
+  takenAt: string | null;
+  star: boolean;
+  hidden: boolean;
+  caption: string | null;
+  tags: string[];
+  location: Geotag | null;
+  locationSource: LocationSource | null;
+  place: string | null;
+  albums: { id: string; name: string | null }[];
+  /** One item per face of a person, or per person without a frame (`rect` null) */
+  people: { id: string; name: string | null; rect: RelativeRect | null }[];
+  /** Faces found by face detection that belong to no person */
+  detectedFaces: { id: number; rect: RelativeRect }[];
+  edits: EditStep[];
+  /** Whether the photo has saved edits */
+  modified: boolean;
+}
+
+/** An album as one JSON document. `name`, `description`, `location` and `cover` can be changed. */
+export interface AlbumDocument {
+  type: 'album';
+  /** The album token */
+  id: string;
+  name: string | null;
+  date: string | null;
+  description: string | null;
+  location: string | null;
+  /** Id of the cover photo; null without photos */
+  cover: number | null;
+  photoCount: number;
+}
+
+/** A person as one JSON document. The profile fields can be changed. */
+export interface PersonDocument {
+  type: 'person';
+  /** Contact id: 16 lowercase hex digits */
+  id: string;
+  name: string | null;
+  alias: string | null;
+  comment: string | null;
+  links: string[];
+  birth: string | null;
+  gender: Gender | null;
+  hasAvatar: boolean;
+  photoCount: number;
+}
+
+/** A library folder as one JSON document; read-only. */
+export interface FolderDocument {
+  type: 'folder';
+  id: number;
+  path: string;
+  name: string;
+  photoCount: number;
+}
+
+/** A tag as one JSON document; read-only. The id is the shown spelling. */
+export interface TagDocument {
+  type: 'tag';
+  id: string;
+  name: string;
+  photoCount: number;
+}
+
+export type ObjectDocument = PhotoDocument | AlbumDocument | PersonDocument | FolderDocument | TagDocument;
+
+/** `GET /api/objects/:type`: a page of documents and the number of all matching objects. */
+export interface ObjectList<T extends ObjectDocument = ObjectDocument> {
+  items: T[];
+  total: number;
+}
+
+/** A list attribute in a changeset: an array replaces the list, `add`/`remove` adjust it. */
+export type ListChange<T> = T[] | { add?: T[]; remove?: T[] };
+
+/** A person put on a photo: a contact id (or `@ref`), or one with a detected face of the photo. */
+export type PhotoPersonInput = string | { person: string; face?: number };
+
+export interface PhotoSet {
+  star?: boolean;
+  hidden?: boolean;
+  caption?: string;
+  tags?: ListChange<string>;
+  location?: Geotag | null;
+  albums?: ListChange<string>;
+  people?: ListChange<PhotoPersonInput>;
+  edits?: EditStep[];
+}
+
+export interface AlbumSet {
+  name?: string;
+  description?: string | null;
+  location?: string | null;
+  cover?: number | null;
+  /** Only when creating: the album's photos */
+  photos?: number[];
+}
+
+export type PersonSet = Omit<PersonInput, 'avatar'>;
+
+/** One operation of a changeset. Ids of objects created earlier in the same changeset are written `@<ref>`. */
+export type Change =
+  | { op: 'create'; type: 'album'; ref?: string; set: AlbumSet }
+  | { op: 'create'; type: 'person'; ref?: string; set: PersonSet }
+  | { op: 'update'; type: 'photo'; id?: number; ids?: number[]; set: PhotoSet }
+  | { op: 'update'; type: 'album'; id?: string; ids?: string[]; set: AlbumSet }
+  | { op: 'update'; type: 'person'; id?: string; ids?: string[]; set: PersonSet }
+  | { op: 'delete'; type: 'album' | 'person'; id?: string; ids?: string[] };
+
+/** Body of `POST /api/changes`. */
+export interface Changeset {
+  changes: Change[];
+  dryRun?: boolean;
+}
+
+/** One object changed by a change, with each changed attribute's value before and after. */
+export interface ObjectDiff {
+  id: number | string;
+  changes: Record<string, { from: unknown; to: unknown }>;
+}
+
+/** The result of one change of a changeset. */
+export interface ChangeResult {
+  index: number;
+  op: Change['op'];
+  type: ChangeableType;
+  /** The objects the change names; for a create, the new object's id (`@<ref>` in a dry run) */
+  ids: (number | string)[];
+  /** Objects whose values change, at most 200 */
+  objects: ObjectDiff[];
+  /** Changed objects not listed in `objects` */
+  more: number;
+}
+
+/** Response of `POST /api/changes`. */
+export interface ChangesetResponse {
+  dryRun: boolean;
+  results: ChangeResult[];
+  /** Folders whose `.paloma.json` could not be written; their changes are not applied */
+  notChangedFolders?: string[];
 }

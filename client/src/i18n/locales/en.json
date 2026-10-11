@@ -287,7 +287,10 @@
     "ai_task_builtin": "A built-in AI task cannot be deleted.",
     "ai_task_not_builtin": "Only built-in AI tasks can be reset.",
     "ai_task_not_ready": "This AI task is not ready. Check its provider and model in Server settings.",
-    "ai_run_in_progress": "Another AI task is running. Wait until it ends."
+    "ai_run_in_progress": "Another AI task is running. Wait until it ends.",
+    "read_only_field": "This field cannot be changed.",
+    "object_not_found": "Not found.",
+    "origin_not_allowed": "Requests from this web page are not allowed."
   },
   "geo": {
     "coordinates": "{{lat}}, {{lon}}",
@@ -744,6 +747,11 @@
     "pluginsDir": "External plugins folder",
     "sessionDays": "Days a login lasts without use",
     "rateLimit": "Default requests per minute",
+    "mcp": "MCP for AI clients",
+    "mcpOn": "On",
+    "mcpOff": "Off",
+    "mcpToken": "AI clients connect with a personal API token (Account → API tokens).",
+    "mcpNoToken": "No token is needed while users are off.",
     "unlimited": "No limit",
     "none": "None"
   },

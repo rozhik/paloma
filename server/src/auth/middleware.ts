@@ -68,10 +68,12 @@ export interface GuardOptions {
   sessionOnly?: boolean;
   /** Other permissions that are enough instead of the required one */
   or?: Permission[];
+  /** Only API tokens, never a browser session (MCP): 401 asking for a bearer token otherwise */
+  tokenOnly?: boolean;
 }
 
 /** A route guard, marked so a test can check that every route has exactly one. */
-export type Guard = RequestHandler & { requirement: Requirement; sessionOnly: boolean };
+export type Guard = RequestHandler & { requirement: Requirement; sessionOnly: boolean; tokenOnly: boolean };
 
 /**
  * The guard a route starts with: 401 without a user when auth is on, 403 `permission_required` naming the
@@ -81,6 +83,10 @@ export function need(requirement: Requirement, options: GuardOptions = {}): Guar
   const guard = ((req: Request, res: Response, next: NextFunction) => {
     if (requirement === 'public') return next();
     const principal = res.locals.principal as Principal | undefined ?? (authOn() ? undefined : OFF_PRINCIPAL);
+    if (options.tokenOnly && (!principal || principal.via === 'session')) {
+      res.set('WWW-Authenticate', 'Bearer realm="paloma"');
+      return res.status(401).json(apiError('unauthenticated', 'Send a Paloma API token: Authorization: Bearer pal_...'));
+    }
     if (!principal) {
       return res.status(401).json(apiError('unauthenticated', 'Log in to use Paloma'));
     }
@@ -95,5 +101,6 @@ export function need(requirement: Requirement, options: GuardOptions = {}): Guar
   }) as Guard;
   guard.requirement = requirement;
   guard.sessionOnly = options.sessionOnly === true;
+  guard.tokenOnly = options.tokenOnly === true;
   return guard;
 }

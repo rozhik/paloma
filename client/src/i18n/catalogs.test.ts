@@ -57,7 +57,7 @@ describe('catalogs', () => {
       token_scope_exceeded: true, session_not_found: true, last_login_provider: true, quota_exceeded: true, rate_limited: true,
       album_not_granted: true, outside_access: true, person_linked: true, avatar_invalid: true,
       ai_provider_not_found: true, ai_provider_failed: true, ai_task_not_found: true, ai_task_builtin: true, ai_task_not_builtin: true,
-      ai_task_not_ready: true, ai_run_in_progress: true,
+      ai_task_not_ready: true, ai_run_in_progress: true, read_only_field: true, object_not_found: true, origin_not_allowed: true,
     };
     for (const code of Object.keys(codes)) expect(english.has(`errors.${code}`), code).toBe(true);
   });

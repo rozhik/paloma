@@ -106,6 +106,23 @@ export function authConfig(env: NodeJS.ProcessEnv): AuthConfig {
   };
 }
 
+/** Where the MCP endpoint is served */
+export const MCP_PATH = '/api/mcp';
+
+export interface McpConfig {
+  /** Whether `/api/mcp` is offered */
+  enabled: boolean;
+}
+
+/** MCP settings from the environment: on unless `PALOMA_MCP=off`; throws for any other value. */
+export function mcpConfig(env: NodeJS.ProcessEnv): McpConfig {
+  const value = (env.PALOMA_MCP ?? '').trim().toLowerCase() || 'on';
+  if (value !== 'off' && value !== 'on') {
+    throw new Error(`PALOMA_MCP must be "on" or "off", got ${JSON.stringify(env.PALOMA_MCP)}`);
+  }
+  return { enabled: value === 'on' };
+}
+
 const dataDir = resolveDir(
   process.env.PALOMA_DATA_DIR,
   path.join(process.cwd(), '.paloma_data'),
@@ -123,4 +140,5 @@ export const config = {
   pluginsDir: pluginsDirOf(process.env, dataDir),
   bundledPluginsDir: findBundledPluginsDir(__dirname),
   auth: authConfig(process.env),
+  mcp: mcpConfig(process.env),
 } as const;

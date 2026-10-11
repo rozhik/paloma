@@ -134,7 +134,7 @@ describe('server information', () => {
 
     const { status, body } = await anna.get('/server/info');
     expect(status).toBe(200);
-    expect(body).toMatchObject({ authMode: 'on', photosDirs: [], excludeDirs: [], sessionDays: 30, rateLimit: 600 });
+    expect(body).toMatchObject({ authMode: 'on', photosDirs: [], excludeDirs: [], sessionDays: 30, rateLimit: 600, mcp: { enabled: true, path: '/api/mcp' } });
     expect(body.version).toMatch(/^\d+\.\d+\.\d+/);
     expect(body.exportDir).toMatch(/export$/);
   });

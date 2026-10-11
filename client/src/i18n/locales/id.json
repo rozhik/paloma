@@ -281,7 +281,10 @@
     "ai_task_builtin": "Tugas AI bawaan tidak dapat dihapus.",
     "ai_task_not_builtin": "Hanya tugas AI bawaan yang dapat diatur ulang.",
     "ai_task_not_ready": "Tugas AI ini belum siap. Periksa penyedia dan modelnya di Pengaturan server.",
-    "ai_run_in_progress": "Tugas AI lain sedang berjalan. Tunggu hingga selesai."
+    "ai_run_in_progress": "Tugas AI lain sedang berjalan. Tunggu hingga selesai.",
+    "read_only_field": "Kolom ini tidak dapat diubah.",
+    "object_not_found": "Tidak ditemukan.",
+    "origin_not_allowed": "Permintaan dari halaman web ini tidak diizinkan."
   },
   "geo": {
     "coordinates": "{{lat}}; {{lon}}",
@@ -731,6 +734,11 @@
     "pluginsDir": "Folder plugin eksternal",
     "sessionDays": "Hari berlakunya login tanpa digunakan",
     "rateLimit": "Permintaan per menit bawaan",
+    "mcp": "MCP untuk klien AI",
+    "mcpOn": "Aktif",
+    "mcpOff": "Nonaktif",
+    "mcpToken": "Klien AI terhubung dengan token API pribadi (Akun → Token API).",
+    "mcpNoToken": "Token tidak diperlukan selama pengguna nonaktif.",
     "unlimited": "Tanpa batas",
     "none": "Tidak ada"
   },

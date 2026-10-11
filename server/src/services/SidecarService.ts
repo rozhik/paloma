@@ -49,6 +49,10 @@ export interface FieldPatch {
   addMark?: FaceMark;
   /** Removes every face of this contact id from `faces` */
   removePerson?: string;
+  /** Removes every face of these contact ids, after `removePerson` */
+  removePeople?: string[];
+  /** Adds these marks in order, after `addMark` */
+  addMarks?: FaceMark[];
 }
 
 /** A person's mark on a photo: their contact id and, when known, the rectangle of their face. */
@@ -497,7 +501,9 @@ function applyPatch(entry: PalomaPhotoEntry, patch: FieldPatch): void {
     if (patch.edits.length > 0) entry.edits = structuredClone(patch.edits); else delete entry.edits;
   }
   if (patch.removePerson !== undefined) setFaces(entry, withoutPerson(entry.faces, patch.removePerson));
+  for (const person of patch.removePeople ?? []) setFaces(entry, withoutPerson(entry.faces, person));
   if (patch.addMark !== undefined) setFaces(entry, withMark(entry.faces, patch.addMark));
+  for (const mark of patch.addMarks ?? []) setFaces(entry, withMark(entry.faces, mark));
 }
 
 /** Stores changed faces; an empty list removes the key, undefined leaves the entry as it is. */

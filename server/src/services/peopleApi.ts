@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { and, eq } from 'drizzle-orm';
+import { and, count, eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { all, get, run, withTransaction } from '../db/query.js';
 import { faceDismissals, folders, persons, photoPeople, photos, users } from '../db/schema.js';
@@ -162,6 +162,19 @@ export async function updatePerson(id: string, body: unknown): Promise<ApiResult
   return { status: 200, body: (await findPerson(id))! };
 }
 
+/** Whether the person is also on photos the current request may not see, so deleting them would change those. */
+export async function onPhotosOutsideAccess(id: string): Promise<boolean> {
+  const visible = visiblePhotoCondition();
+  if (!visible) return false;
+  const all_ = await get(db.select({ n: count() }).from(photoPeople).where(eq(photoPeople.contactId, id)));
+  const seen = await get(db.select({ n: count() }).from(photoPeople).innerJoin(photos, eq(photoPeople.photoId, photos.id))
+    .where(and(eq(photoPeople.contactId, id), visible)));
+  return (seen?.n ?? 0) !== (all_?.n ?? 0);
+}
+
+/** Whether a person with this contact id exists and the current request may see them. */
+export const personVisible = (id: string): Promise<boolean> => personShown(id);
+
 /**
  * `DELETE /api/people/:id`: removes all of the person's faces from the folders' sidecars, folder by folder,
  * then the person. If a folder cannot be written the person is kept, with the faces that are left.
@@ -174,13 +187,8 @@ export async function deletePerson(id: string): Promise<ApiResult<{ success: tru
     .innerJoin(folders, eq(photos.folderId, folders.id))
     .where(eq(photoPeople.contactId, id)));
   // Deleting would change photos the user cannot see
-  const visible = visiblePhotoCondition();
-  if (visible) {
-    const seen = await all(db.select({ id: photoPeople.photoId }).from(photoPeople).innerJoin(photos, eq(photoPeople.photoId, photos.id))
-      .where(and(eq(photoPeople.contactId, id), visible)));
-    if (seen.length !== refs.length) {
-      return { status: 403, body: apiError('outside_access', 'This person is also on photos you cannot see') };
-    }
+  if (await onPhotosOutsideAccess(id)) {
+    return { status: 403, body: apiError('outside_access', 'This person is also on photos you cannot see') };
   }
   const files = new Map<string, string[]>();
   for (const ref of refs) files.set(ref.folderPath, [...(files.get(ref.folderPath) ?? []), ref.filename]);

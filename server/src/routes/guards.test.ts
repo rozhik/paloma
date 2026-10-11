@@ -50,7 +50,8 @@ describe('route guards', () => {
     expect(requirement('PATCH', '/plugins/:id')).toBe('plugins.manage');
     expect(requirement('POST', '/admin/users')).toBe('users.manage');
     // Every write route needs a permission beyond viewing the library, except the user's own account
-    const writes = routes.filter((r) => r.method !== 'GET' && !r.path.startsWith('/auth/'));
+    // MCP checks the permission of each tool itself
+    const writes = routes.filter((r) => r.method !== 'GET' && !r.path.startsWith('/auth/') && r.path !== '/mcp');
     expect(writes.filter((r) => ['public', 'authenticated', 'library.view'].includes(r.guards[0].requirement)).map((r) => `${r.method} ${r.path}`))
       .toEqual([]);
   });
@@ -62,5 +63,28 @@ describe('route guards', () => {
       'GET /admin/sessions', 'GET /admin/tokens', 'GET /auth/sessions',
       'POST /admin/users/:id/password', 'POST /auth/logout', 'POST /auth/password', 'POST /auth/tokens',
     ]);
+  });
+
+  it('asks token-only routes for a bearer token instead of a session', async () => {
+    const { need } = await import('../auth/middleware.js');
+    const guard = need('library.view', { tokenOnly: true });
+    const call = (principal: unknown) => {
+      const res = {
+        locals: principal === undefined ? {} : { principal }, headers: {} as Record<string, string>, statusCode: 200, body: undefined as unknown,
+        set(name: string, value: string) { this.headers[name] = value; return this; },
+        status(code: number) { this.statusCode = code; return this; },
+        json(body: unknown) { this.body = body; return this; },
+      };
+      let passed = false;
+      guard({} as never, res as never, () => { passed = true; });
+      return { res, passed };
+    };
+    const session = call({ via: 'session', permissions: new Set(['library.view']) });
+    expect(session.passed).toBe(false);
+    expect(session.res.statusCode).toBe(401);
+    expect(session.res.headers['WWW-Authenticate']).toBe('Bearer realm="paloma"');
+    expect(call({ via: 'token', permissions: new Set(['library.view']) }).passed).toBe(true);
+    // Auth off: the single user, no token needed
+    expect(call(undefined).passed).toBe(true);
   });
 });

@@ -9,7 +9,7 @@ import path from 'node:path';
 const SRC = path.resolve(__dirname, '..');
 
 /** Files allowed to call `fs.*Sync`: they run before the server listens, or only in tests. */
-const SYNC_FS_ALLOWED = new Set(['config.ts', 'plugins/testing.ts', 'auth/testing.ts', 'services/embeddedText.fixtures.ts']);
+const SYNC_FS_ALLOWED = new Set(['config.ts', 'plugins/testing.ts', 'auth/testing.ts', 'services/embeddedText.fixtures.ts', 'model/testLibrary.ts']);
 
 /** Lines that use a zero-argument `.run()` / `.all()` / `.get()` of something other than a query say so. */
 const NOT_A_QUERY = '// ffmpeg, not a query';

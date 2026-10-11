@@ -299,7 +299,10 @@
     "ai_task_builtin": "Une tâche d’IA intégrée ne peut pas être supprimée.",
     "ai_task_not_builtin": "Seules les tâches d’IA intégrées peuvent être réinitialisées.",
     "ai_task_not_ready": "Cette tâche d’IA n’est pas prête. Vérifiez son fournisseur et son modèle dans les paramètres du serveur.",
-    "ai_run_in_progress": "Une autre tâche d’IA est en cours. Attendez qu’elle se termine."
+    "ai_run_in_progress": "Une autre tâche d’IA est en cours. Attendez qu’elle se termine.",
+    "read_only_field": "Ce champ ne peut pas être modifié.",
+    "object_not_found": "Introuvable.",
+    "origin_not_allowed": "Les requêtes depuis cette page web ne sont pas autorisées."
   },
   "geo": {
     "coordinates": "{{lat}} ; {{lon}}",
@@ -763,6 +766,11 @@
     "pluginsDir": "Dossier des extensions externes",
     "sessionDays": "Jours de validité d’une connexion inutilisée",
     "rateLimit": "Requêtes par minute par défaut",
+    "mcp": "MCP pour les clients d’IA",
+    "mcpOn": "Activé",
+    "mcpOff": "Désactivé",
+    "mcpToken": "Les clients d’IA se connectent avec un jeton d’API personnel (Compte → Jetons d’API).",
+    "mcpNoToken": "Aucun jeton n’est nécessaire tant que les utilisateurs sont désactivés.",
     "unlimited": "Sans limite",
     "none": "Aucun"
   },

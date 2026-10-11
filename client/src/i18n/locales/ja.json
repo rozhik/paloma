@@ -281,7 +281,10 @@
     "ai_task_builtin": "組み込みの AI タスクは削除できません。",
     "ai_task_not_builtin": "リセットできるのは組み込みの AI タスクだけです。",
     "ai_task_not_ready": "この AI タスクはまだ準備ができていません。サーバー設定でプロバイダーとモデルを確認してください。",
-    "ai_run_in_progress": "別の AI タスクが実行中です。終わるまでお待ちください。"
+    "ai_run_in_progress": "別の AI タスクが実行中です。終わるまでお待ちください。",
+    "read_only_field": "この項目は変更できません。",
+    "object_not_found": "見つかりません。",
+    "origin_not_allowed": "この Web ページからのリクエストは許可されていません。"
   },
   "geo": {
     "coordinates": "{{lat}}、{{lon}}",
@@ -731,6 +734,11 @@
     "pluginsDir": "外部プラグインフォルダー",
     "sessionDays": "未使用のログインが続く日数",
     "rateLimit": "既定の 1 分あたりのリクエスト数",
+    "mcp": "AI クライアント向け MCP",
+    "mcpOn": "オン",
+    "mcpOff": "オフ",
+    "mcpToken": "AI クライアントは個人用 API トークンで接続します（アカウント → API トークン）。",
+    "mcpNoToken": "ユーザーがオフの間はトークンは不要です。",
     "unlimited": "上限なし",
     "none": "なし"
   },

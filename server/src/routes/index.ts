@@ -15,27 +15,27 @@ import { getGeoSettings, listGeoPoints, listPlaces, searchPlaces } from '../serv
 import { MetadataService } from '../services/MetadataService.js';
 import { filterIcon, listPlugins, switchPlugin } from '../services/pluginApi.js';
 import { photoImage, renderPreview, type ImageResult } from '../services/renderApi.js';
-import { RenderService } from '../services/RenderService.js';
-import { libraryLookup } from '../services/libraryImages.js';
-import { parseEditsJson } from '../services/photoImages.js';
 import { apiError } from '../services/apiError.js';
 import { invalidDateFilter } from '../services/photoFilters.js';
 import { listTags } from '../services/tagApi.js';
 import { listMemories } from '../services/memories.js';
 import { photoStats } from '../services/photoStats.js';
 import { getPhotoInfo } from '../services/photoInfo.js';
+import { exportPhotos } from '../services/exportApi.js';
 import { personAvatar, photoFace, photoFaceSource } from '../services/faceImages.js';
 import { assignFaces, dismissFaces, pendingPhotos, saveDetectedFaces, similarFaces, unassignedFaces } from '../services/faceDetectionApi.js';
 import {
   addPersonToPhoto, createPerson, deletePerson, getPerson, getPhotoPeople, listPeople, listPersonFaces, removePersonFromPhoto,
   updatePerson,
 } from '../services/peopleApi.js';
-import { movieFilename, resolveInside } from '../services/outputPaths.js';
+import { movieFilename } from '../services/outputPaths.js';
 import { config } from '../config.js';
 import { asyncRoute, sendFileOr404 } from './asyncRoute.js';
 import { registerAuthRoutes } from './auth.js';
 import { registerAdminRoutes } from './admin.js';
 import { registerAiRoutes } from './ai.js';
+import { registerModelRoutes } from './model.js';
+import { registerMcpRoutes } from '../mcp/route.js';
 import { authenticate, need, principalOf } from '../auth/middleware.js';
 import { grantAlbum } from '../auth/users.js';
 import { andVisible, isFileHashVisible } from '../auth/scope.js';
@@ -57,6 +57,8 @@ router.use(rateLimit());
 registerAuthRoutes(router);
 registerAdminRoutes(router);
 registerAiRoutes(router);
+registerModelRoutes(router);
+registerMcpRoutes(router);
 
 /** Sends an API result: its status with its body. */
 const send = (res: Response, result: { status: number; body: unknown }) => res.status(result.status).json(result.body);
@@ -165,60 +167,7 @@ router.get('/raw/:photoId', need('library.view'), asyncRoute(async (req, res, ne
 
 // --- Export API ---
 router.post('/export', need('export'), asyncRoute(async (req, res) => {
-  const { photoIds, outputDir, quality = 85, resizeWidth } = req.body ?? {};
-
-  if (!photoIds || !Array.isArray(photoIds) || !outputDir) {
-    return res.status(400).json(apiError('export_params_required', 'photoIds array and outputDir are required'));
-  }
-
-  // Exports stay inside the export folder (the user's own one when auth is on): the destination is relative to it
-  const space = await exportSpaceOf(principalOf(res));
-  const destination = typeof outputDir === 'string' ? resolveInside(space.root, outputDir) : null;
-  if (destination === null) {
-    return res.status(400).json(apiError('invalid_field', 'outputDir must be a folder inside the export folder', { field: 'outputDir' }));
-  }
-  requireSpace(space);
-
-  const selectedPhotos = await chunked(photoIds, BATCH_SIZE, (ids) => all(db.select({
-    photo: photos,
-    folder: folders,
-    edit: edits,
-  })
-    .from(photos)
-    .innerJoin(folders, eq(photos.folderId, folders.id))
-    .leftJoin(edits, eq(photos.id, edits.photoId))
-    .where(andVisible(inArray(photos.id, ids)))));
-  await fs.promises.mkdir(destination, { recursive: true });
-
-  const exportedFiles: string[] = [];
-  let quotaExceeded = false;
-
-  for (const { photo, folder, edit } of selectedPhotos) {
-    const srcPath = path.join(folder.path, photo.filename);
-    const destPath = path.join(destination, `exported_${photo.filename}`);
-
-    // Full size through the photo's edits, before any resizing chosen for the export
-    let pipeline = await RenderService.render(srcPath, parseEditsJson(edit?.editInstructionsJson) ?? [], {
-      lookup: libraryLookup,
-      label: srcPath,
-    });
-
-    if (resizeWidth && Number(resizeWidth) > 0) {
-      pipeline = pipeline.resize({ width: Number(resizeWidth), withoutEnlargement: true });
-    }
-
-    // Rendered first, so the export stops before the file that would not fit
-    const image = await pipeline.jpeg({ quality: Number(quality) }).toBuffer();
-    if (!fits(space, image.length)) {
-      quotaExceeded = true;
-      break;
-    }
-    await fs.promises.writeFile(destPath, image);
-    space.used += image.length;
-    exportedFiles.push(destPath);
-  }
-
-  res.json({ success: !quotaExceeded, count: exportedFiles.length, requested: photoIds.length, exportedFiles, ...(quotaExceeded ? { quotaExceeded } : {}) });
+  send(res, await exportPhotos(req.body, principalOf(res)));
 }));
 
 // --- Movie Maker API ---

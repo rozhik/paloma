@@ -281,7 +281,10 @@
     "ai_task_builtin": "内置 AI 任务不能删除。",
     "ai_task_not_builtin": "只能重置内置 AI 任务。",
     "ai_task_not_ready": "此 AI 任务尚未就绪。请在服务器设置中检查它的提供方和模型。",
-    "ai_run_in_progress": "另一个 AI 任务正在运行。请等待它结束。"
+    "ai_run_in_progress": "另一个 AI 任务正在运行。请等待它结束。",
+    "read_only_field": "此字段无法更改。",
+    "object_not_found": "未找到。",
+    "origin_not_allowed": "不允许来自此网页的请求。"
   },
   "geo": {
     "coordinates": "{{lat}}，{{lon}}",
@@ -731,6 +734,11 @@
     "pluginsDir": "外部插件文件夹",
     "sessionDays": "登录在未使用时保持的天数",
     "rateLimit": "默认每分钟请求数",
+    "mcp": "面向 AI 客户端的 MCP",
+    "mcpOn": "开启",
+    "mcpOff": "关闭",
+    "mcpToken": "AI 客户端使用个人 API 令牌连接（账户 → API 令牌）。",
+    "mcpNoToken": "用户功能关闭时无需令牌。",
     "unlimited": "无限制",
     "none": "无"
   },
