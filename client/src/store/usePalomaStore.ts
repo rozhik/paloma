@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { Photo, Folder, Memory } from '../../../shared/types.js';
 
-export type AppView = 'library' | 'collage' | 'map' | 'people' | 'settings';
+export type AppView = 'library' | 'collage' | 'map' | 'people' | 'settings' | 'account' | 'admin' | 'server';
 /** The photo viewer: a snapshot of the grid's photos when it opened, and the one shown. */
 export interface ViewerState {
   photos: Photo[];
@@ -85,6 +85,8 @@ interface PalomaStore {
    * see or change. An open album stays.
    */
   enterChildMode: () => void;
+  /** What another user logging in starts with: the library, nothing selected or open */
+  resetForNewUser: () => void;
   isPhotoSelected: (photoId: number) => boolean;
 }
 
@@ -111,6 +113,7 @@ export const usePalomaStore = create<PalomaStore>((set, get) => ({
   libraryVersion: 0,
 
   setCurrentView: (view) => set({ currentView: view }),
+  resetForNewUser: () => set({ ...NO_SOURCE, currentView: 'library', selectedPhotos: [], viewer: null, slideshow: null, searchQuery: '' }),
   openViewer: (photos, index) => {
     if (photos.length === 0) return;
     set({ viewer: { photos, index: Math.min(Math.max(index, 0), photos.length - 1), saved: false } });

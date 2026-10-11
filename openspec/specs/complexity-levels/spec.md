@@ -36,7 +36,7 @@ A control that is not available at the active level SHALL NOT be shown, not even
 - **THEN** no filter panel opens and no edit is made
 
 ### Requirement: Levels of current controls
-The current controls SHALL have these levels. Child: library view limited to albums, the album list in the sidebar, opening photos in the viewer with its navigation bar and zoom, the slideshow, the entry menu with its Slideshow item, and the Settings view (behind the PIN) without its Plugins section. Easy: the shortcuts, memories, tags, people and folders sidebar lists, opening a memory, choosing a person to see their photos, search, selecting photos and the tray with Add to album, Add tags, Remove tag, Remove from album, Make cover, Clear, Export and Print, starring, the entry menu's Information item and the entry links it shows, and the viewer's Info button and panel with editing the description and tags and the list of people on the photo, and the viewer's Faces toggle with its frames. Professional: the EXIF section of the Info panel. Developer: the JSON section of the Info panel. Normal: all other current views and controls, including the Settings view's Plugins section, the entry menu's Map item, the People view, adding, editing and deleting people, adding, assigning and removing people on a photo, assigning a face from its frame, the Unrecognized faces entry and view, face detection and Similar faces.
+The current controls SHALL have these levels. Child: library view limited to albums, the album list in the sidebar, opening photos in the viewer with its navigation bar and zoom, the slideshow, the entry menu with its Slideshow item, the Settings view (behind the PIN), and the user menu with the user's name and, when auth is on, Log out. Easy: the Account view with the profile, Change password and the logged-in devices, the shortcuts, memories, tags, people and folders sidebar lists, opening a memory, choosing a person to see their photos, search, selecting photos and the tray with Add to album, Add tags, Remove tag, Remove from album, Make cover, Clear, Export and Print, starring, the entry menu's Information item and the entry links it shows, and the viewer's Info button and panel with editing the description and tags and the list of people on the photo, and the viewer's Faces toggle with its frames. Professional: the EXIF section of the Info panel. Developer: the JSON section of the Info panel. Normal: all other current views and controls, including the Server settings view with its Plugins section, the tokens list of the Account view, the Admin view, the entry menu's Map item, the People view, adding, editing and deleting people, adding, assigning and removing people on a photo, assigning a face from its frame, the Unrecognized faces entry and view, face detection and Similar faces.
 
 #### Scenario: Easy offers export but not collage
 - **WHEN** the level is Easy and the user selects two photos
@@ -83,8 +83,16 @@ The current controls SHALL have these levels. Child: library view limited to alb
 - **THEN** at Child it offers only Slideshow, at Easy Slideshow and Information, and at Normal also Find faces, Map, Edit properties and Delete
 
 #### Scenario: Plugins section from Normal
-- **WHEN** the user opens Settings at Easy and then at Normal
-- **THEN** at Easy it has no Plugins section, and at Normal it has one
+- **WHEN** the user opens the user menu at Easy and then at Normal
+- **THEN** at Easy it has no Server settings item, and at Normal it has one
+
+#### Scenario: User menu at Child
+- **WHEN** auth is on, the level is Child and the user opens the user menu
+- **THEN** it shows the user's name and offers only Log out
+
+#### Scenario: Admin view from Normal
+- **WHEN** auth is on, an administrator has level Easy and then Normal
+- **THEN** at Easy the user menu has no Admin item, and at Normal it has one
 
 ### Requirement: Child mode is view-only
 At Child, nothing SHALL be offered that changes photos, albums, locations, edits, plugins or files. The sidebar SHALL show only the album list. The library SHALL show the photos of the chosen album, and, when no album is chosen, a message asking to choose one. Photo cards SHALL open the viewer and SHALL NOT offer selecting or starring. The viewer SHALL show its navigation bar without the edit bar.

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Modal, Button } from 'react-bootstrap';
+import { Alert, Modal, Button } from 'react-bootstrap';
+import { ApiRequestError, describeError } from '../api/http.js';
 import { usePalomaStore } from '../store/usePalomaStore.js';
 import { Trans, useTranslation } from 'react-i18next';
 import { Film, CheckCircle2 } from 'lucide-react';
@@ -15,10 +16,12 @@ export const MovieMakerModal: React.FC<MovieMakerModalProps> = ({ show, onHide }
   const [durationPerSlide, setDurationPerSlide] = useState(3);
   const [loading, setLoading] = useState(false);
   const [moviePath, setMoviePath] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleGenerateMovie = async () => {
     setLoading(true);
     setMoviePath(null);
+    setError(null);
 
     try {
       const res = await fetch('/api/creation/movie', {
@@ -30,12 +33,13 @@ export const MovieMakerModal: React.FC<MovieMakerModalProps> = ({ show, onHide }
         }),
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        setMoviePath(data.moviePath);
-      }
+      const data = await res.json().catch(() => null);
+      if (res.ok) setMoviePath(data.moviePath);
+      // E.g. the export space is full
+      else setError(describeError(new ApiRequestError(res.status, data), t));
     } catch (err) {
       console.error('Movie generation failed:', err);
+      setError(describeError(err, t));
     } finally {
       setLoading(false);
     }
@@ -61,6 +65,7 @@ export const MovieMakerModal: React.FC<MovieMakerModalProps> = ({ show, onHide }
           </div>
         ) : (
           <div>
+            {error && <Alert variant="danger" className="fs-5" role="alert">{error}</Alert>}
             <div className="mb-4">
               <label className="form-label fs-5 fw-semibold">{t('movie.duration', { value: durationPerSlide })}</label>
               <input

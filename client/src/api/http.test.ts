@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterEach, vi } from 'vitest';
 import i18next, { type TFunction } from 'i18next';
 import en from '../i18n/locales/en.json';
-import { ApiRequestError, apiRequest, describeError } from './http.js';
+import { ApiRequestError, apiRequest, describeError, watchSessionEnd } from './http.js';
 
 let t: TFunction;
 
@@ -75,5 +75,25 @@ describe('apiRequest', () => {
   it('throws without a body when the response is not JSON', async () => {
     respond(502, '<html>Bad gateway</html>');
     await expect(apiRequest('GET', '/api/x')).rejects.toMatchObject({ status: 502, body: null });
+  });
+});
+
+describe('watchSessionEnd', () => {
+  it('reports a 401 of the API, but not of the login endpoints or other servers', async () => {
+    const target = { fetch: vi.fn(async (input: RequestInfo | URL) => new Response('{}', { status: String(input).includes('ok') ? 200 : 401 })) as unknown as typeof fetch };
+    const ended = vi.fn();
+    const stop = watchSessionEnd(ended, target);
+
+    await target.fetch('/api/photos/ok');
+    await target.fetch('/api/auth/me');
+    await target.fetch('https://tile.example.com/1/2/3.png');
+    expect(ended).not.toHaveBeenCalled();
+    const response = await target.fetch('/api/photos');
+    expect(response.status).toBe(401);
+    expect(ended).toHaveBeenCalledTimes(1);
+
+    stop();
+    await target.fetch('/api/photos');
+    expect(ended).toHaveBeenCalledTimes(1);
   });
 });

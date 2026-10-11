@@ -11,6 +11,8 @@ import {
   DESCRIPTOR_LENGTH, SIMILAR_DISTANCE, assignDetected, decodeDescriptor, encodeDescriptor, nearest, type MarkRect,
 } from './faceMatch.js';
 import type { AssignFacesResult, DetectedFaceInput, RelativeRect, SimilarFaces, UnassignedFaces } from '../../../shared/types.js';
+import { andVisible, visiblePhotoCondition } from '../auth/scope.js';
+import { isPersonVisible } from './people.js';
 
 export const MAX_FACES_PER_PHOTO = 100;
 export const MAX_SIMILAR = 200;
@@ -42,7 +44,7 @@ export async function pendingPhotos(body: unknown): Promise<ApiResult<{ pending:
   })
     .from(photos)
     .leftJoin(faceDetections, eq(faceDetections.photoId, photos.id))
-    .where(inArray(photos.id, chunk))));
+    .where(andVisible(inArray(photos.id, chunk)))));
   for (const row of rows) {
     known.add(row.id);
     if (row.detector === detector && row.detectedHash === row.fileHash) done.add(row.id);
@@ -78,7 +80,7 @@ export async function saveDetectedFaces(photoId: number, body: unknown): Promise
   }
   const faces = parseFaces(rawFaces);
   if (typeof faces === 'string') return { status: 400, body: apiError('invalid_field', faces, { field: 'faces' }) };
-  const photo = Number.isInteger(photoId) ? await get(db.select().from(photos).where(eq(photos.id, photoId))) : undefined;
+  const photo = Number.isInteger(photoId) ? await get(db.select().from(photos).where(andVisible(eq(photos.id, photoId)))) : undefined;
   if (!photo) return { status: 404, body: apiError('photo_not_found', 'Photo not found') };
   if (fileHash !== photo.fileHash) {
     return { status: 409, body: apiError('invalid_field', 'The photo changed since it was detected', { field: 'fileHash' }) };
@@ -119,7 +121,7 @@ async function* facesWithOwners(): AsyncGenerator<OwnedFace[]> {
   const pages = eachBatch(BATCH_SIZE, (afterId, size) => db.select({ id: photos.id, isHidden: photos.isHidden, dateTaken: photos.dateTaken })
     .from(photos)
     .innerJoin(faceDetections, and(eq(faceDetections.photoId, photos.id), eq(faceDetections.fileHash, photos.fileHash)))
-    .where(gt(photos.id, afterId))
+    .where(and(gt(photos.id, afterId), visiblePhotoCondition()))
     .orderBy(asc(photos.id))
     .limit(size));
   for await (const page of pages) {
@@ -181,7 +183,7 @@ class Best<T> {
  * for this person.
  */
 export async function similarFaces(id: string, limitValue: unknown): Promise<ApiResult<SimilarFaces>> {
-  if (!await personExists(id)) return personNotFound();
+  if (!await personExists(id) || !await isPersonVisible(id)) return personNotFound();
   const limit = limitValue === undefined ? MAX_SIMILAR : Number(limitValue);
   if (!Number.isInteger(limit) || limit < 1 || limit > MAX_SIMILAR) {
     return { status: 400, body: apiError('invalid_field', `limit must be an integer from 1 to ${MAX_SIMILAR}`, { field: 'limit' }) };
@@ -248,7 +250,7 @@ export async function assignFaces(id: string, body: unknown): Promise<ApiResult<
     .from(detectedFaces)
     .innerJoin(photos, eq(detectedFaces.photoId, photos.id))
     .innerJoin(folders, eq(photos.folderId, folders.id))
-    .where(inArray(detectedFaces.id, chunk))));
+    .where(andVisible(inArray(detectedFaces.id, chunk)))));
   if (faces.length !== faceIds.length) return { status: 404, body: apiError('face_not_found', 'Face not found') };
 
   const byFolder = new Map<string, typeof faces>();
@@ -280,7 +282,8 @@ export async function dismissFaces(id: string, body: unknown): Promise<ApiResult
   if (!faceIds) return { status: 400, body: apiError('invalid_field', 'faceIds must be a non-empty array of face ids', { field: 'faceIds' }) };
   if (!await personExists(id)) return personNotFound();
   const existing = await chunked(faceIds, BATCH_SIZE, (chunk) =>
-    all(db.select({ id: detectedFaces.id }).from(detectedFaces).where(inArray(detectedFaces.id, chunk))));
+    all(db.select({ id: detectedFaces.id }).from(detectedFaces).innerJoin(photos, eq(detectedFaces.photoId, photos.id))
+      .where(andVisible(inArray(detectedFaces.id, chunk)))));
   if (existing.length !== faceIds.length) return { status: 404, body: apiError('face_not_found', 'Face not found') };
   await withTransaction(async (tx) => {
     for (const faceId of faceIds) await run(tx.insert(faceDismissals).values({ faceId, contactId: id }).onConflictDoNothing());

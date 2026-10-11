@@ -182,3 +182,95 @@ export const geoSearch = sqliteTable('geo_search', {
 }, (table) => ({
   pk: primaryKey({ columns: [table.lang, table.query] }),
 }));
+
+// --- Users and logins: only in this database, never in the photo folders ---
+
+// `username_key` is the username lowercased, so usernames are unique ignoring case
+export const users = sqliteTable('users', {
+  id: text('id').primaryKey(),
+  username: text('username').notNull(),
+  usernameKey: text('username_key').notNull().unique(),
+  displayName: text('display_name').notNull(),
+  // A built-in role id (admin, editor, viewer) or the id of a row in `roles`
+  roleId: text('role_id').notNull(),
+  enabled: integer('enabled', { mode: 'boolean' }).notNull().default(true),
+  mustChangePassword: integer('must_change_password', { mode: 'boolean' }).notNull().default(false),
+  // Whole library; otherwise the folders and albums in user_access
+  accessAll: integer('access_all', { mode: 'boolean' }).notNull().default(true),
+  createdAt: text('created_at').notNull(),
+  lastLoginAt: text('last_login_at'),
+  // Contact id of the person the user is in the library (unique where set)
+  personId: text('person_id'),
+  // Changes with every uploaded avatar (PALOMA_DATA_DIR/avatars/<id>.webp); null without one
+  avatarVersion: text('avatar_version'),
+});
+
+// Custom roles; the built-in ones are constants in server/src/auth/roles.ts
+export const roles = sqliteTable('roles', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  nameKey: text('name_key').notNull().unique(),
+  description: text('description').notNull().default(''),
+  createdAt: text('created_at').notNull(),
+});
+
+export const rolePermissions = sqliteTable('role_permissions', {
+  roleId: text('role_id').notNull().references(() => roles.id, { onDelete: 'cascade' }),
+  permission: text('permission').notNull(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.roleId, table.permission] }),
+}));
+
+// Folders (by path, with subfolders) and albums (by token) a user with limited access sees
+export const userAccess = sqliteTable('user_access', {
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  kind: text('kind', { enum: ['folder', 'album'] }).notNull(),
+  value: text('value').notNull(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.userId, table.kind, table.value] }),
+}));
+
+// What an auth provider keeps about a user (e.g. a password hash), as JSON, namespaced by provider id
+export const userIdentities = sqliteTable('user_identities', {
+  providerId: text('provider_id').notNull(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  data: text('data').notNull(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.providerId, table.userId] }),
+}));
+
+// Browser sessions; only the SHA-256 of the cookie value is stored
+export const sessions = sqliteTable('sessions', {
+  id: text('id').primaryKey(),
+  tokenHash: text('token_hash').notNull().unique(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: text('created_at').notNull(),
+  lastUsedAt: text('last_used_at').notNull(),
+  userAgent: text('user_agent'),
+  ip: text('ip'),
+}, (table) => ({
+  byUser: index('sessions_user').on(table.userId),
+}));
+
+// Personal API tokens; only the SHA-256 of the value is stored
+export const apiTokens = sqliteTable('api_tokens', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  tokenHash: text('token_hash').notNull().unique(),
+  permissions: text('permissions').notNull(), // JSON array of permissions
+  createdAt: text('created_at').notNull(),
+  lastUsedAt: text('last_used_at'),
+  expiresAt: text('expires_at'),
+}, (table) => ({
+  byUser: index('api_tokens_user').on(table.userId),
+}));
+
+// Quota limits by kind; a missing row or a null limit is unlimited (the default for the request rate)
+export const userQuotas = sqliteTable('user_quotas', {
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  kind: text('kind', { enum: ['export_bytes', 'requests_per_minute'] }).notNull(),
+  limitValue: integer('limit_value'),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.userId, table.kind] }),
+}));

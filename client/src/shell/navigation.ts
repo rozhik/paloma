@@ -5,8 +5,10 @@ import { allows, useLevel } from '../levels/controls.js';
 import type { Level } from '../levels/levels.js';
 import { requestSettings } from '../levels/pinGate.js';
 
-/** The views the navigation offers, in order. Every skin shows all of them. */
-export const NAV_ITEMS: readonly { view: AppView; icon: LucideIcon; labelKey: `nav.${AppView}` }[] = [
+export type NavView = Exclude<AppView, 'account' | 'admin' | 'server'>;
+
+/** The views the navigation offers, in order; Account, Admin and Server settings are in the user menu. */
+export const NAV_ITEMS: readonly { view: NavView; icon: LucideIcon; labelKey: `nav.${NavView}` }[] = [
   { view: 'library', icon: Image, labelKey: 'nav.library' },
   { view: 'people', icon: Users, labelKey: 'nav.people' },
   { view: 'map', icon: MapPin, labelKey: 'nav.map' },

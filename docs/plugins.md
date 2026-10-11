@@ -1,8 +1,8 @@
 # Writing Paloma plugins
 
-A Paloma plugin is a folder of JavaScript code that adds features to Paloma without changes to Paloma itself. In plugin API version 1, plugins add **image filters**: the steps of a photo's non-destructive edit chain, such as crop, sepia or film grain.
+A Paloma plugin is a folder of JavaScript code that adds features to Paloma without changes to Paloma itself. In plugin API version 1, plugins add **image filters**, which are the steps of a photo's non-destructive edit chain, such as crop, sepia or film grain, and **auth providers**, which are ways to log in or to authenticate API requests when [users are switched on](users-and-auth.md).
 
-> **Plugins are trusted code.** A plugin's module runs inside the Paloma server with the same rights as Paloma: it can read and write any file the server can. Install only plugins you trust. External plugins stay **off** until you switch them on in **Settings → Plugins**, and the code of a plugin that is off is never run.
+> **Plugins are trusted code.** A plugin's module runs inside the Paloma server with the same rights as Paloma: it can read and write any file the server can. Install only plugins you trust. External plugins stay **off** until you switch them on in **user menu → Server settings → Plugins**, and the code of a plugin that is off is never run.
 
 ## Installing a plugin
 
@@ -16,11 +16,11 @@ git clone https://example.com/paloma-film-grain.git
 git submodule add https://example.com/paloma-film-grain.git
 ```
 
-Then restart Paloma. The plugin is listed in **Settings → Plugins** as off. Switch it on there; this does not need a restart. To update a plugin, `git pull` in its folder and restart. To remove it, delete its folder and restart.
+Then restart Paloma. The plugin is listed in **user menu → Server settings → Plugins** (the avatar at the end of the navigation) as off. Switch it on there; this does not need a restart. To update a plugin, `git pull` in its folder and restart. To remove it, delete its folder and restart.
 
 If a plugin needs npm packages, it should ship them or tell you to run `npm install` in its folder.
 
-Paloma's own filters ship as **bundled plugins** in the repository's `plugins/` folder (`basic-transforms`, `basic-effects`). They use the same API as external plugins and are good examples. Bundled plugins are on until you switch them off.
+Paloma's own filters and login methods ship as **bundled plugins** in the repository's `plugins/` folder (`basic-transforms`, `basic-effects`, `auth-password`, `auth-token`). They use the same API as external plugins and are good examples. Bundled plugins are on until you switch them off.
 
 ## Folder layout
 
@@ -99,9 +99,9 @@ export function activate(host) {
 - `host.sharp`: Paloma's [sharp](https://sharp.pixelplumbing.com/), so you need no image library of your own.
 - `host.log.info/warn/error(message)`: logs with your plugin id as a prefix.
 
-Keys of the returned object other than `filters` are ignored with a warning in this API version. Later versions will add new kinds of contributions there, for example a map provider.
+Keys of the returned object other than `filters` and `authProviders` are ignored with a warning in this API version. Later versions will add new kinds of contributions there, for example a map provider.
 
-If `activate` throws, or the module does not export it, the plugin shows the error in **Settings → Plugins** and the rest of Paloma keeps working. Switching the plugin on again retries `activate`.
+If `activate` throws, or the module does not export it, the plugin shows the error in **Server settings → Plugins** and the rest of Paloma keeps working. Switching the plugin on again retries `activate`.
 
 ## Filters
 
@@ -166,6 +166,58 @@ Each filter is a button with an icon in the photo viewer's edit bar. Give it one
 - **Each step gets fresh pixels.** Paloma materializes the result of every step before calling the next one, so your sharp operations run in the order you call them and never mix with other steps.
 - **Failures are contained.** If `render` throws, returns something that is not a sharp image, or takes too long (10 s for previews, 60 s for exports), the step is skipped and the error is logged with the photo and your filter name. The photo still renders with the other steps.
 - **Never write files** in photo folders. Paloma stores edits in `.paloma.json` and never changes the photo.
+
+## Auth providers
+
+When `PALOMA_AUTH=on` (see [Users and logins](users-and-auth.md)), every request needs a user. Paloma itself keeps the users, their roles and permissions, their library access, sessions and API tokens. **Auth providers** only check credentials and say which user they belong to. The bundled `auth-password` plugin (username and password) and `auth-token` plugin (personal API tokens) are auth providers, and are the best examples to read.
+
+A plugin returns its providers in `authProviders`:
+
+| Field | Meaning |
+| :--- | :--- |
+| `id` | Unique across plugins: lowercase letters, digits and hyphens. A taken id is not available, and your plugin shows a warning. A bundled provider wins, then the external plugin whose id sorts first. |
+| `label` | Shown on the login page and in **Admin → Authentication**; a string or an object by language. |
+| `kind` | `credentials`: a login form; a successful login starts a browser session. `bearer`: a credential the client sends with each request as `Authorization: Bearer <credential>`. Any other kind is not available, and your plugin shows a warning. Redirect-based logins such as OAuth are planned for a later API version. |
+| `fields` | `credentials` only: the form fields, each `{ name, label, type }` with type `text` or `password`. |
+| `login(input, ctx)` | `credentials` only: gets the entered values by field name and returns `{ userId }`, or `null` when they are wrong. |
+| `setSecret(userId, secret, ctx)`, `checkSecret(userId, secret, ctx)` | Optional, both or neither: a provider that stores passwords. Paloma uses them when a user is created, changes their password or an administrator resets it. |
+| `authenticate(credential, ctx)` | `bearer` only: returns `{ userId, permissions?, tokenId? }`, or `null` when the credential is not yours or not valid. `permissions` narrows what the request may do; the user's role still applies. Return `null` quickly for credentials that are not yours, because every bearer provider is asked in turn. |
+
+Every call gets `ctx`:
+
+- `ctx.findUserByUsername(name)`: `{ id, username, enabled }` of the user, ignoring case.
+- `ctx.identities.get(userId)` / `ctx.identities.set(userId, data)`: JSON data your provider keeps about a user, such as a password hash or an external account id. Each provider id has its own store.
+- `ctx.hashSecret(secret)` / `ctx.verifySecret(secret, hash)`: a salted scrypt hash and a constant-time check, so you need no crypto code of your own.
+- `ctx.verifyApiToken(value)`: the owner and permissions of a Paloma API token.
+
+Paloma checks again that the user you return exists and is enabled. Errors thrown by a provider count as a failed login. When auth is on, the last plugin with a `credentials` provider cannot be switched off. Otherwise nobody could log in.
+
+> **An auth provider can log anyone in.** A provider that returns another user's id acts as that user, including an administrator. Switch on only auth plugins you trust.
+
+This example lets a home automation system read the library with a fixed key. The key and the user it acts as come from the server's environment:
+
+<!-- auth-file: index.js -->
+```js
+// @ts-check
+export function activate() {
+  return {
+    authProviders: [
+      {
+        id: 'home-key',
+        kind: 'bearer',
+        label: { en: 'Home automation key', uk: 'Ключ розумного дому' },
+        async authenticate(credential, ctx) {
+          const key = process.env.PALOMA_HOME_KEY;
+          if (!key || credential !== key) return null;
+          const user = await ctx.findUserByUsername(process.env.PALOMA_HOME_USER ?? 'home');
+          // Only looking, whatever the user's role allows
+          return user ? { userId: user.id, permissions: ['library.view'] } : null;
+        },
+      },
+    ],
+  };
+}
+```
 
 ## How edits are stored
 

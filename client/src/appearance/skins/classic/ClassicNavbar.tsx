@@ -4,6 +4,7 @@ import { Search } from 'lucide-react';
 import { usePalomaStore } from '../../../store/usePalomaStore.js';
 import { useNavigationItems } from '../../../shell/navigation.js';
 import { useAllows } from '../../../levels/controls.js';
+import { UserMenuButton } from '../../../shell/UserMenuButton.js';
 
 /** Classic navigation bar: logo, search, and a labelled button for every view; the language is chosen in Settings. */
 export const ClassicNavbar: React.FC = () => {
@@ -52,6 +53,7 @@ export const ClassicNavbar: React.FC = () => {
             <span>{label}</span>
           </button>
         ))}
+        <UserMenuButton className="ms-2" size={48} />
       </div>
     </nav>
   );

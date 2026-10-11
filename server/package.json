@@ -6,7 +6,8 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc && tsc -p ../plugins/tsconfig.json",
     "db:generate": "drizzle-kit generate:sqlite",
-    "test": "vitest run"
+    "test": "vitest run",
+    "reset-password": "tsx src/auth/resetPasswordCli.ts"
   },
   "dependencies": {
     "better-sqlite3": "^13.0.3",

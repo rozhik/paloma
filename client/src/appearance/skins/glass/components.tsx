@@ -12,6 +12,7 @@ import { useNavigationItems } from '../../../shell/navigation.js';
 import { useAllows } from '../../../levels/controls.js';
 import { SidebarSection, useSidebarSections, type SidebarItem } from '../../../shell/sidebar.js';
 import { EntryMenuButton } from '../../../shell/EntryMenuButton.js';
+import { UserMenuButton } from '../../../shell/UserMenuButton.js';
 import { SquarePhotoCard } from '../../../shell/SquarePhotoCard.js';
 import { PHOTO_DRAG_TYPE, useTray } from '../../../shell/useTray.js';
 import { VirtualGrid } from '../../../shell/VirtualGrid.js';
@@ -71,6 +72,7 @@ const GlassToolbar: React.FC<{ showFolders: boolean; foldersOpen: boolean; onFol
             <IconButton key={view} icon={Icon} label={label} iconSize={22} className="glass-btn" onClick={select} />
           )
         ))}
+        <UserMenuButton className="ms-1" size={52} />
       </nav>
     </header>
   );

@@ -187,3 +187,88 @@ export function createPeopleTables(sqlite: Database.Database): void {
     );
   `);
 }
+
+/**
+ * Users, roles, library access, logins, sessions, API tokens and quotas. Kept only in this database, never in
+ * the photo folders. Built-in roles are constants in code and have no rows in `roles`.
+ */
+export function createAuthTables(sqlite: Database.Database): void {
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      username TEXT NOT NULL,
+      username_key TEXT NOT NULL UNIQUE,
+      display_name TEXT NOT NULL,
+      role_id TEXT NOT NULL,
+      enabled INTEGER NOT NULL DEFAULT 1,
+      must_change_password INTEGER NOT NULL DEFAULT 0,
+      access_all INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL,
+      last_login_at TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS roles (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      name_key TEXT NOT NULL UNIQUE,
+      description TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS role_permissions (
+      role_id TEXT NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
+      permission TEXT NOT NULL,
+      PRIMARY KEY (role_id, permission)
+    );
+
+    CREATE TABLE IF NOT EXISTS user_access (
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      kind TEXT NOT NULL,
+      value TEXT NOT NULL,
+      PRIMARY KEY (user_id, kind, value)
+    );
+
+    CREATE TABLE IF NOT EXISTS user_identities (
+      provider_id TEXT NOT NULL,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      data TEXT NOT NULL,
+      PRIMARY KEY (provider_id, user_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS sessions (
+      id TEXT PRIMARY KEY,
+      token_hash TEXT NOT NULL UNIQUE,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_at TEXT NOT NULL,
+      last_used_at TEXT NOT NULL,
+      user_agent TEXT,
+      ip TEXT
+    );
+    CREATE INDEX IF NOT EXISTS sessions_user ON sessions(user_id);
+
+    CREATE TABLE IF NOT EXISTS api_tokens (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      token_hash TEXT NOT NULL UNIQUE,
+      permissions TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      last_used_at TEXT,
+      expires_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS api_tokens_user ON api_tokens(user_id);
+
+    CREATE TABLE IF NOT EXISTS user_quotas (
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      kind TEXT NOT NULL,
+      limit_value INTEGER,
+      PRIMARY KEY (user_id, kind)
+    );
+  `);
+  // Added after the first version of these tables
+  const columns = new Set((sqlite.pragma('table_info(users)') as Array<{ name: string }>).map((column) => column.name));
+  if (!columns.has('person_id')) sqlite.exec('ALTER TABLE users ADD COLUMN person_id TEXT');
+  if (!columns.has('avatar_version')) sqlite.exec('ALTER TABLE users ADD COLUMN avatar_version TEXT');
+  // A person is at most one user
+  sqlite.exec('CREATE UNIQUE INDEX IF NOT EXISTS users_person ON users(person_id) WHERE person_id IS NOT NULL');
+}

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Modal, Button } from 'react-bootstrap';
+import { Alert, Modal, Button } from 'react-bootstrap';
+import { ApiRequestError, describeError } from '../api/http.js';
 import { usePalomaStore } from '../store/usePalomaStore.js';
 import { Trans, useTranslation } from 'react-i18next';
 import { Download, CheckCircle2 } from 'lucide-react';
@@ -16,12 +17,14 @@ export const ExportWizardModal: React.FC<ExportWizardModalProps> = ({ show, onHi
   const [quality, setQuality] = useState(85);
   const [resizeWidth, setResizeWidth] = useState(1920);
   const [loading, setLoading] = useState(false);
-  const [exportResult, setExportResult] = useState<{ count: number } | null>(null);
+  const [exportResult, setExportResult] = useState<{ count: number; requested: number; quotaExceeded: boolean } | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleExport = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setExportResult(null);
+    setError(null);
 
     try {
       const photoIds = selectedPhotos.map((p) => p.id);
@@ -36,12 +39,15 @@ export const ExportWizardModal: React.FC<ExportWizardModalProps> = ({ show, onHi
         }),
       });
 
+      const data = await res.json().catch(() => null);
       if (res.ok) {
-        const data = await res.json();
-        setExportResult({ count: data.count });
+        setExportResult({ count: data.count, requested: data.requested ?? data.count, quotaExceeded: data.quotaExceeded === true });
+      } else {
+        setError(describeError(new ApiRequestError(res.status, data), t));
       }
     } catch (err) {
       console.error('Export failed:', err);
+      setError(describeError(err, t));
     } finally {
       setLoading(false);
     }
@@ -60,6 +66,11 @@ export const ExportWizardModal: React.FC<ExportWizardModalProps> = ({ show, onHi
           <div className="text-center py-4">
             <CheckCircle2 size={64} className="text-success mb-3" />
             <h3 className="fw-bold">{t('export.done', { count: exportResult.count })}</h3>
+            {exportResult.quotaExceeded && (
+              <Alert variant="warning" className="fs-5" role="status">
+                {t('export.quotaPartial', { done: exportResult.count, requested: exportResult.requested })}
+              </Alert>
+            )}
             <p className="fs-5 text-muted">{t('export.savedTo')} <code>{outputDir}</code></p>
             <Button variant="primary" size="lg" className="mt-3" onClick={onHide}>
               {t('common.close')}
@@ -67,6 +78,7 @@ export const ExportWizardModal: React.FC<ExportWizardModalProps> = ({ show, onHi
           </div>
         ) : (
           <form onSubmit={handleExport}>
+            {error && <Alert variant="danger" className="fs-5" role="alert">{error}</Alert>}
             <div className="mb-4">
               <label className="form-label fs-5 fw-semibold">{t('export.destination')}</label>
               <input

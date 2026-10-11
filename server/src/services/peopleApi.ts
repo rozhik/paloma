@@ -1,16 +1,19 @@
 import crypto from 'node:crypto';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { all, get, run, withTransaction } from '../db/query.js';
-import { faceDismissals, folders, persons, photoPeople, photos } from '../db/schema.js';
+import { faceDismissals, folders, persons, photoPeople, photos, users } from '../db/schema.js';
+import { config } from '../config.js';
 import { apiError } from './apiError.js';
 import { getApiPhoto, savePhotoPatch, type ApiResult } from './photoApi.js';
 import { CONTACT_ID, SidecarService, sameRect, withMark, withoutPerson, type FaceMark } from './SidecarService.js';
 import { saveFolderByFolder } from './folderChanges.js';
 import { parsePersonInput } from './personValidation.js';
 import {
-  avatarFace, avatarVersion, avatarVersions, chosenFace, detectedOnPhoto, peopleOnPhoto, photoCounts, rectFaces, shownPeople, unassignedFaces,
+  avatarFace, avatarVersion, avatarVersions, chosenFace, detectedOnPhoto, isPersonVisible, peopleOnPhoto, photoCounts, rectFaces, shownPeople,
+  unassignedFaces,
 } from './people.js';
+import { visiblePhotoCondition } from '../auth/scope.js';
 import type { ApiError, Person, PersonFace, PersonInput, PersonSummary, Photo, PhotoPeople } from '../../../shared/types.js';
 
 const IGNORED_CONTACT = 'ffffffffffffffff';
@@ -50,6 +53,11 @@ export async function listPeople(): Promise<PersonSummary[]> {
   }));
 }
 
+/** The Paloma user linked with a person, if any. */
+async function linkedUser(personId: string): Promise<{ username: string; displayName: string } | null> {
+  return (await get(db.select({ username: users.username, displayName: users.displayName }).from(users).where(eq(users.personId, personId)))) ?? null;
+}
+
 /** One person with the whole profile; undefined when there is no such person. */
 export async function findPerson(id: string): Promise<Person | undefined> {
   if (!await personExists(id)) return undefined;
@@ -68,17 +76,23 @@ export async function findPerson(id: string): Promise<Person | undefined> {
     avatarVersion: avatarVersion(avatarFace(row, faces)),
     avatar: chosen ? { photoId: chosen.photoId, rect: chosen.rect } : null,
     photoCount: (await photoCounts()).get(id) ?? 0,
+    ...(config.auth.mode === 'on' ? { user: await linkedUser(id) } : {}),
   };
 }
 
+/** A person that exists and that the current request may see. */
+async function personShown(id: string): Promise<boolean> {
+  return await personExists(id) && await isPersonVisible(id);
+}
+
 export async function getPerson(id: string): Promise<ApiResult<Person>> {
-  const person = await findPerson(id);
+  const person = await personShown(id) ? await findPerson(id) : undefined;
   return person ? { status: 200, body: person } : personNotFound();
 }
 
 /** The person's faces with a rectangle, for choosing the avatar. */
 export async function listPersonFaces(id: string): Promise<ApiResult<PersonFace[]>> {
-  if (!await personExists(id)) return personNotFound();
+  if (!await personShown(id)) return personNotFound();
   return { status: 200, body: (await rectFaces(id)).map(({ photoId, rect }) => ({ photoId, rect })) };
 }
 
@@ -130,7 +144,7 @@ export async function createPerson(body: unknown): Promise<ApiResult<Person>> {
  * saved in Paloma is shown, not the folder files' one. Writes no files.
  */
 export async function updatePerson(id: string, body: unknown): Promise<ApiResult<Person>> {
-  if (!await personExists(id)) return personNotFound();
+  if (!await personShown(id)) return personNotFound();
   const person = (await shownPeople([id])).get(id)!;
   const input = parsePersonInput(body, person.name !== null);
   if ('code' in input) return { status: 400, body: input };
@@ -153,12 +167,21 @@ export async function updatePerson(id: string, body: unknown): Promise<ApiResult
  * then the person. If a folder cannot be written the person is kept, with the faces that are left.
  */
 export async function deletePerson(id: string): Promise<ApiResult<{ success: true }>> {
-  if (!await personExists(id)) return personNotFound();
+  if (!await personShown(id)) return personNotFound();
   const refs = await all(db.select({ filename: photos.filename, folderPath: folders.path })
     .from(photoPeople)
     .innerJoin(photos, eq(photoPeople.photoId, photos.id))
     .innerJoin(folders, eq(photos.folderId, folders.id))
     .where(eq(photoPeople.contactId, id)));
+  // Deleting would change photos the user cannot see
+  const visible = visiblePhotoCondition();
+  if (visible) {
+    const seen = await all(db.select({ id: photoPeople.photoId }).from(photoPeople).innerJoin(photos, eq(photoPeople.photoId, photos.id))
+      .where(and(eq(photoPeople.contactId, id), visible)));
+    if (seen.length !== refs.length) {
+      return { status: 403, body: apiError('outside_access', 'This person is also on photos you cannot see') };
+    }
+  }
   const files = new Map<string, string[]>();
   for (const ref of refs) files.set(ref.folderPath, [...(files.get(ref.folderPath) ?? []), ref.filename]);
 
@@ -171,6 +194,8 @@ export async function deletePerson(id: string): Promise<ApiResult<{ success: tru
   await withTransaction(async (tx) => {
     await run(tx.delete(faceDismissals).where(eq(faceDismissals.contactId, id)));
     await run(tx.delete(persons).where(eq(persons.contactId, id)));
+    // A user linked with the person is no longer anyone in the library
+    await run(tx.update(users).set({ personId: null }).where(eq(users.personId, id)));
   });
   return { status: 200, body: { success: true } };
 }

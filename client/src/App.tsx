@@ -9,6 +9,9 @@ import { CollageBuilder } from './components/CollageBuilder.js';
 import { PlacesMap } from './components/PlacesMap.js';
 import { PeopleView } from './components/PeopleView.js';
 import { SettingsView } from './components/SettingsView.js';
+import { AdminView } from './admin/AdminView.js';
+import { AccountView } from './auth/AccountView.js';
+import { ServerSettingsView } from './components/ServerSettingsView.js';
 import { AlbumHeader } from './components/AlbumHeader.js';
 import { LibraryHeader } from './components/LibraryHeader.js';
 import { TagHeader } from './components/TagHeader.js';
@@ -94,6 +97,9 @@ export const App: React.FC = () => {
     library: <Library />,
     map: <PlacesMap />,
     settings: <SettingsView />,
+    admin: <AdminView />,
+    account: <AccountView />,
+    server: <ServerSettingsView />,
   }[currentView];
 
   return (

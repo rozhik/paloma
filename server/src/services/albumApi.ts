@@ -1,4 +1,4 @@
-import { eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { all, BATCH_SIZE, chunked } from '../db/query.js';
 import { albumPhotos, edits, folderAlbums, folders, photos } from '../db/schema.js';
@@ -9,8 +9,9 @@ import { apiError } from './apiError.js';
 import { libraryImageUrls } from './libraryImages.js';
 import { filesByFolder, loadPhotos, parsePhotoIds, saveFolderByFolder } from './folderChanges.js';
 import type { Album, ApiError, ApiErrorCode, PalomaAlbumDefinition } from '../../../shared/types.js';
+import { albumGranted, visiblePhotoCondition } from '../auth/scope.js';
 
-export type AlbumResult<T> = { status: 200; body: T } | { status: 400 | 404 | 409 | 500; body: ApiError };
+export type AlbumResult<T> = { status: 200; body: T } | { status: 400 | 403 | 404 | 409 | 500; body: ApiError };
 
 /** One folder's copy of an album definition, as indexed in the library. */
 export interface AlbumCopy {
@@ -86,6 +87,7 @@ function pickCover(copies: readonly AlbumCopy[], members: Member[]): Member | un
   return ordered.find((m) => !m.isHidden) ?? ordered[0];
 }
 
+/** Album photos in the library that the current request may see, by album token. */
 async function loadMembers(tokens?: readonly string[]): Promise<Map<string, Member[]>> {
   const query = (where?: readonly string[]) => all(db.select({
     token: albumPhotos.token,
@@ -101,7 +103,7 @@ async function loadMembers(tokens?: readonly string[]): Promise<Map<string, Memb
     .innerJoin(photos, eq(albumPhotos.photoId, photos.id))
     .leftJoin(edits, eq(photos.id, edits.photoId))
     .innerJoin(folders, eq(photos.folderId, folders.id))
-    .where(where ? inArray(albumPhotos.token, [...where]) : undefined));
+    .where(and(where ? inArray(albumPhotos.token, [...where]) : undefined, visiblePhotoCondition())));
   const rows = tokens ? await chunked(tokens, BATCH_SIZE, query) : await query();
   const members = new Map<string, Member[]>();
   for (const { token, ...member } of rows) {
@@ -158,7 +160,10 @@ function toAlbum(token: string, copies: AlbumCopy[], members: Member[]): Album {
   };
 }
 
-/** Albums with at least one photo in the library, sorted by name with untitled albums last. */
+/**
+ * Albums with at least one photo in the library that the current request may see, counting only those, sorted
+ * by name with untitled albums last.
+ */
 export async function listAlbums(tokens?: readonly string[]): Promise<Album[]> {
   const members = await loadMembers(tokens);
   const copies = await loadCopies([...members.keys()]);
@@ -230,9 +235,21 @@ async function requireListed(token: string): Promise<AlbumResult<never> | null> 
   return await getAlbum(token) ? null : notFound('album_not_found', 'Album not found');
 }
 
+/**
+ * An album the current request may change: one it sees and that is granted to it (or the whole library is).
+ * A user who sees an album only through some of its photos cannot change it for everyone.
+ */
+async function requireChangeable(token: string): Promise<AlbumResult<never> | null> {
+  const missing = await requireListed(token);
+  if (missing) return missing;
+  return albumGranted(token)
+    ? null
+    : { status: 403, body: apiError('album_not_granted', 'You can change only albums you were given access to', { token }) };
+}
+
 /** `POST /api/albums/:token/photos`. */
 export async function addAlbumPhotos(token: string, body: unknown): Promise<AlbumResult<Album>> {
-  const missing = await requireListed(token);
+  const missing = await requireChangeable(token);
   if (missing) return missing;
   const ids = parsePhotoIds(isPlainObject(body) ? body.photoIds : undefined);
   if (!ids) return noPhotoIds();
@@ -252,7 +269,7 @@ export async function addAlbumPhotos(token: string, body: unknown): Promise<Albu
 
 /** `DELETE /api/albums/:token/photos`; when no photo is left, the album is gone. */
 export async function removeAlbumPhotos(token: string, body: unknown): Promise<AlbumResult<Album | { success: true; removed: true }>> {
-  const missing = await requireListed(token);
+  const missing = await requireChangeable(token);
   if (missing) return missing;
   const ids = parsePhotoIds(isPlainObject(body) ? body.photoIds : undefined);
   if (!ids) return noPhotoIds();
@@ -269,7 +286,7 @@ export async function removeAlbumPhotos(token: string, body: unknown): Promise<A
 
 /** `PATCH /api/albums/:token`: any of name, description, location and coverPhotoId. */
 export async function editAlbumProperties(token: string, body: unknown): Promise<AlbumResult<Album>> {
-  const missing = await requireListed(token);
+  const missing = await requireChangeable(token);
   if (missing) return missing;
   if (!isPlainObject(body)) return bad('invalid_body', 'Body must be a JSON object');
   const { name, description, location, coverPhotoId } = body;
@@ -301,7 +318,7 @@ export async function editAlbumProperties(token: string, body: unknown): Promise
 
 /** `DELETE /api/albums/:token`: removes the album everywhere; photo files are not touched. */
 export async function deleteAlbumEverywhere(token: string): Promise<AlbumResult<{ success: true }>> {
-  const missing = await requireListed(token);
+  const missing = await requireChangeable(token);
   if (missing) return missing;
   const modified = new Date().toISOString();
   return await saveFolderByFolder('album', await albumFolders(token), (_dir, data) => deleteAlbum(data, token, modified))

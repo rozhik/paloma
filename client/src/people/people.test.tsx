@@ -81,6 +81,13 @@ describe('person header', () => {
     }
   });
 
+  it('says which Paloma user the person is', () => {
+    setSettings({ level: 'normal' });
+    const markup = renderToStaticMarkup(<PersonHeader person={{ ...roy, user: { username: 'roy', displayName: 'Roy A.' } }} photos={photos} onSaved={() => {}} />);
+    expect(markup).toContain(i18n.t('people.isUser', { name: 'Roy A.', username: 'roy' }).replace(/'/g, '&#x27;'));
+    expect(header('normal')).not.toContain('Paloma user');
+  });
+
   it('offers neither editing, Similar faces nor face detection at Easy', () => {
     const markup = header('easy');
     expect(markup).toContain('Roy Avery');

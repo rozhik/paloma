@@ -3,15 +3,16 @@ import { db } from '../db/index.js';
 import { all } from '../db/query.js';
 import { photoKeywords, photos } from '../db/schema.js';
 import type { TagSummary } from '../../../shared/types.js';
+import { visiblePhotoCondition } from '../auth/scope.js';
 
 /**
- * `GET /api/tags`: the tags of photos that are not hidden, grouped ignoring case, each under the spelling
+ * `GET /api/tags`: the tags of photos that are not hidden (and that the current request may see), grouped ignoring case, each under the spelling
  * most of its photos use (on a tie, the first by code points), sorted by name ignoring case.
  */
 export async function listTags(): Promise<TagSummary[]> {
   const rows = await all(db.select({ key: photoKeywords.key, keyword: photoKeywords.keyword, photos: count() })
     .from(photoKeywords)
-    .innerJoin(photos, and(eq(photoKeywords.photoId, photos.id), eq(photos.isHidden, false)))
+    .innerJoin(photos, and(eq(photoKeywords.photoId, photos.id), eq(photos.isHidden, false), visiblePhotoCondition()))
     .groupBy(photoKeywords.key, photoKeywords.keyword));
 
   const byKey = new Map<string, { name: string; best: number; photoCount: number }>();

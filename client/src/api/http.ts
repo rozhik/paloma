@@ -41,3 +41,29 @@ export function describeError(err: unknown, t: TFunction): string {
   const failed = Array.isArray(body?.failedFolders) ? body.failedFolders : [];
   return failed.length > 0 ? `${message} ${t('errors.not_changed', { folders: failed.join(', ') })}` : message;
 }
+
+/**
+ * Calls `onEnded` whenever an API request other than `/api/auth/*` gets 401, which means the session ended
+ * (logged out elsewhere, revoked, expired or the account disabled), and `onForbidden` when one gets 403, which
+ * can mean the user's permissions changed. Wraps `fetch` once, so requests made with `fetch` directly are
+ * noticed too. Returns a function that removes the wrapper.
+ */
+export function watchSessionEnd(
+  onEnded: () => void, target: { fetch: typeof fetch } = globalThis, onForbidden: () => void = () => {},
+): () => void {
+  const original = target.fetch;
+  const watched: typeof fetch = async (input, init) => {
+    const response = await original(input, init);
+    const url = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url;
+    const path = url.startsWith('http') ? new URL(url).pathname : url;
+    if (path.startsWith('/api/') && !path.startsWith('/api/auth/')) {
+      if (response.status === 401) onEnded();
+      if (response.status === 403) onForbidden();
+    }
+    return response;
+  };
+  target.fetch = watched;
+  return () => {
+    if (target.fetch === watched) target.fetch = original;
+  };
+}

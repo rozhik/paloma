@@ -15,8 +15,8 @@ interface PersonPickerProps {
   /** People not to offer, e.g. those already on the photo */
   exclude?: readonly string[];
   onHide: () => void;
-  /** With the chosen person's contact id; a new person is created first */
-  onPick: (personId: string) => Promise<void> | void;
+  /** With the chosen person's contact id and shown name; a new person is created first */
+  onPick: (personId: string, name: string | null) => Promise<void> | void;
 }
 
 /**
@@ -44,11 +44,11 @@ export const PersonPicker: React.FC<PersonPickerProps> = ({ show, title, exclude
     [people, exclude, query, i18n.language],
   );
 
-  const pick = async (choose: () => Promise<string> | string) => {
+  const pick = async (choose: () => Promise<string> | string, chosenName: string | null) => {
     setBusy(true);
     setError(null);
     try {
-      await onPick(await choose());
+      await onPick(await choose(), chosenName);
       onHide();
     } catch (err) {
       setError(err);
@@ -76,14 +76,14 @@ export const PersonPicker: React.FC<PersonPickerProps> = ({ show, title, exclude
           onKeyDown={(e) => {
             if (e.key === 'Enter' && offered.length === 1) {
               e.preventDefault();
-              pick(() => offered[0].id);
+              pick(() => offered[0].id, offered[0].name);
             }
           }}
           autoFocus
         />
         <ListGroup className="person-picker-list mb-3">
           {offered.map((person) => (
-            <ListGroup.Item key={person.id} action disabled={busy} onClick={() => pick(() => person.id)} className="d-flex align-items-center gap-2">
+            <ListGroup.Item key={person.id} action disabled={busy} onClick={() => pick(() => person.id, person.name)} className="d-flex align-items-center gap-2">
               <PersonAvatar id={person.id} version={person.avatarVersion} size={32} />
               <span dir="auto" className={`text-truncate ${person.name === null ? 'fst-italic' : ''}`}>{person.name ?? t('people.unknown')}</span>
               {person.alias && <span dir="auto" className="opacity-75 text-truncate">({person.alias})</span>}
@@ -92,10 +92,10 @@ export const PersonPicker: React.FC<PersonPickerProps> = ({ show, title, exclude
           {offered.length === 0 && <ListGroup.Item className="opacity-75">{t('people.noMatches')}</ListGroup.Item>}
         </ListGroup>
         <div className="d-flex flex-wrap gap-2">
-          <Button variant="primary" disabled={busy || name === ''} onClick={() => pick(async () => (await createPerson({ name })).id)}>
+          <Button variant="primary" disabled={busy || name === ''} onClick={() => pick(async () => (await createPerson({ name })).id, name)}>
             <UserPlus size={18} /> {name === '' ? t('people.newNamed') : t('people.newNamedAs', { name })}
           </Button>
-          <Button variant="outline-secondary" disabled={busy} onClick={() => pick(async () => (await createPerson({})).id)}>
+          <Button variant="outline-secondary" disabled={busy} onClick={() => pick(async () => (await createPerson({})).id, null)}>
             <UserRound size={18} /> {t('people.newUnknown')}
           </Button>
         </div>

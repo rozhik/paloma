@@ -69,6 +69,43 @@ export function pluginsDirOf(env: NodeJS.ProcessEnv, dataDir: string): string {
   return resolveDir(env.PALOMA_PLUGINS_DIR?.trim(), path.join(dataDir, 'plugins'));
 }
 
+export const DEFAULT_SESSION_DAYS = 30;
+export const DEFAULT_RATE_LIMIT = 600;
+
+export interface AuthConfig {
+  /** `off`: single user, no login; `on`: every request needs an authenticated user */
+  mode: 'off' | 'on';
+  /** Origin allowed to call the API with credentials when auth is on; null for same-origin only */
+  clientOrigin: string | null;
+  /** A session ends after this many days without use */
+  sessionDays: number;
+  /** Default API requests per minute per user or token; 0 = unlimited */
+  rateLimit: number;
+}
+
+function nonNegativeNumber(name: string, value: string | undefined, fallback: number, positive = false): number {
+  if (value === undefined || value.trim() === '') return fallback;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0 || (positive && parsed === 0)) {
+    throw new Error(`${name} must be a ${positive ? 'positive' : 'non-negative'} number, got ${JSON.stringify(value)}`);
+  }
+  return parsed;
+}
+
+/** Auth settings from the environment; throws for a value the server cannot start with. */
+export function authConfig(env: NodeJS.ProcessEnv): AuthConfig {
+  const mode = (env.PALOMA_AUTH ?? '').trim().toLowerCase() || 'off';
+  if (mode !== 'off' && mode !== 'on') {
+    throw new Error(`PALOMA_AUTH must be "off" or "on", got ${JSON.stringify(env.PALOMA_AUTH)}`);
+  }
+  return {
+    mode,
+    clientOrigin: env.PALOMA_CLIENT_ORIGIN?.trim().replace(/\/+$/, '') || null,
+    sessionDays: nonNegativeNumber('PALOMA_SESSION_DAYS', env.PALOMA_SESSION_DAYS, DEFAULT_SESSION_DAYS, true),
+    rateLimit: Math.floor(nonNegativeNumber('PALOMA_RATE_LIMIT', env.PALOMA_RATE_LIMIT, DEFAULT_RATE_LIMIT)),
+  };
+}
+
 const dataDir = resolveDir(
   process.env.PALOMA_DATA_DIR,
   path.join(process.cwd(), '.paloma_data'),
@@ -85,4 +122,5 @@ export const config = {
   geo: geoConfig(process.env),
   pluginsDir: pluginsDirOf(process.env, dataDir),
   bundledPluginsDir: findBundledPluginsDir(__dirname),
+  auth: authConfig(process.env),
 } as const;

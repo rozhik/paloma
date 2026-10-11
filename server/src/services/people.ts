@@ -6,6 +6,7 @@ import { detectedFaces, faceDetections, folderPeople, folders, persons, photoFac
 import { assignDetected, type MarkRect } from './faceMatch.js';
 import { sameRect } from './SidecarService.js';
 import type { DetectedFaceInfo, PhotoPerson, RelativeRect } from '../../../shared/types.js';
+import { currentAccess, visiblePhotoCondition } from '../auth/scope.js';
 
 /**
  * Names of people by contact id as the folder files give them: the first non-null name in folder path order,
@@ -37,16 +38,38 @@ export interface ShownPerson {
   alias: string | null;
 }
 
-/** How people are shown, by contact id; without `ids`, every person of the library. */
+/**
+ * Contact ids of the people on photos the current request may see; undefined with whole-library access, when
+ * every person is visible (also those on no photo yet).
+ */
+export async function visibleContactIds(): Promise<Set<string> | undefined> {
+  if (currentAccess().all) return undefined;
+  return new Set((await all(db.selectDistinct({ contactId: photoPeople.contactId })
+    .from(photoPeople)
+    .innerJoin(photos, eq(photoPeople.photoId, photos.id))
+    .where(visiblePhotoCondition()))).map((row) => row.contactId));
+}
+
+/** Whether the current request may see a person: they are on one of its photos, or it sees the whole library. */
+export async function isPersonVisible(id: string): Promise<boolean> {
+  const visible = await visibleContactIds();
+  return visible === undefined || visible.has(id);
+}
+
+/**
+ * How people are shown, by contact id; without `ids`, every person of the library that the current request
+ * may see.
+ */
 export async function shownPeople(ids?: readonly string[]): Promise<Map<string, ShownPerson>> {
   const rows = ids
     ? await chunked(ids, BATCH_SIZE, (chunk) => all(db.select().from(persons).where(inArray(persons.contactId, chunk))))
     : await all(db.select().from(persons));
   // Every person, and contact ids on photos that are not persons yet
+  const visible = ids ? undefined : await visibleContactIds();
   const everyone = ids ?? [...new Set([
     ...rows.map((row) => row.contactId),
     ...(await all(db.selectDistinct({ contactId: photoPeople.contactId }).from(photoPeople))).map((row) => row.contactId),
-  ])];
+  ])].filter((id) => visible === undefined || visible.has(id));
   const resolved = await personNames(everyone);
   const byId = new Map(rows.map((row) => [row.contactId, row]));
   return new Map(everyone.map((id) => {
@@ -66,7 +89,10 @@ export interface RectFace {
   fileHash: string;
 }
 
-/** Faces with a rectangle, in folder path, file name and face order; of one person or of everyone. */
+/**
+ * Faces with a rectangle on photos the current request may see, in folder path, file name and face order; of
+ * one person or of everyone.
+ */
 export async function rectFaces(contactId?: string): Promise<RectFace[]> {
   return (await all(db.select({
     contactId: photoFaces.contactId, photoId: photoFaces.photoId, rect: photoFaces.rect,
@@ -75,7 +101,7 @@ export async function rectFaces(contactId?: string): Promise<RectFace[]> {
     .from(photoFaces)
     .innerJoin(photos, eq(photoFaces.photoId, photos.id))
     .innerJoin(folders, eq(photos.folderId, folders.id))
-    .where(and(isNotNull(photoFaces.rect), contactId ? eq(photoFaces.contactId, contactId) : undefined))
+    .where(and(isNotNull(photoFaces.rect), contactId ? eq(photoFaces.contactId, contactId) : undefined, visiblePhotoCondition()))
     .orderBy(asc(folders.path), asc(photos.filename), asc(photoFaces.position))))
     .map((face) => ({ ...face, rect: JSON.parse(face.rect!) as RelativeRect }));
 }
@@ -105,12 +131,12 @@ export async function avatarVersions(people: ReadonlyMap<string, ShownPerson>, c
   return new Map([...people].map(([id, person]) => [id, avatarVersion(avatarFace(person.row, byPerson.get(id) ?? []))]));
 }
 
-/** Photos that are not hidden with a face of the person, by contact id. */
+/** Photos that are not hidden (and that the current request may see) with a face of the person, by contact id. */
 export async function photoCounts(): Promise<Map<string, number>> {
   const rows = await all(db.select({ contactId: photoPeople.contactId, count: sql<number>`count(*)` })
     .from(photoPeople)
     .innerJoin(photos, eq(photoPeople.photoId, photos.id))
-    .where(eq(photos.isHidden, false))
+    .where(and(eq(photos.isHidden, false), visiblePhotoCondition()))
     .groupBy(photoPeople.contactId));
   return new Map(rows.map((row) => [row.contactId, row.count]));
 }

@@ -50,6 +50,12 @@ describe('catalogs', () => {
       person_name_required: true, internal: true, invalid_location: true, query_required: true, geocoder_disabled: true,
       geocoder_failed: true, plugin_not_found: true, plugin_unavailable: true, plugin_invalid_body: true, filter_not_found: true, edits_invalid: true,
       render_failed: true, person_not_found: true, face_not_found: true,
+      unauthenticated: true, permission_required: true, session_required: true, login_failed: true, login_throttled: true,
+      provider_not_found: true, setup_done: true, setup_code_wrong: true, password_too_short: true, password_wrong: true,
+      password_unsupported: true, username_invalid: true, username_taken: true, user_not_found: true, last_admin: true, self_change: true,
+      role_not_found: true, role_name_taken: true, role_builtin: true, role_in_use: true, token_not_found: true,
+      token_scope_exceeded: true, session_not_found: true, last_login_provider: true, quota_exceeded: true, rate_limited: true,
+      album_not_granted: true, outside_access: true, person_linked: true, avatar_invalid: true,
     };
     for (const code of Object.keys(codes)) expect(english.has(`errors.${code}`), code).toBe(true);
   });

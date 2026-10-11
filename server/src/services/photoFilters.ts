@@ -5,6 +5,7 @@ import { albumPhotos, geoPlaces, photoKeywords, photoPeople, photos } from '../d
 import { textKey } from './libraryText.js';
 import { shownAlbumTexts } from './albumApi.js';
 import { shownPeople } from './people.js';
+import { visiblePhotoCondition } from '../auth/scope.js';
 
 /** Library selection shared by the photo grid, the map and the places list (query string values). */
 export interface PhotoFilterQuery {
@@ -45,11 +46,16 @@ export function invalidDateFilter({ takenFrom, takenTo }: PhotoFilterQuery): 'ta
 /** A photo's day taken: the calendar date of its date taken as the library stores it. */
 export const dayTaken = textPrefix(photos.dateTaken, 10);
 
-/** The SQL condition for a library selection; undefined when it matches every photo. */
+/**
+ * The SQL condition for a library selection, limited to the photos the current request may see; undefined
+ * when it matches every photo.
+ */
 export async function photoFilters({
   folderId, starred, album, tag, query, includeHidden, geotagged, ids, person, takenFrom, takenTo,
 }: PhotoFilterQuery): Promise<SQL | undefined> {
   const conditions: SQL[] = [];
+  const visible = visiblePhotoCondition();
+  if (visible) conditions.push(visible);
   if (typeof ids === 'string') {
     const list = ids.split(',').map(Number).filter((id) => Number.isInteger(id) && id > 0);
     conditions.push(list.length > 0 ? inArray(photos.id, list) : noRows);

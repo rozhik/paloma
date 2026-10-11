@@ -7,7 +7,7 @@ import { apiError } from './apiError.js';
 import { getApiPhoto } from './photoApi.js';
 import { isRelativeRect } from './SidecarService.js';
 import { findPerson } from './peopleApi.js';
-import { avatarFace, rectFaces, shownPeople } from './people.js';
+import { avatarFace, isPersonVisible, rectFaces, shownPeople } from './people.js';
 import type { ImageResult } from './renderApi.js';
 import { ensureDir, fileExists } from './files.js';
 import type { RelativeRect } from '../../../shared/types.js';
@@ -149,7 +149,7 @@ export async function photoFaceSource(photoId: number): Promise<ImageResult> {
 
 /** `GET /api/people/:id/avatar`: the person's avatar crop, or 404 when they have no face with a rectangle. */
 export async function personAvatar(id: string): Promise<ImageResult> {
-  if (!await findPerson(id)) return { status: 404, body: apiError('person_not_found', 'Person not found') };
+  if (!await findPerson(id) || !await isPersonVisible(id)) return { status: 404, body: apiError('person_not_found', 'Person not found') };
   const face = avatarFace((await shownPeople([id])).get(id)!.row, await rectFaces(id));
   if (!face) return { status: 404, body: apiError('face_not_found', 'The person has no face to show') };
   const filePath = path.join(face.folderPath, face.filename);

@@ -38,6 +38,9 @@ export const PersonHeader: React.FC<PersonHeaderProps> = ({ person, photos, onSa
             <span className="badge pal-badge fs-6">{formatNumber(mode === 'photos' ? photos.length : person.photoCount)}</span>
           </h4>
           {person.alias && <div dir="auto" className="opacity-75 text-truncate">{person.alias}</div>}
+          {person.user && (
+            <div className="opacity-75 text-truncate">{t('people.isUser', { name: person.user.displayName, username: person.user.username })}</div>
+          )}
         </div>
         {canEdit && (
           <button type="button" className="btn btn-outline-secondary" onClick={() => setEditing(true)}>

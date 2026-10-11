@@ -9,6 +9,7 @@ import { libraryImageUrls } from './libraryImages.js';
 import { dayTaken, isIsoDate } from './photoFilters.js';
 import type { ApiResult } from './photoApi.js';
 import type { Memory } from '../../../shared/types.js';
+import { visiblePhotoCondition } from '../auth/scope.js';
 
 /** Days before and after the anniversary that still belong to a memory. */
 export const MEMORY_WINDOW_DAYS = 3;
@@ -60,12 +61,15 @@ async function namingAlbum(photoIds: number[]): Promise<Memory['album']> {
   return album ? { token: album.token, name: album.name } : null;
 }
 
-/** The memories of a date: one per earlier year with enough photos that are not hidden around it, newest first. */
+/**
+ * The memories of a date: one per earlier year with enough photos that are not hidden (and that the current
+ * request may see) around it, newest first.
+ */
 export async function memoriesOf(date: string): Promise<Memory[]> {
   const thisYear = Number(date.slice(0, 4));
   const oldest = (await get(db.select({ year: sql<string | null>`min(${textPrefix(photos.dateTaken, 4)})` })
     .from(photos)
-    .where(eq(photos.isHidden, false))))?.year;
+    .where(and(eq(photos.isHidden, false), visiblePhotoCondition()))))?.year;
   if (!oldest) return [];
   const windows: MemoryWindow[] = [];
   // A window can start in the year before its own, so the oldest photo's year is enough
@@ -81,7 +85,7 @@ export async function memoriesOf(date: string): Promise<Memory[]> {
   })
     .from(photos)
     .leftJoin(edits, eq(photos.id, edits.photoId))
-    .where(and(eq(photos.isHidden, false), or(...windows.map((w) => sql`${dayTaken} between ${w.from} and ${w.to}`))))
+    .where(and(eq(photos.isHidden, false), visiblePhotoCondition(), or(...windows.map((w) => sql`${dayTaken} between ${w.from} and ${w.to}`))))
     .orderBy(desc(photos.dateTaken), photos.id));
 
   const memories: Memory[] = [];

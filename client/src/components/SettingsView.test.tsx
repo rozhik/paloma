@@ -24,20 +24,10 @@ beforeAll(async () => {
 afterEach(() => setSettings({ level: DEFAULT_UI_SETTINGS.level, pin: null }));
 
 describe('Settings view', () => {
-  it('has the Plugins section last from Normal up', () => {
-    for (const level of ['normal', 'pro', 'developer'] as const) {
-      const markup = render(level);
-      const plugins = markup.indexOf(i18n.t('plugins.title'));
-      expect(plugins, level).toBeGreaterThan(-1);
-      // After every other section
-      for (const key of ['settings.language', 'settings.level', 'settings.appearance', 'settings.viewer', 'settings.editBar'] as const) {
-        expect(markup.indexOf(i18n.t(key)), key).toBeLessThan(plugins);
-      }
+  it('has no Plugins section at any level; plugins are in Server settings', () => {
+    for (const level of ['child', 'easy', 'normal', 'pro', 'developer'] as const) {
+      expect(render(level), level).not.toContain(i18n.t('plugins.title'));
     }
-  });
-
-  it('has no Plugins section at Easy or Child', () => {
-    for (const level of ['child', 'easy'] as const) expect(render(level), level).not.toContain(i18n.t('plugins.title'));
   });
 
   it('keeps Language first and Level second', () => {

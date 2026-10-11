@@ -64,3 +64,47 @@ describe('docs/plugins.md example', () => {
     expect(new Set(data).size).toBeGreaterThan(10);
   });
 });
+
+describe('docs/plugins.md auth provider example', () => {
+  const authModule = () => {
+    const match = /<!-- auth-file: index\.js -->\n```js\n([\s\S]*?)```/.exec(fs.readFileSync(DOC, 'utf-8'));
+    return match![1];
+  };
+
+  it('loads and authenticates with the key as the configured user, only for viewing', async () => {
+    const folder = path.join(tmp, 'auth-external', 'paloma-home-key');
+    fs.mkdirSync(folder, { recursive: true });
+    fs.writeFileSync(path.join(folder, 'paloma-plugin.json'), JSON.stringify({
+      id: 'home-key', name: 'Home key', description: 'Home key', version: '1.0.0', apiVersion: 1, server: 'index.js',
+    }));
+    fs.writeFileSync(path.join(folder, 'package.json'), '{ "type": "module" }');
+    fs.writeFileSync(path.join(folder, 'index.js'), authModule());
+
+    const registry = new PluginRegistry({
+      bundledDir: path.join(tmp, 'auth-bundled'),
+      externalDir: path.join(tmp, 'auth-external'),
+      stateFile: path.join(tmp, 'auth-plugins.json'),
+    });
+    await registry.init();
+    const info = await registry.setEnabled('home-key', true);
+    expect(info).toMatchObject({ status: 'active', warnings: [] });
+    expect(info.authProviders).toEqual([{ id: 'home-key', kind: 'bearer', label: 'Home automation key', fields: [] }]);
+
+    const provider = registry.getAuthProvider('home-key')!.definition;
+    if (provider.kind !== 'bearer') throw new Error('expected a bearer provider');
+    const ctx = {
+      findUserByUsername: async (name: string) => (name === 'home' ? { id: 'u-home', username: 'home', enabled: true } : undefined),
+      identities: { get: async () => undefined, set: async () => {} },
+      verifyApiToken: async () => null,
+      hashSecret: async () => '',
+      verifySecret: async () => false,
+    };
+    vi.stubEnv('PALOMA_HOME_KEY', 'secret-key');
+    try {
+      expect(await provider.authenticate('secret-key', ctx)).toEqual({ userId: 'u-home', permissions: ['library.view'] });
+      expect(await provider.authenticate('other', ctx)).toBeNull();
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+});

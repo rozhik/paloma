@@ -17,12 +17,13 @@ import { parseEditsJson } from './photoImages.js';
 import { uniqueKeywords } from './embeddedText.js';
 import { parseKeywords, textKey } from './libraryText.js';
 import type { ApiError, Geotag, Photo } from '../../../shared/types.js';
+import { andVisible, currentAccess, folderGranted, visiblePhotoCondition } from '../auth/scope.js';
 
 type PhotoRow = typeof photos.$inferSelect;
 type FolderRow = typeof folders.$inferSelect;
 type EditRow = typeof edits.$inferSelect;
 
-export type ApiResult<T> = { status: 200; body: T } | { status: 400 | 404 | 409 | 500; body: ApiError };
+export type ApiResult<T> = { status: 200; body: T } | { status: 400 | 403 | 404 | 409 | 500; body: ApiError };
 
 export function toApiPhoto(
   photo: PhotoRow, folder: FolderRow, edit: EditRow | null, albums: string[] = [], place: string | null = null,
@@ -75,14 +76,18 @@ export async function listPhotos({ limit = '500', offset = '0', lang, ...filters
   return rows.map(({ photo, folder, edit, place }) => toApiPhoto(photo, folder, edit, albums.get(photo.id), place));
 }
 
-/** Folders with the number of photos that are not hidden. */
+/**
+ * Folders with the number of photos that are not hidden. With limited access: only the granted folders and
+ * their subfolders, counting the photos the user sees.
+ */
 export async function listFolders(): Promise<Array<FolderRow & { photoCount: number }>> {
+  const access = currentAccess();
   const rows = await all(db.select({ folder: folders, photoCount: count(photos.id) })
     .from(folders)
-    .leftJoin(photos, and(eq(photos.folderId, folders.id), eq(photos.isHidden, false)))
+    .leftJoin(photos, and(eq(photos.folderId, folders.id), eq(photos.isHidden, false), visiblePhotoCondition(access)))
     .groupBy(folders.id)
     .orderBy(folders.id));
-  return rows.map(({ folder, photoCount }) => ({ ...folder, photoCount }));
+  return rows.filter(({ folder }) => folderGranted(folder.path, access)).map(({ folder, photoCount }) => ({ ...folder, photoCount }));
 }
 
 const invalidField = (field: string, expected: string): ApiError =>
@@ -154,7 +159,8 @@ export async function getApiPhoto(photoId: number): Promise<Photo | undefined> {
     .from(photos)
     .innerJoin(folders, eq(photos.folderId, folders.id))
     .leftJoin(edits, eq(photos.id, edits.photoId))
-    .where(eq(photos.id, photoId)));
+    // A photo the current request may not see does not exist for it
+    .where(andVisible(eq(photos.id, photoId))));
   return row && toApiPhoto(row.photo, row.folder, row.edit, (await albumsOf([photoId])).get(photoId));
 }
 

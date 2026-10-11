@@ -62,17 +62,28 @@ describe('GET /api/plugins', () => {
     const { status, body } = await send('GET', '/plugins?lang=uk');
     expect(status).toBe(200);
     expect(body.map((p: { id: string; source: string; status: string }) => [p.id, p.source, p.status])).toEqual([
+      ['auth-password', 'bundled', 'active'],
+      ['auth-token', 'bundled', 'active'],
       ['basic-effects', 'bundled', 'active'],
       ['basic-transforms', 'bundled', 'active'],
       ['film-grain', 'external', 'off'],
       ['future', 'external', 'error'],
     ]);
-    expect(body[0]).toMatchObject({ name: 'Базові ефекти', version: '1.0.0', enabled: true });
-    expect(body[0].filters.map((f: { name: string; label: string }) => [f.name, f.label])).toEqual([
+    const byId = (id: string) => body.find((p: { id: string }) => p.id === id);
+    expect(byId('basic-effects')).toMatchObject({ name: 'Базові ефекти', version: '1.0.0', enabled: true, authProviders: [] });
+    expect(byId('basic-effects').filters.map((f: { name: string; label: string }) => [f.name, f.label])).toEqual([
       ['brightness', 'Яскравість'], ['contrast', 'Контраст'], ['bw', 'Чорно-біле'], ['sepia', 'Сепія'],
     ]);
-    expect(body[2]).toMatchObject({ name: 'Плівкове зерно', filters: [] });
-    expect(body[3].error).toBe('the plugin needs plugin API 2, while Paloma supports 1');
+    expect(byId('film-grain')).toMatchObject({ name: 'Плівкове зерно', filters: [] });
+    expect(byId('future').error).toBe('the plugin needs plugin API 2, while Paloma supports 1');
+  });
+
+  it('lists the bundled auth providers', async () => {
+    const { body } = await send('GET', '/plugins?lang=uk');
+    const providers = (id: string) => body.find((p: { id: string }) => p.id === id).authProviders
+      .map((provider: { id: string; kind: string; label: string }) => [provider.id, provider.kind, provider.label]);
+    expect(providers('auth-password')).toEqual([['password', 'credentials', 'Пароль']]);
+    expect(providers('auth-token')).toEqual([['token', 'bearer', 'API-токен']]);
   });
 
   it('reports plugin and filter levels', async () => {
@@ -147,5 +158,12 @@ describe('GET /api/plugins/:id/filters/:name/icon', () => {
     expect(await send('GET', '/plugins/nope/filters/grain/icon')).toMatchObject({ status: 404, body: { code: 'plugin_not_found' } });
     expect(await send('GET', '/plugins/basic-effects/filters/nope/icon'))
       .toMatchObject({ status: 404, body: { code: 'filter_not_found', params: { id: 'basic-effects', filter: 'nope' } } });
+  });
+});
+
+describe('GET /api/server/info with users off', () => {
+  it('says users are off', async () => {
+    const { status, body } = await send('GET', '/server/info');
+    expect([status, body.authMode, body.photosDirs]).toEqual([200, 'off', []]);
   });
 });

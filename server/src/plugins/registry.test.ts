@@ -62,6 +62,7 @@ describe('PluginRegistry', () => {
       status: 'active',
       error: null,
       warnings: [],
+      authProviders: [],
       filters: [{
         name: 'sepia',
         label: 'sepia мітка',
@@ -315,5 +316,94 @@ export function activate() {
     await registry.setEnabled('film', true);
     expect(registry.getFilterIcon('film', 'grain')).toEqual({ file: path.join(folder, 'grain.svg') });
     expect(registry.getFilterIcon('film', 'other')).toEqual({ missing: 'filter' });
+  });
+});
+
+describe('auth providers', () => {
+  const providerModule = (providers: { id: string; kind: string }[]) => `
+export function activate() {
+  return {
+    authProviders: ${JSON.stringify(providers)}.map((provider) => ({
+      ...provider,
+      label: { en: provider.id + ' login', uk: provider.id + ' вхід' },
+      fields: [{ name: 'username', label: { en: 'Username', uk: 'Імʼя' }, type: 'text' }],
+      login: async () => null,
+      authenticate: async () => null,
+    })),
+  };
+}
+`;
+
+  it('lists the providers of active plugins with localized labels and fields', async () => {
+    writeTestPlugin(bundled, 'auth-password', { module: providerModule([{ id: 'password', kind: 'credentials' }]) });
+    writeTestPlugin(bundled, 'auth-token', { module: providerModule([{ id: 'token', kind: 'bearer' }]) });
+    const registry = newRegistry();
+    await registry.init();
+
+    expect(registry.get('auth-password', 'uk')!.authProviders).toEqual([
+      { id: 'password', kind: 'credentials', label: 'password вхід', fields: [{ name: 'username', label: 'Імʼя', type: 'text' }] },
+    ]);
+    expect(registry.get('auth-token')!.authProviders).toEqual([{ id: 'token', kind: 'bearer', label: 'token login', fields: [] }]);
+    expect(registry.getAuthProviders().map((p) => [p.pluginId, p.definition.id])).toEqual([['auth-password', 'password'], ['auth-token', 'token']]);
+  });
+
+  it('does not offer a provider of an unknown kind and warns', async () => {
+    writeTestPlugin(external, 'oidc', { module: providerModule([{ id: 'oidc', kind: 'redirect' }]) });
+    const registry = newRegistry();
+    await registry.init();
+    const info = await registry.setEnabled('oidc', true);
+    expect(info.authProviders).toEqual([]);
+    expect(info.warnings).toEqual([expect.stringContaining('auth provider "oidc" has kind "redirect"')]);
+    expect(registry.getAuthProvider('oidc')).toBeUndefined();
+  });
+
+  it('keeps a taken provider id with the bundled plugin and warns the external one', async () => {
+    writeTestPlugin(bundled, 'auth-password', { module: providerModule([{ id: 'password', kind: 'credentials' }]) });
+    writeTestPlugin(external, 'evil', { module: providerModule([{ id: 'password', kind: 'credentials' }]) });
+    const registry = newRegistry();
+    await registry.init();
+    const info = await registry.setEnabled('evil', true);
+    expect(registry.getAuthProvider('password')?.pluginId).toBe('auth-password');
+    expect(info.warnings).toEqual(['auth provider "password" is not available: plugin "auth-password" already provides it']);
+    expect(info.authProviders).toEqual([]);
+  });
+
+  it('drops the providers of a plugin that is switched off', async () => {
+    writeTestPlugin(bundled, 'auth-token', { module: providerModule([{ id: 'token', kind: 'bearer' }]) });
+    const registry = newRegistry();
+    await registry.init();
+    await registry.setEnabled('auth-token', false);
+    expect(registry.getAuthProviders()).toEqual([]);
+    expect(registry.get('auth-token')!.authProviders).toEqual([]);
+  });
+
+  describe('the last login provider', () => {
+    const guarded = (on: boolean) => new PluginRegistry({ bundledDir: bundled, externalDir: external, stateFile, requireLoginProvider: () => on });
+
+    it('stays on while auth is on', async () => {
+      writeTestPlugin(bundled, 'auth-password', { module: providerModule([{ id: 'password', kind: 'credentials' }]) });
+      writeTestPlugin(bundled, 'auth-token', { module: providerModule([{ id: 'token', kind: 'bearer' }]) });
+      const registry = guarded(true);
+      await registry.init();
+      const err = await registry.setEnabled('auth-password', false).catch((e) => e);
+      expect(err).toBeInstanceOf(PluginRegistryError);
+      expect(err.reason).toBe('last_login_provider');
+      expect(registry.get('auth-password')!.enabled).toBe(true);
+      // A plugin without a login form can still be switched off
+      expect((await registry.setEnabled('auth-token', false)).enabled).toBe(false);
+    });
+
+    it('can be switched off when another login provider is on, or when auth is off', async () => {
+      writeTestPlugin(bundled, 'auth-password', { module: providerModule([{ id: 'password', kind: 'credentials' }]) });
+      writeTestPlugin(bundled, 'auth-pin', { module: providerModule([{ id: 'pin', kind: 'credentials' }]) });
+      const registry = guarded(true);
+      await registry.init();
+      expect((await registry.setEnabled('auth-password', false)).enabled).toBe(false);
+      await expect(registry.setEnabled('auth-pin', false)).rejects.toMatchObject({ reason: 'last_login_provider' });
+
+      const off = guarded(false);
+      await off.init();
+      expect((await off.setEnabled('auth-pin', false)).enabled).toBe(false);
+    });
   });
 });

@@ -1,0 +1,33 @@
+{
+  "id": "auth-password",
+  "name": {
+    "en": "Password login",
+    "zh-Hans": "密码登录",
+    "es": "Inicio de sesión con contraseña",
+    "ar": "تسجيل الدخول بكلمة المرور",
+    "pt-BR": "Login com senha",
+    "fr": "Connexion par mot de passe",
+    "de": "Anmeldung mit Passwort",
+    "ja": "パスワードでログイン",
+    "ru": "Вход по паролю",
+    "id": "Masuk dengan kata sandi",
+    "uk": "Вхід за паролем"
+  },
+  "description": {
+    "en": "Log in with a username and password. Used only when users are switched on.",
+    "zh-Hans": "使用用户名和密码登录。仅在启用用户时使用。",
+    "es": "Inicia sesión con un nombre de usuario y una contraseña. Solo se usa cuando los usuarios están activados.",
+    "ar": "تسجيل الدخول باسم مستخدم وكلمة مرور. يُستخدم فقط عند تشغيل المستخدمين.",
+    "pt-BR": "Entre com nome de usuário e senha. Usado apenas quando os usuários estão ativados.",
+    "fr": "Connexion avec un nom d’utilisateur et un mot de passe. Utilisé seulement lorsque les utilisateurs sont activés.",
+    "de": "Anmeldung mit Benutzername und Passwort. Nur genutzt, wenn Benutzer eingeschaltet sind.",
+    "ja": "ユーザー名とパスワードでログインします。ユーザーが有効なときだけ使われます。",
+    "ru": "Вход по имени пользователя и паролю. Используется, только когда включены пользователи.",
+    "id": "Masuk dengan nama pengguna dan kata sandi. Hanya digunakan saat pengguna diaktifkan.",
+    "uk": "Вхід за іменем користувача та паролем. Використовується, лише коли користувачі ввімкнені."
+  },
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "level": "normal",
+  "server": "index.js"
+}

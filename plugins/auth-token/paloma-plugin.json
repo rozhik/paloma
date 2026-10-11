@@ -1,0 +1,33 @@
+{
+  "id": "auth-token",
+  "name": {
+    "en": "API tokens",
+    "zh-Hans": "API 令牌",
+    "es": "Tokens de API",
+    "ar": "رموز API",
+    "pt-BR": "Tokens de API",
+    "fr": "Jetons d’API",
+    "de": "API-Token",
+    "ja": "API トークン",
+    "ru": "API-токены",
+    "id": "Token API",
+    "uk": "API-токени"
+  },
+  "description": {
+    "en": "Lets scripts and other apps call Paloma with personal API tokens sent as “Authorization: Bearer …”.",
+    "zh-Hans": "让脚本和其他应用使用以“Authorization: Bearer …”发送的个人 API 令牌调用 Paloma。",
+    "es": "Permite que scripts y otras aplicaciones llamen a Paloma con tokens de API personales enviados como “Authorization: Bearer …”.",
+    "ar": "يتيح للبرامج النصية والتطبيقات الأخرى استدعاء Paloma برموز API شخصية تُرسل كـ “Authorization: Bearer …”.",
+    "pt-BR": "Permite que scripts e outros aplicativos chamem o Paloma com tokens de API pessoais enviados como “Authorization: Bearer …”.",
+    "fr": "Permet aux scripts et autres applications d’appeler Paloma avec des jetons d’API personnels envoyés comme « Authorization: Bearer … ».",
+    "de": "Lässt Skripte und andere Apps Paloma mit persönlichen API-Token aufrufen, gesendet als „Authorization: Bearer …“.",
+    "ja": "スクリプトや他のアプリが「Authorization: Bearer …」として送る個人 API トークンで Paloma を呼び出せるようにします。",
+    "ru": "Позволяет скриптам и другим приложениям обращаться к Paloma с личными API-токенами в заголовке «Authorization: Bearer …».",
+    "id": "Memungkinkan skrip dan aplikasi lain memanggil Paloma dengan token API pribadi yang dikirim sebagai “Authorization: Bearer …”.",
+    "uk": "Дає скриптам та іншим застосункам звертатися до Paloma з особистими API-токенами в заголовку «Authorization: Bearer …»."
+  },
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "level": "normal",
+  "server": "index.js"
+}

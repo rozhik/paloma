@@ -2,8 +2,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import sharp from 'sharp';
-import type { FilterInfo, FilterParamInfo, PluginInfo } from '../../../shared/types.js';
-import { PLUGIN_API_VERSION, type FilterDefinition, type ParamDefinition, type PluginHost, type PluginModule } from './api.js';
+import type { AuthProviderInfo, FilterInfo, FilterParamInfo, PluginInfo } from '../../../shared/types.js';
+import {
+  PLUGIN_API_VERSION, type AuthProviderDefinition, type FilterDefinition, type ParamDefinition, type PluginHost, type PluginModule,
+} from './api.js';
 import { checkContributions } from './contributions.js';
 import { discoverPlugins, type DiscoveredPlugin } from './discovery.js';
 import { DEFAULT_PLUGIN_LEVEL, localize } from './manifest.js';
@@ -18,6 +20,12 @@ export interface RegisteredFilter {
   host: PluginHost;
 }
 
+/** An auth provider of an active plugin. */
+export interface RegisteredAuthProvider {
+  pluginId: string;
+  definition: AuthProviderDefinition;
+}
+
 interface PluginEntry {
   discovered: DiscoveredPlugin;
   module: PluginModule | null;
@@ -25,6 +33,8 @@ interface PluginEntry {
   loadError: string | null;
   /** Filters returned by the last successful activate(); used while the plugin is on */
   contributed: FilterDefinition[];
+  /** Auth providers returned by the last successful activate() */
+  providers: AuthProviderDefinition[];
   /** Absolute paths of the contributed filters' usable icons, by filter name */
   icons: Map<string, string>;
   contributionWarnings: string[];
@@ -33,7 +43,7 @@ interface PluginEntry {
 }
 
 export class PluginRegistryError extends Error {
-  constructor(public readonly reason: 'not_found' | 'unavailable', message: string) {
+  constructor(public readonly reason: 'not_found' | 'unavailable' | 'last_login_provider', message: string) {
     super(message);
     this.name = 'PluginRegistryError';
   }
@@ -43,6 +53,8 @@ export interface PluginRegistryOptions {
   bundledDir: string;
   externalDir: string;
   stateFile: string;
+  /** Whether a `credentials` auth provider must stay on (auth is on); switching off the last one is refused */
+  requireLoginProvider?: () => boolean;
 }
 
 function makeHost(id: string): PluginHost {
@@ -77,6 +89,18 @@ function paramInfo(param: ParamDefinition, lang: string): FilterParamInfo {
   }
 }
 
+/** An auth provider as `GET /api/plugins` and `GET /api/auth/status` list it, with texts in `lang`. */
+export function authProviderInfo(definition: AuthProviderDefinition, lang: string): AuthProviderInfo {
+  return {
+    id: definition.id,
+    kind: definition.kind,
+    label: localize(definition.label, lang),
+    fields: definition.kind === 'credentials'
+      ? definition.fields.map((field) => ({ name: field.name, label: localize(field.label, lang), type: field.type }))
+      : [],
+  };
+}
+
 /**
  * The real path of a filter's icon when it is an existing `.svg` file inside the plugin folder (also after
  * following symlinks), or why it cannot be used.
@@ -101,6 +125,7 @@ export async function resolveFilterIcon(pluginFolder: string, icon: string): Pro
 export class PluginRegistry {
   private entries: PluginEntry[] = [];
   private filters = new Map<string, RegisteredFilter>();
+  private providers = new Map<string, RegisteredAuthProvider>();
   private state: PluginState;
   private initPromise: Promise<void> | null = null;
   /** Raised on every switch, so callers can tell that available filters may have changed */
@@ -120,6 +145,7 @@ export class PluginRegistry {
         host: makeHost(discovered.id),
         loadError: null,
         contributed: [],
+        providers: [],
         icons: new Map(),
         contributionWarnings: [],
         conflictWarnings: [],
@@ -154,6 +180,7 @@ export class PluginRegistry {
       }
       const checked = checkContributions(await entry.module.activate(entry.host));
       entry.contributed = checked.filters;
+      entry.providers = checked.authProviders;
       entry.icons = new Map();
       for (const filter of checked.filters) {
         if (filter.icon === undefined) continue;
@@ -166,13 +193,17 @@ export class PluginRegistry {
     } catch (err) {
       entry.loadError = err instanceof Error ? err.message : String(err);
       entry.contributed = [];
+      entry.providers = [];
       entry.icons = new Map();
       entry.contributionWarnings = [];
       console.error(`Plugin ${id} failed to load: ${entry.loadError}`);
     }
   }
 
-  /** Registers the filters of active plugins: bundled first, then external by id; a taken name loses. */
+  /**
+   * Registers the filters and auth providers of active plugins: bundled first, then external by id; a taken
+   * filter name or provider id loses.
+   */
   private rebuildFilters(): void {
     const order = (entry: PluginEntry) => [entry.discovered.source === 'bundled' ? 0 : 1, entry.discovered.id] as const;
     const active = this.entries.filter((entry) => this.isActive(entry)).sort((a, b) => {
@@ -182,6 +213,7 @@ export class PluginRegistry {
     });
 
     this.filters = new Map();
+    this.providers = new Map();
     for (const entry of this.entries) entry.conflictWarnings = [];
     for (const entry of active) {
       const manifest = entry.discovered.manifest!;
@@ -198,7 +230,24 @@ export class PluginRegistry {
           host: entry.host,
         });
       }
+      for (const definition of entry.providers) {
+        const owner = this.providers.get(definition.id);
+        if (owner) {
+          entry.conflictWarnings.push(`auth provider "${definition.id}" is not available: plugin "${owner.pluginId}" already provides it`);
+          continue;
+        }
+        this.providers.set(definition.id, { pluginId: manifest.id, definition });
+      }
     }
+  }
+
+  /** Auth providers of active plugins, bundled first, then external by plugin id. */
+  getAuthProviders(): RegisteredAuthProvider[] {
+    return [...this.providers.values()];
+  }
+
+  getAuthProvider(id: string): RegisteredAuthProvider | undefined {
+    return this.providers.get(id);
   }
 
   /**
@@ -243,6 +292,9 @@ export class PluginRegistry {
         }
         return info;
       });
+    const authProviders: AuthProviderInfo[] = status !== 'active' ? [] : entry.providers
+      .filter((definition) => this.providers.get(definition.id)?.pluginId === discovered.id)
+      .map((definition) => authProviderInfo(definition, lang));
     return {
       id: discovered.id,
       name: partial.name ? localize(partial.name, lang) : path.basename(discovered.folder),
@@ -255,6 +307,7 @@ export class PluginRegistry {
       error: discovered.error ?? (on ? entry.loadError : null),
       warnings: on ? [...entry.contributionWarnings, ...entry.conflictWarnings] : [],
       filters,
+      authProviders,
     };
   }
 
@@ -278,6 +331,14 @@ export class PluginRegistry {
     if (!entry) throw new PluginRegistryError('not_found', `Plugin ${id} not found`);
     if (!entry.discovered.manifest) {
       throw new PluginRegistryError('unavailable', `Plugin ${id} cannot be used: ${entry.discovered.error}`);
+    }
+    if (!enabled && this.options.requireLoginProvider?.() && this.isActive(entry)) {
+      const remaining = [...this.providers.values()]
+        .filter((provider) => provider.pluginId !== id && provider.definition.kind === 'credentials');
+      const ownsLogin = [...this.providers.values()].some((provider) => provider.pluginId === id && provider.definition.kind === 'credentials');
+      if (ownsLogin && remaining.length === 0) {
+        throw new PluginRegistryError('last_login_provider', `Plugin ${id} provides the last login method; at least one must stay on`);
+      }
     }
     await this.state.setEnabled(id, enabled);
     if (enabled) await this.load(entry);

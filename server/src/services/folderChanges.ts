@@ -7,6 +7,7 @@ import { FolderScannerService } from './FolderScannerService.js';
 import { withFolderLock } from './folderLock.js';
 import { apiError } from './apiError.js';
 import type { ApiError, PalomaFolderFile } from '../../../shared/types.js';
+import { andVisible } from '../auth/scope.js';
 
 // Changes that span the sidecars of several folders: albums and batch photo changes
 
@@ -23,12 +24,12 @@ export function parsePhotoIds(value: unknown): number[] | null {
   return [...new Set(value as number[])];
 }
 
-/** The listed photos, or undefined if any of them is not in the library. */
+/** The listed photos, or undefined if any of them is not in the library or not visible to the current request. */
 export async function loadPhotos(ids: readonly number[]): Promise<PhotoRef[] | undefined> {
   const rows = await chunked(ids, BATCH_SIZE, (chunk) => all(db.select({ id: photos.id, filename: photos.filename, folderPath: folders.path })
     .from(photos)
     .innerJoin(folders, eq(photos.folderId, folders.id))
-    .where(inArray(photos.id, chunk))));
+    .where(andVisible(inArray(photos.id, chunk)))));
   return rows.length === ids.length ? rows : undefined;
 }
 

@@ -1,24 +1,28 @@
-import express from 'express';
-import cors from 'cors';
 import { config } from './config.js';
-import router from './routes/index.js';
-import { apiErrorHandler } from './services/apiError.js';
+import { createApp } from './app.js';
 import { FolderScannerService } from './services/FolderScannerService.js';
 import { placeResolver } from './services/geocoding.js';
 import { pluginRegistry } from './plugins/index.js';
 import { openDatabase } from './db/index.js';
+import { prepareSetup } from './auth/setup.js';
+import { pruneSessions } from './auth/sessions.js';
 
-const app = express();
+const app = createApp();
 
-app.use(cors());
-app.use(express.json({ limit: '50mb' }));
+const HOUR_MS = 60 * 60 * 1000;
 
-app.use('/api', router);
-app.use('/api', apiErrorHandler);
-
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', service: 'Paloma Express Server' });
-});
+/** With auth on: the setup code when there are no users, a warning without a login form, and session pruning. */
+async function startAuth(): Promise<void> {
+  if (config.auth.mode !== 'on') return;
+  console.log('🔒 Users are on: every request needs a login or an API token');
+  if (!pluginRegistry.getAuthProviders().some((provider) => provider.definition.kind === 'credentials')) {
+    console.error('⚠️ No login provider is on, so nobody can log in. Set PALOMA_AUTH=off, restart, and switch on a login plugin.');
+  }
+  await prepareSetup();
+  const prune = () => pruneSessions().catch((err) => console.error('Failed to prune sessions:', err));
+  await prune();
+  setInterval(prune, HOUR_MS).unref();
+}
 
 function listen(): void {
   app.listen(config.port, () => {
@@ -33,6 +37,8 @@ function listen(): void {
         }
       })
       .catch((err) => console.error('Failed to load plugins:', err))
+      .then(startAuth)
+      .catch((err) => console.error('Failed to start users and logins:', err))
       .then(() => FolderScannerService.startConfiguredFolders())
       .catch((err) => {
         console.error('Failed to scan photos folders:', err);

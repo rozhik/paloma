@@ -128,6 +128,7 @@ export const InfoContent: React.FC<{
   const showExif = useAllows('info.exif');
   const showJson = useAllows('info.json');
   const editPeople = useAllows('info.people.edit');
+  const editText = useAllows('info.edit');
   const { photo, file } = info;
   const saved = photo.caption ?? '';
   const [caption, setCaption] = useState(saved);
@@ -158,7 +159,9 @@ export const InfoContent: React.FC<{
       </Section>
 
       <Section title={t('info.description')}>
-        <input
+        {!editText ? (
+          <p className="mb-0" dir="auto">{saved || <span className="opacity-75">{t('info.descriptionPlaceholder')}</span>}</p>
+        ) : <input
           type="text"
           className="form-control"
           dir="auto"
@@ -179,11 +182,19 @@ export const InfoContent: React.FC<{
               setCaption(saved);
             }
           }}
-        />
+        />}
       </Section>
 
       <Section title={t('info.tags')}>
-        <TagChips tags={photo.keywords} onChange={onKeywords} suggestions={knownTags} disabled={saving} linkTags />
+        {editText
+          ? <TagChips tags={photo.keywords} onChange={onKeywords} suggestions={knownTags} disabled={saving} linkTags />
+          : (
+            <ul className="list-inline mb-0">
+              {photo.keywords.map((tag) => (
+                <li key={tag} className="list-inline-item"><EntryLink entry={{ kind: 'tag', name: tag }} label={tag} /></li>
+              ))}
+            </ul>
+          )}
       </Section>
 
       <Section title={t('info.albums')}>

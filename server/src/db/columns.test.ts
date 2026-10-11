@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import Database from 'better-sqlite3';
-import { addMissingPhotoColumns, createPeopleTables, createTextTables, dropMvpEdits, migrateAlbumTables } from './columns.js';
+import { addMissingPhotoColumns, createAuthTables, createPeopleTables, createTextTables, dropMvpEdits, migrateAlbumTables } from './columns.js';
 
 describe('addMissingPhotoColumns', () => {
   it('adds caption, keywords and is_hidden to an old photos table and keeps its rows', () => {
@@ -69,6 +69,21 @@ describe('migrateAlbumTables', () => {
     expect(sqlite.prepare('SELECT token, name FROM folder_albums').all()).toEqual([{ token: 'c9ea', name: 'Birds' }]);
     expect(sqlite.prepare('SELECT photo_id, token FROM album_photos').all()).toEqual([{ photo_id: 1, token: 'c9ea' }]);
     expect(sqlite.prepare('SELECT filename FROM photos').all()).toEqual([{ filename: 'a.jpg' }]);
+  });
+
+  it('adds the person and avatar columns to users tables of the first version, keeping users', () => {
+    const sqlite = new Database(':memory:');
+    sqlite.exec(`
+      CREATE TABLE users (id TEXT PRIMARY KEY, username TEXT NOT NULL, username_key TEXT NOT NULL UNIQUE, display_name TEXT NOT NULL,
+        role_id TEXT NOT NULL, enabled INTEGER NOT NULL DEFAULT 1, must_change_password INTEGER NOT NULL DEFAULT 0,
+        access_all INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL, last_login_at TEXT);
+      INSERT INTO users (id, username, username_key, display_name, role_id, created_at) VALUES ('u1', 'anna', 'anna', 'Anna', 'admin', '');
+    `);
+    createAuthTables(sqlite);
+    createAuthTables(sqlite);
+    expect(sqlite.prepare('SELECT username, person_id, avatar_version FROM users').all()).toEqual([{ username: 'anna', person_id: null, avatar_version: null }]);
+    sqlite.exec("INSERT INTO users (id, username, username_key, display_name, role_id, created_at, person_id) VALUES ('u2', 'ben', 'ben', 'Ben', 'viewer', '', 'aaaaaaaaaaaaaaaa')");
+    expect(() => sqlite.exec("UPDATE users SET person_id = 'aaaaaaaaaaaaaaaa' WHERE id = 'u1'")).toThrow(/UNIQUE/);
   });
 });
 
@@ -153,5 +168,42 @@ describe('createPeopleTables', () => {
     expect(tables(sqlite)).not.toContain('face_annotations');
     expect(sqlite.prepare('SELECT contact_id, name, edited FROM persons').all())
       .toEqual([{ contact_id: 'b8e4117cf1d6615b', name: 'Roy', edited: 0 }]);
+  });
+});
+
+describe('createAuthTables', () => {
+  it('adds the user tables to an existing library database and keeps its photos', () => {
+    const sqlite = new Database(':memory:');
+    sqlite.exec(`
+      CREATE TABLE photos (id INTEGER PRIMARY KEY AUTOINCREMENT, filename TEXT NOT NULL);
+      INSERT INTO photos (filename) VALUES ('a.jpg');
+    `);
+
+    createAuthTables(sqlite);
+    createAuthTables(sqlite); // idempotent
+
+    const tables = (sqlite.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all() as Array<{ name: string }>).map((t) => t.name);
+    expect(tables).toEqual(expect.arrayContaining([
+      'users', 'roles', 'role_permissions', 'user_access', 'user_identities', 'sessions', 'api_tokens', 'user_quotas',
+    ]));
+    expect(sqlite.prepare('SELECT filename FROM photos').all()).toEqual([{ filename: 'a.jpg' }]);
+  });
+
+  it('removes what belongs to a user with the user', () => {
+    const sqlite = new Database(':memory:');
+    sqlite.pragma('foreign_keys = ON');
+    createAuthTables(sqlite);
+    sqlite.exec(`
+      INSERT INTO users (id, username, username_key, display_name, role_id, created_at) VALUES ('u1', 'Anna', 'anna', 'Anna', 'admin', '');
+      INSERT INTO user_access VALUES ('u1', 'album', 'c9ea');
+      INSERT INTO user_identities VALUES ('password', 'u1', '{}');
+      INSERT INTO sessions (id, token_hash, user_id, created_at, last_used_at) VALUES ('s1', 'h1', 'u1', '', '');
+      INSERT INTO api_tokens (id, user_id, name, token_hash, permissions, created_at) VALUES ('t1', 'u1', 'frame', 'h2', '[]', '');
+      INSERT INTO user_quotas VALUES ('u1', 'export_bytes', 100);
+      DELETE FROM users WHERE id = 'u1';
+    `);
+    for (const table of ['user_access', 'user_identities', 'sessions', 'api_tokens', 'user_quotas']) {
+      expect(sqlite.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get(), table).toEqual({ n: 0 });
+    }
   });
 });

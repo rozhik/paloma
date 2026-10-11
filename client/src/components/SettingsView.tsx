@@ -12,8 +12,6 @@ import { keepSettingsUnlocked } from '../levels/pinGate.js';
 import { PinDialog, type PinDialogMode } from '../levels/PinDialog.js';
 import type { PinRecord } from '../levels/pin.js';
 import { usePalomaStore } from '../store/usePalomaStore.js';
-import { useAllows } from '../levels/controls.js';
-import { PluginsList } from './PluginsList.js';
 
 /** Every UI language by its own name, as large choices; the same choice as the top bar's switcher. */
 const LanguageSection: React.FC = () => {
@@ -235,10 +233,12 @@ function AppearanceChoice<T extends string>({ setting, label, hint, options, pic
   );
 }
 
-/** Settings view: UI preferences remembered in this browser, and the plugins. */
+/**
+ * Settings view: only what is remembered in this browser. The account, administration and server settings are
+ * in the user menu.
+ */
 export const SettingsView: React.FC = () => {
   const { t } = useTranslation();
-  const showPlugins = useAllows('settings.plugins');
   return (
     <main className="flex-grow-1 pal-page overflow-auto p-4">
       <div className="mx-auto" style={{ maxWidth: '900px' }}>
@@ -274,9 +274,6 @@ export const SettingsView: React.FC = () => {
         <h3 className="fs-3 fw-bold mt-4 mb-3">{t('settings.viewer')}</h3>
         <EdgeChoice setting="navBar" label={t('settings.navBar')} hint={t('settings.navBarHint')} />
         <EdgeChoice setting="editBar" label={t('settings.editBar')} hint={t('settings.editBarHint')} />
-
-        {/* Last, and only from Normal up */}
-        {showPlugins && <PluginsList />}
       </div>
     </main>
   );

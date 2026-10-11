@@ -72,6 +72,27 @@ export interface PluginInfo {
   warnings: string[];
   /** Filters the plugin provides; empty unless it is active */
   filters: FilterInfo[];
+  /** Auth providers the plugin provides; empty unless it is active */
+  authProviders: AuthProviderInfo[];
+}
+
+/** `credentials`: a login form with the fields it declares; `bearer`: a credential sent with each request. */
+export type AuthProviderKind = 'credentials' | 'bearer';
+
+/** A form field of a `credentials` auth provider, with its label in the requested language. */
+export interface AuthProviderField {
+  name: string;
+  label: string;
+  type: 'text' | 'password';
+}
+
+/** An auth provider of an active plugin, with its label in the requested language. */
+export interface AuthProviderInfo {
+  id: string;
+  kind: AuthProviderKind;
+  label: string;
+  /** Form fields; empty for a `bearer` provider */
+  fields: AuthProviderField[];
 }
 
 export interface Photo {
@@ -130,6 +151,8 @@ export interface Person extends PersonSummary {
   gender: Gender | null;
   /** The face the user chose as avatar while it is still theirs; null for the default, their first face with a rectangle */
   avatar: PersonFace | null;
+  /** The Paloma user this person is, when users are on and one is linked */
+  user?: { username: string; displayName: string } | null;
 }
 
 /** Body of `POST /api/people` and `PATCH /api/people/:id`; `null` clears a field. */
@@ -389,6 +412,36 @@ export type ApiErrorCode =
   | 'filter_not_found'
   | 'edits_invalid'
   | 'render_failed'
+  | 'unauthenticated'
+  | 'permission_required'
+  | 'session_required'
+  | 'login_failed'
+  | 'login_throttled'
+  | 'provider_not_found'
+  | 'setup_done'
+  | 'setup_code_wrong'
+  | 'password_too_short'
+  | 'password_wrong'
+  | 'password_unsupported'
+  | 'username_invalid'
+  | 'username_taken'
+  | 'user_not_found'
+  | 'last_admin'
+  | 'self_change'
+  | 'role_not_found'
+  | 'role_name_taken'
+  | 'role_builtin'
+  | 'role_in_use'
+  | 'token_not_found'
+  | 'token_scope_exceeded'
+  | 'session_not_found'
+  | 'last_login_provider'
+  | 'quota_exceeded'
+  | 'album_not_granted'
+  | 'outside_access'
+  | 'person_linked'
+  | 'avatar_invalid'
+  | 'rate_limited'
   | 'internal';
 
 /** Body of every API error response. `error` is English text for clients that do not know the code. */
@@ -442,4 +495,174 @@ export interface GeoPlaces {
   places: GeoPlace[];
   /** Matching geotagged photos whose place is not resolved yet */
   pending: number;
+}
+
+/**
+ * What a user may do. `library.view`: see the library; `photos.edit`: stars, descriptions, tags, edits and
+ * locations; `albums.manage`: albums; `people.manage`: people and faces; `export`: exports and movies;
+ * `account.tokens`: personal API tokens; `plugins.manage`: switching plugins; `users.manage`: users, roles,
+ * sessions and tokens of everyone.
+ */
+export type Permission =
+  | 'library.view'
+  | 'photos.edit'
+  | 'albums.manage'
+  | 'people.manage'
+  | 'export'
+  | 'account.tokens'
+  | 'plugins.manage'
+  | 'users.manage';
+
+/** `GET /api/admin/permissions`: one permission with its texts in the requested language. */
+export interface PermissionInfo {
+  id: Permission;
+  label: string;
+  description: string;
+}
+
+export type BuiltInRoleId = 'admin' | 'editor' | 'viewer';
+
+/** A role: built-in (`admin`, `editor`, `viewer`; read-only) or created by an administrator. */
+export interface RoleInfo {
+  id: string;
+  name: string;
+  description: string;
+  builtIn: boolean;
+  permissions: Permission[];
+  /** Number of users with this role; only in `GET /api/admin/roles` */
+  userCount?: number;
+}
+
+/** The part of the library a user sees: everything, or folders (with subfolders) and albums. */
+export type LibraryAccess =
+  | { all: true }
+  | { all: false; folders: string[]; albums: string[] };
+
+export type QuotaKind = 'export_bytes' | 'requests_per_minute';
+
+/** One quota of a user: `limit` null means unlimited (or, for the request rate, the default from `.env`). */
+export interface QuotaInfo {
+  kind: QuotaKind;
+  limit: number | null;
+  /** The limit that applies: for the request rate, `limit` or the default; null when unlimited */
+  effectiveLimit: number | null;
+  /** Bytes used for `export_bytes`; absent for kinds without a stored usage */
+  used?: number;
+}
+
+/** A user as an administrator sees them in `GET /api/admin/users`. */
+export interface UserInfo {
+  id: string;
+  username: string;
+  displayName: string;
+  roleId: string;
+  enabled: boolean;
+  mustChangePassword: boolean;
+  access: LibraryAccess;
+  quotas: QuotaInfo[];
+  /** Contact id of the person the user is in the library; null when not linked */
+  personId: string | null;
+  personName: string | null;
+  /** The uploaded avatar, else the linked person's face; null for initials */
+  avatarUrl: string | null;
+  createdAt: string;
+  lastLoginAt: string | null;
+}
+
+/** Fields an administrator sends to create (`password` required) or change a user. */
+export interface UserInput {
+  username?: string;
+  displayName?: string;
+  roleId?: string;
+  enabled?: boolean;
+  password?: string;
+  access?: LibraryAccess;
+  /** Limits by kind; null for unlimited or the default */
+  quotas?: Partial<Record<QuotaKind, number | null>>;
+  /** Contact id of the person to link with; null to unlink */
+  personId?: string | null;
+}
+
+/** A browser session of a user. */
+export interface SessionInfo {
+  id: string;
+  userId: string;
+  username: string;
+  createdAt: string;
+  lastUsedAt: string;
+  userAgent: string | null;
+  ip: string | null;
+  /** The session the request was made with */
+  current: boolean;
+}
+
+/** A personal API token; its value is never listed. */
+export interface ApiTokenInfo {
+  id: string;
+  userId: string;
+  username: string;
+  name: string;
+  permissions: Permission[];
+  createdAt: string;
+  lastUsedAt: string | null;
+  expiresAt: string | null;
+}
+
+/** `POST /api/auth/tokens`: the new token with its value, shown this once. */
+export interface CreatedApiToken extends ApiTokenInfo {
+  value: string;
+}
+
+export type AuthMode = 'off' | 'on';
+
+/** `GET /api/auth/status`, answered without authentication. */
+export interface AuthStatus {
+  mode: AuthMode;
+  /** Auth is on and no user exists yet: the first administrator must be created with the setup code */
+  setupPending: boolean;
+  /** Login forms of the enabled `credentials` providers */
+  providers: AuthProviderInfo[];
+}
+
+/** How the current request was authenticated. */
+export type AuthVia = 'off' | 'session' | 'token';
+
+/** `GET /api/auth/me`: the current user, or the single user of an install with auth off. */
+export interface MeResponse {
+  mode: AuthMode;
+  via: AuthVia;
+  /** Null when auth is off */
+  user: {
+    id: string;
+    username: string;
+    displayName: string;
+    roleId: string;
+    roleName: string;
+    mustChangePassword: boolean;
+    personId: string | null;
+    personName: string | null;
+    /** Whether the user may see their linked person (for My photos) */
+    personVisible: boolean;
+    /** The uploaded avatar, else the face of the linked person when the user may see them; null for initials */
+    avatarUrl: string | null;
+  } | null;
+  permissions: Permission[];
+  access: LibraryAccess;
+  quotas: QuotaInfo[];
+}
+
+
+/** `GET /api/server/info`: the server's configuration from `.env`, read-only. */
+export interface ServerInfo {
+  version: string;
+  authMode: AuthMode;
+  photosDirs: string[];
+  excludeDirs: string[];
+  exportDir: string;
+  dataDir: string;
+  pluginsDir: string;
+  /** Days a login lasts without use */
+  sessionDays: number;
+  /** Default API requests per minute per user and token; null when unlimited */
+  rateLimit: number | null;
 }

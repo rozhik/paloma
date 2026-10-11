@@ -12,6 +12,7 @@ import { useNavigationItems } from '../../../shell/navigation.js';
 import { useAllows } from '../../../levels/controls.js';
 import { SidebarSection, useSidebarSections, type SidebarItem } from '../../../shell/sidebar.js';
 import { EntryMenuButton } from '../../../shell/EntryMenuButton.js';
+import { UserMenuButton } from '../../../shell/UserMenuButton.js';
 import { PHOTO_DRAG_TYPE, useTray } from '../../../shell/useTray.js';
 import { VirtualGrid } from '../../../shell/VirtualGrid.js';
 import { SquarePhotoCard } from '../../../shell/SquarePhotoCard.js';
@@ -59,6 +60,7 @@ const CompactToolbar: React.FC = () => {
             onClick={select}
           />
         ))}
+        <UserMenuButton className="ms-1" size={34} />
       </nav>
     </header>
   );

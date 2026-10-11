@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import path from 'node:path';
-import { DEFAULT_GEOCODER_URL, DEFAULT_TILE_ATTRIBUTION, DEFAULT_TILE_URL, config, geoConfig, pluginsDirOf } from './config.js';
+import {
+  DEFAULT_GEOCODER_URL, DEFAULT_RATE_LIMIT, DEFAULT_SESSION_DAYS, DEFAULT_TILE_ATTRIBUTION, DEFAULT_TILE_URL, authConfig, config, geoConfig,
+  pluginsDirOf,
+} from './config.js';
 
 describe('geoConfig', () => {
   it('uses the public Nominatim and OpenStreetMap tiles when nothing is set', () => {
@@ -50,5 +53,27 @@ describe('pluginsDirOf', () => {
 describe('bundledPluginsDir', () => {
   it('is the repo plugins folder, whatever the working directory', () => {
     expect(config.bundledPluginsDir).toBe(path.resolve(__dirname, '..', '..', 'plugins'));
+  });
+});
+
+describe('authConfig', () => {
+  it('is off with the defaults when nothing is set', () => {
+    expect(authConfig({})).toEqual({ mode: 'off', clientOrigin: null, sessionDays: DEFAULT_SESSION_DAYS, rateLimit: DEFAULT_RATE_LIMIT });
+  });
+
+  it('takes custom values', () => {
+    expect(authConfig({
+      PALOMA_AUTH: ' On ', PALOMA_CLIENT_ORIGIN: 'https://photos.example.com/', PALOMA_SESSION_DAYS: '7', PALOMA_RATE_LIMIT: '0',
+    })).toEqual({ mode: 'on', clientOrigin: 'https://photos.example.com', sessionDays: 7, rateLimit: 0 });
+  });
+
+  it('refuses an invalid PALOMA_AUTH, naming the allowed values', () => {
+    expect(() => authConfig({ PALOMA_AUTH: 'yes' })).toThrow(/PALOMA_AUTH must be "off" or "on"/);
+  });
+
+  it('refuses invalid numbers', () => {
+    expect(() => authConfig({ PALOMA_SESSION_DAYS: '0' })).toThrow(/PALOMA_SESSION_DAYS/);
+    expect(() => authConfig({ PALOMA_RATE_LIMIT: '-1' })).toThrow(/PALOMA_RATE_LIMIT/);
+    expect(() => authConfig({ PALOMA_RATE_LIMIT: 'many' })).toThrow(/PALOMA_RATE_LIMIT/);
   });
 });

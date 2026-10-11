@@ -1,15 +1,18 @@
 import type { FilterGroup, RelativeRect } from '../../../shared/types.js';
-import type { FilterDefinition, ParamDefinition, PluginContributions } from './api.js';
+import type { AuthProviderDefinition, FilterDefinition, ParamDefinition, PluginContributions } from './api.js';
 import { COMPLEXITY_LEVELS, isComplexityLevel, isLocalizedText } from './manifest.js';
 
 const FILTER_NAME = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const GROUPS: readonly FilterGroup[] = ['basic', 'tuning', 'effects'];
-const KNOWN_KEYS = new Set(['filters']);
+const KNOWN_KEYS = new Set(['filters', 'authProviders']);
+const PROVIDER_ID = /^[a-z0-9][a-z0-9-]*$/;
+const PROVIDER_KINDS = ['credentials', 'bearer'];
 /** Keys of an edit step that are not parameters */
 const RESERVED_PARAMS = new Set(['filter', 'enabled']);
 
 export interface CheckedContributions {
   filters: FilterDefinition[];
+  authProviders: AuthProviderDefinition[];
   warnings: string[];
 }
 
@@ -85,9 +88,59 @@ function filterProblem(filter: unknown): string | null {
   return null;
 }
 
+/** Why an auth provider definition is unusable, or null when it is fine. */
+function providerProblem(provider: unknown): string | null {
+  if (!isPlainObject(provider)) return 'an auth provider is not an object';
+  const { id } = provider;
+  if (typeof id !== 'string' || !PROVIDER_ID.test(id)) return `auth provider id ${JSON.stringify(id)} is invalid`;
+  if (!isLocalizedText(provider.label)) return `auth provider "${id}" has no valid label`;
+  if (!PROVIDER_KINDS.includes(provider.kind as string)) {
+    return `auth provider "${id}" has kind ${JSON.stringify(provider.kind)}, which is not one of ${PROVIDER_KINDS.join(', ')}`;
+  }
+  if (provider.kind === 'bearer') {
+    return typeof provider.authenticate === 'function' ? null : `auth provider "${id}" has no authenticate function`;
+  }
+  if (typeof provider.login !== 'function') return `auth provider "${id}" has no login function`;
+  if ((typeof provider.setSecret === 'function') !== (typeof provider.checkSecret === 'function')) {
+    return `auth provider "${id}" must have both setSecret and checkSecret, or neither`;
+  }
+  if (!Array.isArray(provider.fields) || provider.fields.length === 0) return `auth provider "${id}" has no fields`;
+  const names = new Set<string>();
+  for (const field of provider.fields) {
+    if (!isPlainObject(field) || typeof field.name !== 'string' || !/^[A-Za-z][A-Za-z0-9_]*$/.test(field.name)
+      || !isLocalizedText(field.label) || (field.type !== 'text' && field.type !== 'password') || names.has(field.name)) {
+      return `auth provider "${id}" has an invalid field`;
+    }
+    names.add(field.name);
+  }
+  return null;
+}
+
+function checkProviders(value: unknown, warnings: string[]): AuthProviderDefinition[] {
+  if (value === undefined) return [];
+  if (!Array.isArray(value)) {
+    warnings.push('"authProviders" is not a list and is ignored');
+    return [];
+  }
+  const providers: AuthProviderDefinition[] = [];
+  const ids = new Set<string>();
+  for (const provider of value) {
+    const problem = providerProblem(provider);
+    if (problem) {
+      warnings.push(`${problem}; the provider is not available`);
+    } else if (ids.has(provider.id)) {
+      warnings.push(`auth provider "${provider.id}" is declared twice; the second one is ignored`);
+    } else {
+      ids.add(provider.id);
+      providers.push(provider);
+    }
+  }
+  return providers;
+}
+
 /**
  * Checks what a plugin's `activate` returned against plugin API v1. Throws when it is not an object.
- * Unusable filters and unknown keys are dropped with a warning, so the rest of the plugin still works.
+ * Unusable filters and auth providers and unknown keys are dropped with a warning, so the rest of the plugin still works.
  */
 export function checkContributions(value: unknown): CheckedContributions {
   if (!isPlainObject(value)) throw new Error('activate() must return an object of contributions');
@@ -119,5 +172,6 @@ export function checkContributions(value: unknown): CheckedContributions {
       }
     }
   }
-  return { filters, warnings };
+  const authProviders = checkProviders(contributions.authProviders, warnings);
+  return { filters, authProviders, warnings };
 }

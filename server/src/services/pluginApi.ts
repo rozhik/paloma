@@ -36,6 +36,9 @@ export async function switchPlugin(id: string, body: unknown, lang: unknown): Pr
     if (err instanceof PluginRegistryError && err.reason === 'not_found') {
       return { status: 404, body: apiError('plugin_not_found', `Plugin ${id} not found`, { id }) };
     }
+    if (err instanceof PluginRegistryError && err.reason === 'last_login_provider') {
+      return { status: 409, body: apiError('last_login_provider', err.message, { id }) };
+    }
     if (err instanceof PluginRegistryError) {
       return { status: 409, body: apiError('plugin_unavailable', err.message, { id }) };
     }
