@@ -122,8 +122,9 @@ Clients that only start local (stdio) servers can use a bridge such as
 | `library_stats` | `library.view` | Totals of a selection (as `GET /api/photos/stats`) |
 | `view_photo` | `library.view` | The photo as a JPEG image (64–1600 px, default 1024) through its saved edits or given unsaved `edits` |
 | `apply_changes` | any of `photos.edit`, `albums.manage`, `people.manage` | A changeset, optionally as a dry run |
-| `list_ai_tasks`, `start_ai_run`, `get_ai_run`, `cancel_ai_run` | `ai.run` | AI tasks and runs, as `/api/ai/runs` |
-| `export_photos` | `export` | Export into the user's export folder, paths relative to it |
+| `list_tasks` | `library.view` | The [task queue](task-queue.md), as `GET /api/tasks` |
+| `list_ai_tasks`, `start_ai_run`, `get_ai_run`, `cancel_ai_run` | `ai.run` | AI tasks; a run is added to the task queue, followed and cancelled by its task id (default: your most recent run) |
+| `export_photos` | `export` | Export into the user's export folder through the task queue; returns when the export has ended, with the paths relative to the export folder |
 
 A client sees only the tools its token allows. Errors are tool results with `isError` and the same JSON body
 as the REST API (`code`, `params`). Resources: `paloma://guide` (Markdown) and `paloma://schema` (JSON).

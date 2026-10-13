@@ -67,6 +67,8 @@ export const CONTROL_LEVELS: Record<ControlId, Level> = {
   'viewer.info': 'easy',
   // Profile, password and logged-in devices, when users are on
   'view.account': 'easy',
+  // The task queue, its indicator over the library, and pausing, resuming, cancelling and moving the user's tasks
+  'view.tasks': 'easy',
   'info.edit': 'easy',
   // Seeing people: the sidebar list, a person's photos, the people on a photo and face frames in the viewer
   'sidebar.people': 'easy',

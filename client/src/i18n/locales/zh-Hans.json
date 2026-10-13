@@ -136,7 +136,6 @@
   },
   "export": {
     "title": "批量导出照片",
-    "done_other": "已导出 {{count, number}} 张照片！",
     "savedTo": "文件已保存到文件夹：",
     "destination": "目标文件夹：",
     "quality": "JPEG 质量（{{value, number}}%）：",
@@ -145,7 +144,9 @@
     "summary_other": "将导出所选的 <b>{{count, number}}</b> 张照片，并应用编辑效果。",
     "exporting": "正在导出...",
     "start": "开始导出",
-    "quotaPartial": "已导出 {{requested}} 张照片中的 {{done}} 张：你的导出空间已满。"
+    "quotaPartial": "已导出 {{requested}} 张照片中的 {{done}} 张：你的导出空间已满。",
+    "queued_other": "{{count, number}} 张照片的导出已加入任务队列",
+    "queuedHint": "完成后会显示消息。你可以在用户菜单的“任务”中查看进度。"
   },
   "print": {
     "title": "打印照片",
@@ -281,10 +282,11 @@
     "ai_task_builtin": "内置 AI 任务不能删除。",
     "ai_task_not_builtin": "只能重置内置 AI 任务。",
     "ai_task_not_ready": "此 AI 任务尚未就绪。请在服务器设置中检查它的提供方和模型。",
-    "ai_run_in_progress": "另一个 AI 任务正在运行。请等待它结束。",
     "read_only_field": "此字段无法更改。",
     "object_not_found": "未找到。",
-    "origin_not_allowed": "不允许来自此网页的请求。"
+    "origin_not_allowed": "不允许来自此网页的请求。",
+    "task_not_found": "此任务已不存在。",
+    "task_state": "任务当前的状态不允许此操作。"
   },
   "geo": {
     "coordinates": "{{lat}}，{{lon}}",
@@ -503,13 +505,9 @@
   },
   "faces": {
     "detect": "查找人脸",
-    "cancel": "停止查找人脸（已完成 {{done, number}}/{{total, number}}）",
-    "cancelling": "正在停止…",
     "found": "找到人脸：{{faces, number}} 张，分布在 {{photos, number}} 张照片中。",
-    "stopped": "已停止查找人脸。",
     "failed": "无法检查的照片：{{failed, number}} 张。",
     "nothingToDo": "这些照片中的人脸已经找过了。",
-    "loadFailed": "无法开始查找人脸：{{message}}",
     "noReferenceTitle": "还没有可供比较的 {{name}} 的人脸",
     "noReferenceHint": "对 {{name}} 的照片运行“查找人脸”，然后再回到这里。",
     "noSimilarTitle": "没有相似的人脸",
@@ -716,7 +714,8 @@
     "account": "账户",
     "admin": "管理面板",
     "server": "服务器设置",
-    "myPhotos": "我的照片"
+    "myPhotos": "我的照片",
+    "tasks": "任务"
   },
   "server": {
     "title": "服务器设置",
@@ -845,21 +844,15 @@
       "label": "用于这些照片的 AI 任务",
       "runAgain": "对所有照片重新运行",
       "settings": "AI 设置…",
-      "running": "有 AI 任务正在运行。请等待它结束。",
       "empty": "没有 AI 任务。管理员可以在服务器设置中添加。"
     },
     "run": {
-      "progress": "{{task}}：{{done, number}} / {{total, number}} 张照片",
-      "stop": "停止",
-      "cancelling": "处理完当前照片后停止…",
       "processed_other": "{{task}}：已处理 {{count, number}} 张照片。",
       "nothingToDo": "{{task}}：这些照片已处理过。选择“重新运行”可再次处理。",
-      "cancelled": "已停止。",
       "tagsAdded_other": "已添加 {{count, number}} 个标签。",
       "descriptionsSet_other": "已撰写 {{count, number}} 条描述。",
       "failed_other": "有 {{count, number}} 张照片无法处理。",
-      "tokens": "已用令牌：发送 {{input, number}}，接收 {{output, number}}。",
-      "stoppedError": "{{task}} 已停止：{{message}}"
+      "tokens": "已用令牌：发送 {{input, number}}，接收 {{output, number}}。"
     },
     "info": {
       "title": "AI",
@@ -870,5 +863,50 @@
       "noObjects": "未找到物体。",
       "noTags": "未找到标签。"
     }
+  },
+  "tasks": {
+    "title": {
+      "view": "任务",
+      "faces_other": "在 {{count, number}} 张照片中查找人脸",
+      "export_other": "导出 {{count, number}} 张照片",
+      "scan": "扫描图库",
+      "scanFolder": "扫描 {{folder}}"
+    },
+    "state": {
+      "waiting": "等待中",
+      "running": "运行中",
+      "pausing": "正在暂停…",
+      "paused": "已暂停",
+      "cancelling": "正在取消…",
+      "finished": "已完成",
+      "cancelled": "已取消",
+      "failed": "失败"
+    },
+    "startedBySystem": "Paloma",
+    "startedByYou": "你",
+    "startedByUnknown": "其他用户",
+    "startedBy": "由 {{name}} 启动，{{date}}",
+    "indicator": {
+      "running": "{{task}}：{{done, number}} / {{total, number}}。打开任务",
+      "waiting_other": "你有 {{count, number}} 个任务在等待。打开任务"
+    },
+    "message": {
+      "failed": "{{task}} 已停止：{{message}}",
+      "cancelled": "{{task}} 已取消。",
+      "exported_other": "已将 {{count, number}} 张照片导出到 {{folder}}。",
+      "exportFailed_other": "有 {{count, number}} 张照片无法导出。",
+      "scanned_other": "{{task}}：已添加或更新 {{count, number}} 张照片。"
+    },
+    "failedCount_other": "{{count, number}} 张照片失败。",
+    "queue": "队列",
+    "ended": "已结束",
+    "empty": "没有正在运行或等待的任务。",
+    "dropAtEnd": "拖放到此处以移到末尾",
+    "pause": "暂停",
+    "resume": "继续",
+    "cancel": "取消",
+    "remove": "从列表中移除 {{task}}",
+    "moveUp": "上移 {{task}}",
+    "moveDown": "下移 {{task}}"
   }
 }

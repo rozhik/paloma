@@ -8,7 +8,7 @@ import { assignFaces, fetchUnassignedFaces } from '../api/people.js';
 import { useFormat } from '../i18n/format.js';
 import { PersonPicker } from '../people/PersonPicker.js';
 import { usePalomaStore } from '../store/usePalomaStore.js';
-import { useFaceDetection } from './detectionRunner.js';
+import { useFaceDetection } from './useFaceDetection.js';
 import { FaceCropGrid, openPhoto, toggled } from './SimilarFaces.js';
 
 /** Above the Unrecognized view: its title and how many faces it holds. */

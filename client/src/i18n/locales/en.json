@@ -136,8 +136,6 @@
   },
   "export": {
     "title": "Batch photo export",
-    "done_one": "Exported {{count, number}} photo!",
-    "done_other": "Exported {{count, number}} photos!",
     "savedTo": "Files saved to the folder:",
     "destination": "Destination folder:",
     "quality": "JPEG quality ({{value, number}}%):",
@@ -147,7 +145,10 @@
     "summary_other": "<b>{{count, number}}</b> selected photos will be exported with edits applied.",
     "exporting": "Exporting...",
     "start": "Start export",
-    "quotaPartial": "{{done}} of {{requested}} photos were exported: your export space is full."
+    "quotaPartial": "{{done}} of {{requested}} photos were exported: your export space is full.",
+    "queued_one": "The export of {{count, number}} photo is in the task queue",
+    "queued_other": "The export of {{count, number}} photos is in the task queue",
+    "queuedHint": "A message will say when it is done. You can follow it under Tasks in the user menu."
   },
   "print": {
     "title": "Print photos",
@@ -287,10 +288,11 @@
     "ai_task_builtin": "A built-in AI task cannot be deleted.",
     "ai_task_not_builtin": "Only built-in AI tasks can be reset.",
     "ai_task_not_ready": "This AI task is not ready. Check its provider and model in Server settings.",
-    "ai_run_in_progress": "Another AI task is running. Wait until it ends.",
     "read_only_field": "This field cannot be changed.",
     "object_not_found": "Not found.",
-    "origin_not_allowed": "Requests from this web page are not allowed."
+    "origin_not_allowed": "Requests from this web page are not allowed.",
+    "task_not_found": "This task no longer exists.",
+    "task_state": "The task cannot do that in its current state."
   },
   "geo": {
     "coordinates": "{{lat}}, {{lon}}",
@@ -516,13 +518,9 @@
   },
   "faces": {
     "detect": "Find faces",
-    "cancel": "Stop finding faces ({{done, number}} of {{total, number}} done)",
-    "cancelling": "Stopping…",
     "found": "Faces found: {{faces, number}}, on {{photos, number}} photos.",
-    "stopped": "Face finding stopped.",
     "failed": "Photos that could not be checked: {{failed, number}}.",
     "nothingToDo": "Faces on these photos have already been found.",
-    "loadFailed": "Face finding could not start: {{message}}",
     "noReferenceTitle": "No faces of {{name}} to compare with yet",
     "noReferenceHint": "Run “Find faces” on the photos of {{name}}, then come back here.",
     "noSimilarTitle": "No similar faces",
@@ -729,7 +727,8 @@
     "account": "Account",
     "admin": "Admin panel",
     "server": "Server settings",
-    "myPhotos": "My photos"
+    "myPhotos": "My photos",
+    "tasks": "Tasks"
   },
   "server": {
     "title": "Server settings",
@@ -859,25 +858,19 @@
       "label": "AI tasks for these photos",
       "runAgain": "Run again on all photos",
       "settings": "AI settings…",
-      "running": "An AI task is running. Wait until it ends.",
       "empty": "No AI tasks. An administrator can add them in Server settings."
     },
     "run": {
-      "progress": "{{task}}: {{done, number}} of {{total, number}} photos",
-      "stop": "Stop",
-      "cancelling": "Stopping after the photos in progress…",
       "processed_one": "{{task}}: {{count, number}} photo processed.",
       "processed_other": "{{task}}: {{count, number}} photos processed.",
       "nothingToDo": "{{task}}: these photos have already been processed. Choose “Run again” to process them again.",
-      "cancelled": "Stopped.",
       "tagsAdded_one": "{{count, number}} tag added.",
       "tagsAdded_other": "{{count, number}} tags added.",
       "descriptionsSet_one": "{{count, number}} description written.",
       "descriptionsSet_other": "{{count, number}} descriptions written.",
       "failed_one": "{{count, number}} photo could not be processed.",
       "failed_other": "{{count, number}} photos could not be processed.",
-      "tokens": "Tokens used: {{input, number}} sent, {{output, number}} received.",
-      "stoppedError": "{{task}} stopped: {{message}}"
+      "tokens": "Tokens used: {{input, number}} sent, {{output, number}} received."
     },
     "info": {
       "title": "AI",
@@ -888,5 +881,57 @@
       "noObjects": "No objects found.",
       "noTags": "No tags found."
     }
+  },
+  "tasks": {
+    "title": {
+      "view": "Tasks",
+      "faces_one": "Find faces on {{count, number}} photo",
+      "faces_other": "Find faces on {{count, number}} photos",
+      "export_one": "Export {{count, number}} photo",
+      "export_other": "Export {{count, number}} photos",
+      "scan": "Library scan",
+      "scanFolder": "Scan of {{folder}}"
+    },
+    "state": {
+      "waiting": "Waiting",
+      "running": "Running",
+      "pausing": "Pausing…",
+      "paused": "Paused",
+      "cancelling": "Cancelling…",
+      "finished": "Finished",
+      "cancelled": "Cancelled",
+      "failed": "Failed"
+    },
+    "startedBySystem": "Paloma",
+    "startedByYou": "you",
+    "startedByUnknown": "another user",
+    "startedBy": "Started by {{name}}, {{date}}",
+    "indicator": {
+      "running": "{{task}}: {{done, number}} of {{total, number}}. Open the tasks",
+      "waiting_one": "{{count, number}} of your tasks is waiting. Open the tasks",
+      "waiting_other": "{{count, number}} of your tasks are waiting. Open the tasks"
+    },
+    "message": {
+      "failed": "{{task}} stopped: {{message}}",
+      "cancelled": "{{task}} was cancelled.",
+      "exported_one": "{{count, number}} photo exported to {{folder}}.",
+      "exported_other": "{{count, number}} photos exported to {{folder}}.",
+      "exportFailed_one": "{{count, number}} photo could not be exported.",
+      "exportFailed_other": "{{count, number}} photos could not be exported.",
+      "scanned_one": "{{task}}: {{count, number}} photo added or updated.",
+      "scanned_other": "{{task}}: {{count, number}} photos added or updated."
+    },
+    "failedCount_one": "{{count, number}} photo failed.",
+    "failedCount_other": "{{count, number}} photos failed.",
+    "queue": "Queue",
+    "ended": "Ended",
+    "empty": "No tasks are running or waiting.",
+    "dropAtEnd": "Drop here to move it to the end",
+    "pause": "Pause",
+    "resume": "Resume",
+    "cancel": "Cancel",
+    "remove": "Remove {{task}} from the list",
+    "moveUp": "Move {{task}} up",
+    "moveDown": "Move {{task}} down"
   }
 }

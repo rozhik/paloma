@@ -139,10 +139,10 @@ describe('Info panel AI section', () => {
     expect(markup).not.toContain(i18n.t('ai.info.run', { task: i18n.t('ai.task.tags') }));
   });
 
-  it('offers no Run without ai.run, and disables it while a run exists', () => {
+  it('offers no Run without ai.run, and keeps it while a run of the user is in the queue', () => {
     expect(view(<AiResultsView results={[]} tasks={[task({})]} running={false} />)).not.toContain('<button');
     const markup = view(<AiResultsView results={[]} tasks={[task({})]} running onRun={() => {}} />);
-    expect(markup).toMatch(/<button[^>]*disabled=""/);
+    expect(markup).not.toMatch(/<button[^>]*disabled=""/);
     expect(markup).toContain(i18n.t('ai.info.running'));
   });
 });

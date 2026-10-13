@@ -28,6 +28,9 @@ let lib: TestLibrary;
 let viewer: Client;
 let editor: Client;
 let lim: Client;
+let limAi: Client;
+let queueModule: typeof import('../tasks/queue.js');
+const queue = () => queueModule;
 let runner: typeof import('../ai/runner.js');
 
 const BIRDS = 'c9ea9fa67022f38a3c771894d2a8a468';
@@ -45,6 +48,7 @@ beforeAll(async () => {
   vi.spyOn(console, 'error').mockImplementation(() => {});
   app = await startTestApp();
   runner = await import('../ai/runner.js');
+  queueModule = await import('../tasks/queue.js');
   runner.timing.sleep = async () => {};
   lib = await buildLibrary(path.join(tmpDir, 'photos'), {
     trip: {
@@ -73,14 +77,16 @@ beforeAll(async () => {
   const token = async (client: TestClient, permissions: string[]) => (await client.post('/auth/tokens', { name: permissions.join(','), permissions })).body.value as string;
   viewer = await connectMcp(app.base, await token(anna, ['library.view']));
   editor = await connectMcp(app.base, await token(anna, ['library.view', 'photos.edit', 'albums.manage', 'people.manage', 'ai.run', 'export']));
-  lim = await connectMcp(app.base, await token(await session('limmy'), ['library.view', 'photos.edit']));
+  const limmy = await session('limmy');
+  lim = await connectMcp(app.base, await token(limmy, ['library.view', 'photos.edit']));
+  limAi = await connectMcp(app.base, await token(limmy, ['library.view', 'ai.run']));
   expect((await anna.patch('/plugins/fake-vision', { enabled: true })).status).toBe(200);
   expect((await anna.patch('/ai/tasks/tags', { provider: 'fake', model: 'm' })).body.ready).toBe(true);
 });
 
 afterAll(async () => {
-  await runner.aiRunner.idle();
-  for (const client of [viewer, editor, lim]) await client?.close();
+  await (await import('../tasks/queue.js')).taskQueue.idle();
+  for (const client of [viewer, editor, lim, limAi]) await client?.close();
   await app.close();
   vi.restoreAllMocks();
   cleanup();
@@ -89,12 +95,12 @@ afterAll(async () => {
 describe('tool list', () => {
   it('offers a view-only token only the reading tools', async () => {
     const names = (await viewer.listTools()).tools.map((tool) => tool.name).sort();
-    expect(names).toEqual(['describe_model', 'get_objects', 'library_stats', 'list_objects', 'search_photos', 'view_photo']);
+    expect(names).toEqual(['describe_model', 'get_objects', 'library_stats', 'list_objects', 'list_tasks', 'search_photos', 'view_photo']);
   });
 
   it('offers an editor token every tool', async () => {
     const names = (await editor.listTools()).tools.map((tool) => tool.name);
-    expect(names).toEqual(expect.arrayContaining(['apply_changes', 'start_ai_run', 'get_ai_run', 'cancel_ai_run', 'list_ai_tasks', 'export_photos']));
+    expect(names).toEqual(expect.arrayContaining(['apply_changes', 'start_ai_run', 'get_ai_run', 'cancel_ai_run', 'list_ai_tasks', 'list_tasks', 'export_photos']));
   });
 
   it('describes every input of every tool', async () => {
@@ -203,28 +209,35 @@ describe('AI and export tools', () => {
     const tasks = json(await call(editor, 'list_ai_tasks')).tasks;
     expect(tasks).toContainEqual(expect.objectContaining({ id: 'tags', ready: true }));
     const started = json(await call(editor, 'start_ai_run', { taskId: 'tags', photoIds: [lib.id.cat, lib.id.birds] }));
-    expect(started).toMatchObject({ taskId: 'tags', total: 2 });
-    await runner.aiRunner.idle();
-    expect(json(await call(editor, 'get_ai_run'))).toMatchObject({ current: null, last: { state: 'finished', done: 2 } });
+    expect(started).toMatchObject({ kind: 'ai', aiTaskId: 'tags', total: 2, mine: true });
+    await queue().taskQueue.whenEnded(started.id);
+    expect(json(await call(editor, 'get_ai_run', { taskId: started.id }))).toMatchObject({ state: 'finished', done: 2, details: { tagsAdded: 2 } });
+    expect(json(await call(editor, 'get_ai_run'))).toMatchObject({ id: started.id });
   });
 
-  it('refuses a second run while one is in progress', async () => {
+  it('queues a second run behind the one in progress, and lists both', async () => {
     let release!: () => void;
     const gate = new Promise<void>((resolve) => { release = resolve; });
     fake.__aiFake = async () => {
       await gate;
       return { tags: [] };
     };
-    json(await call(editor, 'start_ai_run', { taskId: 'tags', photoIds: [lib.id.sunrise], again: true }));
+    const first = json(await call(editor, 'start_ai_run', { taskId: 'tags', photoIds: [lib.id.sunrise], again: true }));
     const second = await call(editor, 'start_ai_run', { taskId: 'tags', photoIds: [lib.id.cat], again: true });
-    expect([second.isError, json(second).code]).toEqual([true, 'ai_run_in_progress']);
+    expect([second.isError, json(second).state]).toEqual([undefined, 'waiting']);
+    const listed = json(await call(viewer, 'list_tasks')).tasks.map((task: { id: string }) => task.id);
+    expect(listed.slice(0, 2)).toEqual([first.id, json(second).id]);
+
+    const refused = await call(limAi, 'cancel_ai_run', { taskId: first.id });
+    expect([refused.isError, json(refused).params]).toEqual([true, { permission: 'users.manage' }]);
+    expect(json(await call(editor, 'cancel_ai_run', { taskId: json(second).id }))).toMatchObject({ state: 'cancelled' });
     release();
-    await runner.aiRunner.idle();
+    await queue().taskQueue.idle();
   });
 
   it('exports into the export folder and refuses a folder outside it', async () => {
     const body = json(await call(editor, 'export_photos', { photoIds: [lib.id.cat], outputDir: 'trip-2024', resizeWidth: 100 }));
-    expect(body).toMatchObject({ success: true, count: 1, files: [path.join('trip-2024', 'exported_cat.jpg')] });
+    expect(body).toMatchObject({ state: 'finished', count: 1, files: [path.join('trip-2024', 'exported_cat.jpg')] });
     const outside = await call(editor, 'export_photos', { photoIds: [lib.id.cat], outputDir: '../../etc' });
     expect([outside.isError, json(outside).params]).toEqual([true, { field: 'outputDir' }]);
   });

@@ -9,6 +9,7 @@ import { objectLabel } from './ObjectFrames.js';
 import { taskName } from './aiText.js';
 import { useMenuTasks } from './aiTasks.js';
 import { useAiRun } from './useAiRun.js';
+import { isActive, useTasks } from '../tasks/useTasks.js';
 import { usePhotoAiResults } from './usePhotoAiResults.js';
 
 /** One result: the task, model and date, and the tags, object labels or text. */
@@ -55,7 +56,7 @@ export const AiResultsView: React.FC<{
       {onRun && ready.length > 0 && (
         <div className="d-flex flex-wrap gap-1">
           {ready.map((task) => (
-            <Button key={task.id} size="sm" variant="outline-primary" disabled={running} onClick={() => onRun(task)} className="d-inline-flex align-items-center gap-1">
+            <Button key={task.id} size="sm" variant="outline-primary" onClick={() => onRun(task)} className="d-inline-flex align-items-center gap-1">
               <Sparkles size={14} aria-hidden="true" />
               <span>{t('ai.info.run', { task: taskName(task, t) })}</span>
             </Button>
@@ -71,7 +72,8 @@ export const AiResultsView: React.FC<{
 export const InfoPanelAi: React.FC<{ photoId: number }> = ({ photoId }) => {
   const canRun = useAllows('ai.run');
   const tasks = useMenuTasks(canRun);
-  const running = useAiRun((state) => state.current !== null);
+  // One of the user's AI runs is in the queue; its result shows when it ends
+  const running = useTasks((state) => state.tasks.some((task) => task.kind === 'ai' && task.mine && isActive(task)));
   const { results } = usePhotoAiResults(photoId);
   if (!results) return null;
   return (

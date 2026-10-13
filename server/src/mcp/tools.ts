@@ -1,19 +1,21 @@
-import path from 'node:path';
 import { z } from 'zod/v4';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { Principal } from '../auth/principal.js';
 import { HttpError, apiError } from '../services/apiError.js';
 import { photoStats } from '../services/photoStats.js';
 import { renderPreview } from '../services/renderApi.js';
-import { exportPhotos, exportRootOf } from '../services/exportApi.js';
+import { startExport } from '../services/exportApi.js';
 import { listAiTasks } from '../ai/config.js';
-import { aiRunner } from '../ai/runner.js';
+import { startAiRun } from '../ai/runner.js';
+import { cancelTask, describeTask, listTasks } from '../tasks/api.js';
+import { isOwn } from '../tasks/permissions.js';
+import { taskQueue, type TaskRecord } from '../tasks/queue.js';
 import { getDocuments, listDocuments, OBJECT_TYPES, photoDocumentsById } from '../model/documents.js';
 import { modelSchema } from '../model/jsonSchema.js';
 import { aiGuide } from '../model/guide.js';
 import { runChangeset } from '../model/changes/apply.js';
 import type { PhotoFilterQuery } from '../services/photoFilters.js';
-import type { ApiError, ObjectType, Permission } from '../../../shared/types.js';
+import type { ApiError, ExportTaskDetails, ObjectType, Permission } from '../../../shared/types.js';
 
 // The MCP tools: thin adapters over the functions the REST routes use, each needing the permission of the
 // matching endpoint.
@@ -191,7 +193,7 @@ export const TOOLS: PalomaTool[] = [
   {
     name: 'start_ai_run',
     title: 'Run an AI task on photos',
-    description: 'Starts a server run of an AI task on photos: the photos are sent to the configured AI service, and tags and descriptions are added. Only one run exists at a time; follow it with get_ai_run.',
+    description: 'Adds a run of an AI task on photos to the server task queue: the photos are sent to the configured AI service, and tags and descriptions are added. Runs wait for the tasks ahead of them; follow one with get_ai_run and its task id.',
     permissions: ['ai.run'],
     readOnly: false,
     input: {
@@ -199,33 +201,51 @@ export const TOOLS: PalomaTool[] = [
       photoIds: z.array(z.number().int().positive()).min(1).describe('Photos to process'),
       again: z.boolean().optional().describe('true: also process photos already processed with the same task settings'),
     },
-    run: async (args) => jsonResult(await aiRunner.start({ taskId: args.taskId, photoIds: args.photoIds, again: args.again }, 'en')),
+    run: async (args, principal) => jsonResult(await describeTask(principal,
+      await startAiRun({ taskId: args.taskId, photoIds: args.photoIds, again: args.again }, 'en', principal))),
   },
   {
     name: 'get_ai_run',
     title: 'AI run progress',
-    description: 'Returns the AI run in progress with its counts and state, or null, and the summary of the last run.',
+    description: 'Returns an AI run task with its state and progress, and to its owner what it did so far: the run with the given task id, or your most recent run.',
     permissions: ['ai.run'],
     readOnly: true,
-    input: {},
-    run: async () => jsonResult(aiRunner.status()),
+    input: {
+      taskId: z.string().optional().describe('Task id returned by start_ai_run; leave out for your most recent run'),
+    },
+    run: async (args, principal) => {
+      const task = await aiRunTask(args.taskId, principal, false);
+      return jsonResult(task ? await describeTask(principal, task) : { task: null });
+    },
   },
   {
     name: 'cancel_ai_run',
-    title: 'Cancel the AI run',
-    description: 'Stops the AI run in progress after the photos being processed.',
+    title: 'Cancel an AI run',
+    description: 'Cancels an AI run task: a waiting one at once, a running one after the photos being processed. Another user\'s run needs users.manage.',
     permissions: ['ai.run'],
     readOnly: false,
-    input: {},
-    run: async () => {
-      aiRunner.cancel();
-      return jsonResult(aiRunner.status());
+    input: {
+      taskId: z.string().optional().describe('Task id returned by start_ai_run; leave out for your most recent run that has not ended'),
     },
+    run: async (args, principal) => {
+      const task = await aiRunTask(args.taskId, principal, true);
+      if (!task) return errorResult(apiError('task_not_found', 'You have no AI run to cancel'));
+      return jsonResult(await cancelTask(principal, task.id) ?? { task: null });
+    },
+  },
+  {
+    name: 'list_tasks',
+    title: 'Task queue',
+    description: 'Lists the server task queue: the running task, waiting and paused tasks in order, then recently ended tasks. Other users\' tasks show who started them but not their photos.',
+    permissions: ['library.view'],
+    readOnly: true,
+    input: {},
+    run: async (args, principal) => jsonResult(await listTasks(principal)),
   },
   {
     name: 'export_photos',
     title: 'Export photos',
-    description: 'Writes the photos, rendered through their edits, as JPEG files into a folder inside your export folder. Returns the written files relative to the export folder.',
+    description: 'Writes the photos, rendered through their edits, as JPEG files into a folder inside your export folder. The export runs as a task in the queue; the tool returns when it has ended, with the written files relative to the export folder.',
     permissions: ['export'],
     readOnly: false,
     input: {
@@ -235,14 +255,30 @@ export const TOOLS: PalomaTool[] = [
       resizeWidth: z.number().int().positive().optional().describe('Width in pixels to resize to; leave out to keep the full size'),
     },
     run: async (args, principal) => {
-      const result = await exportPhotos(args, principal);
-      if (result.status !== 200) return errorResult(result.body);
-      const root = await exportRootOf(principal);
-      const { exportedFiles, ...rest } = result.body;
-      return jsonResult({ ...rest, files: exportedFiles.map((file) => path.relative(root, file)) });
+      const task = await startExport(args, principal);
+      const ended = await taskQueue.whenEnded(task.id);
+      const details = ended.details as ExportTaskDetails;
+      return jsonResult({
+        state: ended.state, count: details.files.length, requested: (args.photoIds as number[]).length,
+        ...(details.quotaExceeded ? { quotaExceeded: true } : {}), files: details.files,
+      });
     },
   },
 ];
+
+/**
+ * The AI run task with `taskId`, or the principal's most recent one (`active`: only one that has not ended).
+ * Undefined when there is none; an unknown id or a task of another kind is 404.
+ */
+async function aiRunTask(taskId: unknown, principal: Principal, active: boolean): Promise<TaskRecord | undefined> {
+  if (typeof taskId === 'string') {
+    const task = await taskQueue.get(taskId);
+    if (task.kind !== 'ai') throw new HttpError(404, apiError('task_not_found', `Task ${taskId} is not an AI run`, { id: taskId }));
+    return task;
+  }
+  const own = (await taskQueue.list()).filter((task) => task.kind === 'ai' && isOwn(principal, task) && (!active || !['finished', 'cancelled', 'failed'].includes(task.state)));
+  return own.sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+}
 
 /** Whether a principal may use a tool. */
 export const mayUse = (tool: PalomaTool, principal: Principal): boolean => tool.permissions.some((permission) => principal.permissions.has(permission));

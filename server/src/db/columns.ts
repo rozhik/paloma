@@ -15,6 +15,8 @@ const PHOTO_COLUMNS: Array<[name: string, definition: string]> = [
   ['camera_make', 'TEXT'],
   ['camera_model', 'TEXT'],
   ['search_text', 'TEXT'],
+  // Modification time of the file when it was indexed; with file_size, an unchanged file is not read again
+  ['file_mtime', 'REAL'],
 ];
 
 export function addMissingPhotoColumns(sqlite: Database.Database): void {
@@ -301,5 +303,32 @@ export function createAiTables(sqlite: Database.Database): void {
       rect TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS ai_objects_photo ON ai_objects(photo_id);
+  `);
+}
+
+/** The task queue; see `tasks` in schema.ts. */
+export function createTaskTables(sqlite: Database.Database): void {
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS tasks (
+      id TEXT PRIMARY KEY,
+      kind TEXT NOT NULL,
+      owner_id TEXT,
+      owner_name TEXT,
+      system INTEGER NOT NULL DEFAULT 0,
+      state TEXT NOT NULL,
+      position REAL NOT NULL,
+      subject TEXT NOT NULL,
+      params TEXT NOT NULL,
+      access TEXT,
+      details TEXT NOT NULL,
+      total INTEGER NOT NULL DEFAULT 0,
+      done INTEGER NOT NULL DEFAULT 0,
+      failed INTEGER NOT NULL DEFAULT 0,
+      error TEXT,
+      created_at TEXT NOT NULL,
+      started_at TEXT,
+      ended_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS tasks_state ON tasks(state);
   `);
 }

@@ -21,9 +21,11 @@ import { listTags } from '../services/tagApi.js';
 import { listMemories } from '../services/memories.js';
 import { photoStats } from '../services/photoStats.js';
 import { getPhotoInfo } from '../services/photoInfo.js';
-import { exportPhotos } from '../services/exportApi.js';
+import { startExport } from '../services/exportApi.js';
 import { personAvatar, photoFace, photoFaceSource } from '../services/faceImages.js';
-import { assignFaces, dismissFaces, pendingPhotos, saveDetectedFaces, similarFaces, unassignedFaces } from '../services/faceDetectionApi.js';
+import { assignFaces, dismissFaces, similarFaces, unassignedFaces } from '../services/faceDetectionApi.js';
+import { startFaceDetection } from '../faces/detectTask.js';
+import { describeTask } from '../tasks/api.js';
 import {
   addPersonToPhoto, createPerson, deletePerson, getPerson, getPhotoPeople, listPeople, listPersonFaces, removePersonFromPhoto,
   updatePerson,
@@ -34,6 +36,7 @@ import { asyncRoute, sendFileOr404 } from './asyncRoute.js';
 import { registerAuthRoutes } from './auth.js';
 import { registerAdminRoutes } from './admin.js';
 import { registerAiRoutes } from './ai.js';
+import { registerTaskRoutes } from './tasks.js';
 import { registerModelRoutes } from './model.js';
 import { registerMcpRoutes } from '../mcp/route.js';
 import { authenticate, need, principalOf } from '../auth/middleware.js';
@@ -57,6 +60,7 @@ router.use(rateLimit());
 registerAuthRoutes(router);
 registerAdminRoutes(router);
 registerAiRoutes(router);
+registerTaskRoutes(router);
 registerModelRoutes(router);
 registerMcpRoutes(router);
 
@@ -166,8 +170,10 @@ router.get('/raw/:photoId', need('library.view'), asyncRoute(async (req, res, ne
 }));
 
 // --- Export API ---
+// An export is a task: 202 with the task; its files are reported when it ends
 router.post('/export', need('export'), asyncRoute(async (req, res) => {
-  send(res, await exportPhotos(req.body, principalOf(res)));
+  const principal = principalOf(res);
+  res.status(202).json(await describeTask(principal, await startExport(req.body, principal)));
 }));
 
 // --- Movie Maker API ---
@@ -284,17 +290,15 @@ router.post('/people/:id/dismissals', need('people.manage'), asyncRoute(async (r
   send(res, await dismissFaces(req.params.id, req.body));
 }));
 
-// --- Face detection API (detection itself runs in the browser) ---
-router.post('/faces/pending', need('people.manage'), asyncRoute(async (req, res) => {
-  send(res, await pendingPhotos(req.body));
+// --- Face detection API: detection runs on the server as a task ---
+router.post('/faces/detect', need('people.manage'), asyncRoute(async (req, res) => {
+  const principal = principalOf(res);
+  const task = await startFaceDetection(req.body, principal);
+  res.status(task ? 202 : 200).json({ task: task && await describeTask(principal, task) });
 }));
 
 router.get('/faces/unassigned', need('library.view'), asyncRoute(async (req, res) => {
   send(res, await unassignedFaces(req.query.limit));
-}));
-
-router.put('/photos/:id/detected-faces', need('people.manage'), asyncRoute(async (req, res) => {
-  send(res, await saveDetectedFaces(Number(req.params.id), req.body));
 }));
 
 router.get('/photos/:id/people', need('library.view'), asyncRoute(async (req, res) => {

@@ -1,13 +1,11 @@
 import { describe, it, expect, beforeAll, afterEach } from 'vitest';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import type { AiRunInfo, AiTask, MeResponse, Permission, Photo } from '../../../shared/types.js';
+import type { AiTask, MeResponse, Permission, Photo } from '../../../shared/types.js';
 import { i18n, initI18n } from '../i18n/index.js';
 import { useAuthStore } from '../auth/authStore.js';
 import { DEFAULT_UI_SETTINGS, useUiSettings } from '../settings/uiSettings.js';
 import { AiMenu, AiMenuItems } from './AiMenu.js';
-import { AiRunRing } from './AiRunProgress.js';
-import { useAiRun } from './useAiRun.js';
 import { useAiTasks } from './aiTasks.js';
 
 const task = (patch: Partial<AiTask>): AiTask => ({
@@ -44,7 +42,6 @@ beforeAll(async () => {
 afterEach(() => {
   setLevel(DEFAULT_UI_SETTINGS.level);
   patch(useAuthStore, { me: null, phase: 'loading' });
-  patch(useAiRun, { current: null });
 });
 
 describe('AI menu in grid headers', () => {
@@ -80,10 +77,9 @@ describe('AI menu items', () => {
     expect(markup).toMatch(/data-ai-task="tags"[^>]*aria-disabled="true"/);
   });
 
-  it('disables every task while a run exists', () => {
-    patch(useAiRun, { current: { id: 'r' } as AiRunInfo });
+  it('keeps ready tasks available: a run started while another exists waits in the queue', () => {
     const markup = html(<AiMenuItems tasks={[task({})]} onRun={() => {}} />);
-    expect(markup).toContain(i18n.t('ai.menu.running'));
+    expect(markup).not.toMatch(/data-ai-task="tags"[^>]*aria-disabled="true"/);
   });
 
   it('links to the AI settings only for those who may configure them', () => {
@@ -92,17 +88,5 @@ describe('AI menu items', () => {
     const markup = html(<AiMenuItems tasks={[]} onRun={() => {}} />);
     expect(markup).not.toContain(i18n.t('ai.menu.settings'));
     expect(markup).toContain(i18n.t('ai.menu.empty'));
-  });
-});
-
-describe('AI run ring', () => {
-  const run = { id: 'r', taskId: 'tags', taskName: null, state: 'running', total: 30, done: 12 } as AiRunInfo;
-
-  it('fills to the share done and names the task and count', () => {
-    const markup = html(<AiRunRing run={run} onStop={() => {}} />);
-    expect(markup).toContain('12 / 30');
-    expect(markup).toContain(`aria-label="${i18n.t('ai.run.progress', { task: 'Tags', done: 12, total: 30 })}"`);
-    const circumference = 2 * Math.PI * 26;
-    expect(markup).toContain(`stroke-dashoffset="${circumference * 0.6}"`);
   });
 });

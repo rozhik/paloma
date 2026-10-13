@@ -27,7 +27,7 @@ const personExists = async (id: string) =>
 const personNotFound = () => ({ status: 404 as const, body: apiError('person_not_found', 'Person not found') });
 
 /**
- * `POST /api/faces/pending {photoIds, detector}`: the listed photos that still need face detection, in the
+ * `{photoIds, detector}`: the listed photos that still need face detection, in the
  * order given: not detected with this detector on their current content. Ids not in the library are left out.
  */
 export async function pendingPhotos(body: unknown): Promise<ApiResult<{ pending: number[] }>> {
@@ -52,7 +52,7 @@ export async function pendingPhotos(body: unknown): Promise<ApiResult<{ pending:
   return { status: 200, body: { pending: ids.filter((id) => known.has(id) && !done.has(id)) } };
 }
 
-/** The faces of a `PUT detected-faces` body, or an error naming what is wrong. */
+/** The faces of a detection result, or an error naming what is wrong. */
 function parseFaces(value: unknown): DetectedFaceInput[] | string {
   if (!Array.isArray(value) || value.length > MAX_FACES_PER_PHOTO) return `faces must be an array of at most ${MAX_FACES_PER_PHOTO} faces`;
   const faces: DetectedFaceInput[] = [];
@@ -70,8 +70,8 @@ function parseFaces(value: unknown): DetectedFaceInput[] | string {
 }
 
 /**
- * `PUT /api/photos/:id/detected-faces {detector, fileHash, faces}`: replaces the faces detected on the photo.
- * `fileHash` is the content the browser detected on; a result for older content is refused. Writes no files.
+ * `{detector, fileHash, faces}`: replaces the faces detected on the photo by a face detection task. `fileHash`
+ * is the content detected on; a result for older content is refused. Writes no files.
  */
 export async function saveDetectedFaces(photoId: number, body: unknown): Promise<ApiResult<{ faces: number }>> {
   const { detector, fileHash, faces: rawFaces } = (isObject(body) ? body : {}) as Record<string, unknown>;

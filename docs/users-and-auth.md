@@ -32,11 +32,12 @@ The avatar at the end of the main navigation, in every skin, opens the **user me
 
 - **My photos** (for a user linked with a person they may see): the photos of that person.
 - **Account**: your picture, name, password, logged-in devices, API tokens and export space.
+- **Tasks** (from the Easy level): the [task queue](task-queue.md), with who started each task.
 - **Admin panel** (for those with `users.manage`): users, roles, everyone's sessions and tokens, and the login methods.
 - **Server settings** (for those with `plugins.manage`, or everyone with users off): the plugins, AI providers and tasks, and a read-only overview of the server's `.env` settings.
 - **Log out**.
 
-**Settings** in the navigation holds only what is remembered in this browser: language, level, appearance and the viewer bars. With users off, the user menu shows a person icon and offers only Server settings.
+**Settings** in the navigation holds only what is remembered in this browser: language, level, appearance and the viewer bars. With users off, the user menu shows a person icon and offers only Tasks and Server settings.
 
 ## Users and people
 
@@ -66,7 +67,7 @@ What a user may do comes from their role. A role is a set of these permissions:
 | `export` | Export, movies and collages |
 | `account.tokens` | Personal API tokens |
 | `plugins.manage` | Switching plugins on and off, including login methods, and configuring AI providers and tasks |
-| `users.manage` | The Admin view: users, roles, and everyone's sessions and tokens |
+| `users.manage` | The Admin view: users, roles, and everyone's sessions and tokens; pausing, cancelling and moving [everyone's tasks](task-queue.md) |
 
 Paloma ships three roles that cannot be changed: **Administrator** (everything), **Editor** (everything except plugins and users) and **Viewer** (only `library.view`). Administrators can create more roles in **Admin → Roles**.
 

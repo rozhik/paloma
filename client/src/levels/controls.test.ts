@@ -77,9 +77,12 @@ describe('control permissions', () => {
   };
   afterEach(() => useAuthStore.setState({ me: null, phase: 'loading' }));
 
-  /** Controls that only show the library or the user's own account; every other control needs a permission. */
+  /**
+   * Controls that only show the library or the user's own account; every other control needs a permission. The
+   * Tasks view shows the queue; the server checks each change against the task's owner and kind.
+   */
   const READ_ONLY: readonly ControlId[] = [
-    'view.library', 'view.settings', 'view.people', 'view.map', 'view.collage', 'view.account', 'user.menu', 'user.logout',
+    'view.tasks', 'view.library', 'view.settings', 'view.people', 'view.map', 'view.collage', 'view.account', 'user.menu', 'user.logout',
     'sidebar.albums', 'sidebar.shortcuts', 'sidebar.memories', 'sidebar.folders', 'sidebar.tags', 'sidebar.people',
     'photo.open', 'photo.select', 'viewer.navigate', 'viewer.zoom', 'viewer.info', 'viewer.faces', 'slideshow',
     'entry.menu', 'entry.info', 'search', 'people.choose', 'info.people', 'info.exif', 'info.json', 'tray.clear', 'tray.print',

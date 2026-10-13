@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import Database from 'better-sqlite3';
-import { addMissingPhotoColumns, createAiTables, createAuthTables, createPeopleTables, createTextTables, dropMvpEdits, migrateAlbumTables } from './columns.js';
+import { addMissingPhotoColumns, createAiTables, createAuthTables, createPeopleTables, createTaskTables, createTextTables, dropMvpEdits, migrateAlbumTables } from './columns.js';
 
 describe('addMissingPhotoColumns', () => {
   it('adds caption, keywords and is_hidden to an old photos table and keeps its rows', () => {
@@ -220,5 +220,25 @@ describe('createAiTables', () => {
     sqlite.exec(`INSERT INTO ai_results VALUES (1, 'tags', 'f', 'h', 'openai', 'm', 'tags', '[]', NULL, NULL, '')`);
     sqlite.exec('DELETE FROM photos');
     expect(sqlite.prepare('SELECT count(*) AS n FROM ai_results').get()).toEqual({ n: 0 });
+  });
+});
+
+describe('createTaskTables', () => {
+  it('creates the task queue table, and again on an existing database without losing rows', () => {
+    const sqlite = new Database(':memory:');
+    createTaskTables(sqlite);
+    sqlite.prepare(`INSERT INTO tasks (id, kind, state, position, subject, params, details, created_at)
+      VALUES ('t1', 'export', 'waiting', 1, '{}', '{}', '{}', '2026-01-01')`).run();
+    createTaskTables(sqlite);
+    expect(sqlite.prepare('SELECT id, kind, state, system, total, done, failed FROM tasks').all())
+      .toEqual([{ id: 't1', kind: 'export', state: 'waiting', system: 0, total: 0, done: 0, failed: 0 }]);
+  });
+
+  it('adds file_mtime to an existing photos table', () => {
+    const sqlite = new Database(':memory:');
+    sqlite.exec('CREATE TABLE photos (id INTEGER PRIMARY KEY AUTOINCREMENT, filename TEXT NOT NULL)');
+    addMissingPhotoColumns(sqlite);
+    const columns = (sqlite.pragma('table_info(photos)') as Array<{ name: string }>).map((c) => c.name);
+    expect(columns).toContain('file_mtime');
   });
 });

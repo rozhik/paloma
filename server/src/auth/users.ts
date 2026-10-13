@@ -12,6 +12,7 @@ import { checkPassword, setPassword } from './credentials.js';
 import { BUILT_IN_ROLES } from './permissions.js';
 import { parseQuotaLimits, quotaInfos, setQuotaLimits } from './quotas.js';
 import { getRole } from './roles.js';
+import { taskQueue } from '../tasks/queue.js';
 
 export type UserRow = typeof users.$inferSelect;
 
@@ -277,6 +278,8 @@ export async function updateUser(actorId: string | null, id: string, body: unkno
     if (enabled === false && user.enabled) await run(db.delete(sessions).where(eq(sessions.userId, id)));
     await ensureAdminRemains();
   });
+  // A disabled user's work stops; outside the transaction, as tasks save themselves
+  if (enabled === false) await taskQueue.cancelOwnedBy(id);
   return userInfo((await findUserById(id))!);
 }
 
@@ -288,7 +291,7 @@ export async function updateOwnProfile(id: string, body: unknown): Promise<UserI
   return userInfo(await requireUser(id));
 }
 
-/** Deletes a user with their sessions, tokens, logins, access and quotas; their files stay on disk. */
+/** Deletes a user with their sessions, tokens, logins, access and quotas, and cancels their tasks; their files stay on disk. */
 export async function deleteUser(actorId: string | null, id: string): Promise<void> {
   if (actorId === id) fail(409, 'self_change', 'You cannot delete your own account');
   await withTransaction(async () => {
@@ -296,6 +299,7 @@ export async function deleteUser(actorId: string | null, id: string): Promise<vo
     await run(db.delete(users).where(eq(users.id, id)));
     await ensureAdminRemains();
   });
+  await taskQueue.cancelOwnedBy(id);
 }
 
 /** An administrator sets a new password: the user's sessions end and they must choose their own at the next login. */

@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import type { AiProviderInfo, AiRunInfo, AiTask } from '../../../shared/types.js';
+import type { AiProviderInfo, AiTask } from '../../../shared/types.js';
 import { i18n, initI18n } from '../i18n/index.js';
 import { ServerSettingsView } from '../components/ServerSettingsView.js';
 import { ProviderCard, ProvidersPanel, changedValues } from './ProvidersPanel.js';
 import { TasksList } from './AiSection.js';
 import { draftOf, optionsForOutput, taskInput } from './TaskEditor.js';
-import { providerAddress, runMessage, taskName } from './aiText.js';
+import { providerAddress, taskName } from './aiText.js';
 
 const openai: AiProviderInfo = {
   id: 'openai', pluginId: 'ai-openai', label: 'OpenAI', status: 'configured', missing: [],
@@ -111,26 +111,5 @@ describe('task editor', () => {
     const options = { imageSize: 512, language: 'en', parallel: 3, maxTags: 5, minConfidence: 0.7 };
     expect(optionsForOutput('text', options)).toEqual({ imageSize: 512, language: 'en', parallel: 3, textTarget: 'description-if-empty' });
     expect(optionsForOutput('objects', options)).toEqual({ imageSize: 512, language: 'en', parallel: 3, minConfidence: 0.7, labelsAsTags: false });
-  });
-});
-
-describe('run message', () => {
-  const run: AiRunInfo = {
-    id: 'r', taskId: 'tags', taskName: null, output: 'tags', state: 'finished', total: 30, done: 30, failed: 2, tagsAdded: 95,
-    descriptionsSet: 0, inputTokens: 1000, outputTokens: 50, error: null, failures: [], photoIds: [], startedAt: '', endedAt: '',
-  };
-  const t = i18n.t.bind(i18n) as never;
-
-  it('says how many photos were processed, tags added and photos failed', () => {
-    const message = runMessage(run, t);
-    expect(message).toContain(i18n.t('ai.run.processed', { task: 'Tags', count: 28 }));
-    expect(message).toContain(i18n.t('ai.run.tagsAdded', { count: 95 }));
-    expect(message).toContain(i18n.t('ai.run.failed', { count: 2 }));
-    expect(message).toContain(i18n.t('ai.run.tokens', { input: 1000, output: 50 }));
-  });
-
-  it('shows the provider error of a stopped run', () => {
-    expect(runMessage({ ...run, state: 'stopped', error: 'Incorrect API key provided' }, t))
-      .toBe(i18n.t('ai.run.stoppedError', { task: 'Tags', message: 'Incorrect API key provided' }));
   });
 });

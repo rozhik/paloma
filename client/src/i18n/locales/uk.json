@@ -145,10 +145,6 @@
   },
   "export": {
     "title": "Майстер пакетного експорту фотографій",
-    "done_one": "Успішно експортовано {{count, number}} світлину!",
-    "done_few": "Успішно експортовано {{count, number}} світлини!",
-    "done_many": "Успішно експортовано {{count, number}} світлин!",
-    "done_other": "Успішно експортовано {{count, number}} світлини!",
     "savedTo": "Файли збережено у папці:",
     "destination": "Папка призначення для збереження:",
     "quality": "Якість JPEG ({{value, number}}%):",
@@ -160,7 +156,12 @@
     "summary_other": "Буде експортовано <b>{{count, number}}</b> обраної світлини із застосованими правками.",
     "exporting": "Експортування...",
     "start": "Розпочати експорт",
-    "quotaPartial": "Експортовано {{done}} з {{requested}} фото: місце для експорту закінчилося."
+    "quotaPartial": "Експортовано {{done}} з {{requested}} фото: місце для експорту закінчилося.",
+    "queued_one": "Експорт {{count, number}} фото додано до черги задач",
+    "queued_few": "Експорт {{count, number}} фото додано до черги задач",
+    "queued_many": "Експорт {{count, number}} фото додано до черги задач",
+    "queued_other": "Експорт {{count, number}} фото додано до черги задач",
+    "queuedHint": "Коли експорт завершиться, з’явиться повідомлення. Стежити за ним можна в розділі «Задачі» меню користувача."
   },
   "print": {
     "title": "Модуль друку світлин",
@@ -308,10 +309,11 @@
     "ai_task_builtin": "Вбудовану AI-задачу не можна видалити.",
     "ai_task_not_builtin": "Скинути можна лише вбудовані AI-задачі.",
     "ai_task_not_ready": "Ця AI-задача ще не готова. Перевірте її провайдера й модель у налаштуваннях сервера.",
-    "ai_run_in_progress": "Уже виконується інша AI-задача. Зачекайте, доки вона завершиться.",
     "read_only_field": "Це поле не можна змінити.",
     "object_not_found": "Не знайдено.",
-    "origin_not_allowed": "Запити з цієї вебсторінки заборонені."
+    "origin_not_allowed": "Запити з цієї вебсторінки заборонені.",
+    "task_not_found": "Цієї задачі вже немає.",
+    "task_state": "У поточному стані задача не може цього зробити."
   },
   "geo": {
     "coordinates": "{{lat}}; {{lon}}",
@@ -551,13 +553,9 @@
   },
   "faces": {
     "detect": "Знайти обличчя",
-    "cancel": "Зупинити пошук облич (готово {{done, number}} з {{total, number}})",
-    "cancelling": "Зупинка…",
     "found": "Знайдено облич: {{faces, number}}, на фото: {{photos, number}}.",
-    "stopped": "Пошук облич зупинено.",
     "failed": "Фото, які не вдалося перевірити: {{failed, number}}.",
     "nothingToDo": "Обличчя на цих фото вже знайдено.",
-    "loadFailed": "Не вдалося запустити пошук облич: {{message}}",
     "noReferenceTitle": "Ще немає облич «{{name}}» для порівняння",
     "noReferenceHint": "Запустіть «Знайти обличчя» для фото «{{name}}» і поверніться сюди.",
     "noSimilarTitle": "Схожих облич немає",
@@ -764,7 +762,8 @@
     "account": "Обліковий запис",
     "admin": "Адміністрування",
     "server": "Налаштування сервера",
-    "myPhotos": "Мої фото"
+    "myPhotos": "Мої фото",
+    "tasks": "Задачі"
   },
   "server": {
     "title": "Налаштування сервера",
@@ -896,19 +895,14 @@
       "label": "AI-задачі для цих фото",
       "runAgain": "Запустити знову для всіх фото",
       "settings": "Налаштування AI…",
-      "running": "Виконується AI-задача. Зачекайте, доки вона завершиться.",
       "empty": "Немає AI-задач. Адміністратор може додати їх у налаштуваннях сервера."
     },
     "run": {
-      "progress": "{{task}}: {{done, number}} з {{total, number}} фото",
-      "stop": "Зупинити",
-      "cancelling": "Зупинка після фото, що обробляються…",
       "processed_one": "{{task}}: оброблено {{count, number}} фото.",
       "processed_few": "{{task}}: оброблено {{count, number}} фото.",
       "processed_many": "{{task}}: оброблено {{count, number}} фото.",
       "processed_other": "{{task}}: оброблено {{count, number}} фото.",
       "nothingToDo": "{{task}}: ці фото вже оброблено. Виберіть «Запустити знову», щоб обробити їх ще раз.",
-      "cancelled": "Зупинено.",
       "tagsAdded_one": "Додано {{count, number}} тег.",
       "tagsAdded_few": "Додано {{count, number}} теги.",
       "tagsAdded_many": "Додано {{count, number}} тегів.",
@@ -921,8 +915,7 @@
       "failed_few": "Не вдалося обробити {{count, number}} фото.",
       "failed_many": "Не вдалося обробити {{count, number}} фото.",
       "failed_other": "Не вдалося обробити {{count, number}} фото.",
-      "tokens": "Використано токенів: надіслано {{input, number}}, отримано {{output, number}}.",
-      "stoppedError": "{{task}} зупинено: {{message}}"
+      "tokens": "Використано токенів: надіслано {{input, number}}, отримано {{output, number}}."
     },
     "info": {
       "title": "AI",
@@ -933,5 +926,71 @@
       "noObjects": "Об'єктів не знайдено.",
       "noTags": "Тегів не знайдено."
     }
+  },
+  "tasks": {
+    "title": {
+      "view": "Задачі",
+      "faces_one": "Пошук облич на {{count, number}} фото",
+      "faces_few": "Пошук облич на {{count, number}} фото",
+      "faces_many": "Пошук облич на {{count, number}} фото",
+      "faces_other": "Пошук облич на {{count, number}} фото",
+      "export_one": "Експорт {{count, number}} фото",
+      "export_few": "Експорт {{count, number}} фото",
+      "export_many": "Експорт {{count, number}} фото",
+      "export_other": "Експорт {{count, number}} фото",
+      "scan": "Сканування бібліотеки",
+      "scanFolder": "Сканування {{folder}}"
+    },
+    "state": {
+      "waiting": "Очікує",
+      "running": "Виконується",
+      "pausing": "Призупиняється…",
+      "paused": "Призупинено",
+      "cancelling": "Скасовується…",
+      "finished": "Завершено",
+      "cancelled": "Скасовано",
+      "failed": "Помилка"
+    },
+    "startedBySystem": "Paloma",
+    "startedByYou": "вами",
+    "startedByUnknown": "іншим користувачем",
+    "startedBy": "Запущено: {{name}}, {{date}}",
+    "indicator": {
+      "running": "{{task}}: {{done, number}} з {{total, number}}. Відкрити задачі",
+      "waiting_one": "Очікує {{count, number}} ваша задача. Відкрити задачі",
+      "waiting_few": "Очікують {{count, number}} ваші задачі. Відкрити задачі",
+      "waiting_many": "Очікують {{count, number}} ваших задач. Відкрити задачі",
+      "waiting_other": "Очікують {{count, number}} вашої задачі. Відкрити задачі"
+    },
+    "message": {
+      "failed": "{{task}} зупинено: {{message}}",
+      "cancelled": "{{task}} скасовано.",
+      "exported_one": "Експортовано {{count, number}} фото до {{folder}}.",
+      "exported_few": "Експортовано {{count, number}} фото до {{folder}}.",
+      "exported_many": "Експортовано {{count, number}} фото до {{folder}}.",
+      "exported_other": "Експортовано {{count, number}} фото до {{folder}}.",
+      "exportFailed_one": "Не вдалося експортувати {{count, number}} фото.",
+      "exportFailed_few": "Не вдалося експортувати {{count, number}} фото.",
+      "exportFailed_many": "Не вдалося експортувати {{count, number}} фото.",
+      "exportFailed_other": "Не вдалося експортувати {{count, number}} фото.",
+      "scanned_one": "{{task}}: додано або оновлено {{count, number}} фото.",
+      "scanned_few": "{{task}}: додано або оновлено {{count, number}} фото.",
+      "scanned_many": "{{task}}: додано або оновлено {{count, number}} фото.",
+      "scanned_other": "{{task}}: додано або оновлено {{count, number}} фото."
+    },
+    "failedCount_one": "Помилки на {{count, number}} фото.",
+    "failedCount_few": "Помилки на {{count, number}} фото.",
+    "failedCount_many": "Помилки на {{count, number}} фото.",
+    "failedCount_other": "Помилки на {{count, number}} фото.",
+    "queue": "Черга",
+    "ended": "Завершені",
+    "empty": "Немає задач, що виконуються або очікують.",
+    "dropAtEnd": "Перетягніть сюди, щоб перемістити в кінець",
+    "pause": "Пауза",
+    "resume": "Продовжити",
+    "cancel": "Скасувати",
+    "remove": "Прибрати «{{task}}» зі списку",
+    "moveUp": "Перемістити «{{task}}» вище",
+    "moveDown": "Перемістити «{{task}}» нижче"
   }
 }

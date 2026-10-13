@@ -139,8 +139,6 @@
   },
   "export": {
     "title": "Fotos stapelweise exportieren",
-    "done_one": "{{count, number}} Foto exportiert!",
-    "done_other": "{{count, number}} Fotos exportiert!",
     "savedTo": "Dateien gespeichert im Ordner:",
     "destination": "Zielordner:",
     "quality": "JPEG-Qualität ({{value, number}} %):",
@@ -150,7 +148,10 @@
     "summary_other": "<b>{{count, number}}</b> ausgewählte Fotos werden mit angewendeten Bearbeitungen exportiert.",
     "exporting": "Wird exportiert...",
     "start": "Export starten",
-    "quotaPartial": "{{done}} von {{requested}} Fotos wurden exportiert: Ihr Exportspeicher ist voll."
+    "quotaPartial": "{{done}} von {{requested}} Fotos wurden exportiert: Ihr Exportspeicher ist voll.",
+    "queued_one": "Der Export von {{count, number}} Foto ist in der Aufgabenwarteschlange",
+    "queued_other": "Der Export von {{count, number}} Fotos ist in der Aufgabenwarteschlange",
+    "queuedHint": "Eine Meldung erscheint, wenn er fertig ist. Du kannst ihn unter „Aufgaben“ im Benutzermenü verfolgen."
   },
   "print": {
     "title": "Fotos drucken",
@@ -290,10 +291,11 @@
     "ai_task_builtin": "Eine eingebaute KI-Aufgabe kann nicht gelöscht werden.",
     "ai_task_not_builtin": "Nur eingebaute KI-Aufgaben können zurückgesetzt werden.",
     "ai_task_not_ready": "Diese KI-Aufgabe ist nicht bereit. Prüfen Sie Anbieter und Modell in den Servereinstellungen.",
-    "ai_run_in_progress": "Eine andere KI-Aufgabe läuft. Warten Sie, bis sie endet.",
     "read_only_field": "Dieses Feld kann nicht geändert werden.",
     "object_not_found": "Nicht gefunden.",
-    "origin_not_allowed": "Anfragen von dieser Webseite sind nicht erlaubt."
+    "origin_not_allowed": "Anfragen von dieser Webseite sind nicht erlaubt.",
+    "task_not_found": "Diese Aufgabe gibt es nicht mehr.",
+    "task_state": "Die Aufgabe kann das in ihrem jetzigen Zustand nicht."
   },
   "geo": {
     "coordinates": "{{lat}}; {{lon}}",
@@ -519,13 +521,9 @@
   },
   "faces": {
     "detect": "Gesichter finden",
-    "cancel": "Gesichtersuche anhalten ({{done, number}} von {{total, number}} fertig)",
-    "cancelling": "Wird angehalten…",
     "found": "Gefundene Gesichter: {{faces, number}}, auf {{photos, number}} Fotos.",
-    "stopped": "Gesichtersuche angehalten.",
     "failed": "Fotos, die nicht geprüft werden konnten: {{failed, number}}.",
     "nothingToDo": "Die Gesichter auf diesen Fotos wurden bereits gefunden.",
-    "loadFailed": "Die Gesichtersuche konnte nicht starten: {{message}}",
     "noReferenceTitle": "Noch keine Gesichter von {{name}} zum Vergleichen",
     "noReferenceHint": "Starten Sie „Gesichter finden“ für die Fotos von {{name}} und kommen Sie dann hierher zurück.",
     "noSimilarTitle": "Keine ähnlichen Gesichter",
@@ -732,7 +730,8 @@
     "account": "Konto",
     "admin": "Verwaltung",
     "server": "Servereinstellungen",
-    "myPhotos": "Meine Fotos"
+    "myPhotos": "Meine Fotos",
+    "tasks": "Aufgaben"
   },
   "server": {
     "title": "Servereinstellungen",
@@ -862,25 +861,19 @@
       "label": "KI-Aufgaben für diese Fotos",
       "runAgain": "Für alle Fotos erneut ausführen",
       "settings": "KI-Einstellungen…",
-      "running": "Eine KI-Aufgabe läuft. Warten Sie, bis sie endet.",
       "empty": "Keine KI-Aufgaben. Ein Administrator kann sie in den Servereinstellungen hinzufügen."
     },
     "run": {
-      "progress": "{{task}}: {{done, number}} von {{total, number}} Fotos",
-      "stop": "Anhalten",
-      "cancelling": "Wird nach den laufenden Fotos angehalten…",
       "processed_one": "{{task}}: {{count, number}} Foto verarbeitet.",
       "processed_other": "{{task}}: {{count, number}} Fotos verarbeitet.",
       "nothingToDo": "{{task}}: Diese Fotos wurden bereits verarbeitet. Wählen Sie „Erneut ausführen“, um sie noch einmal zu verarbeiten.",
-      "cancelled": "Angehalten.",
       "tagsAdded_one": "{{count, number}} Tag hinzugefügt.",
       "tagsAdded_other": "{{count, number}} Tags hinzugefügt.",
       "descriptionsSet_one": "{{count, number}} Beschreibung geschrieben.",
       "descriptionsSet_other": "{{count, number}} Beschreibungen geschrieben.",
       "failed_one": "{{count, number}} Foto konnte nicht verarbeitet werden.",
       "failed_other": "{{count, number}} Fotos konnten nicht verarbeitet werden.",
-      "tokens": "Verwendete Tokens: {{input, number}} gesendet, {{output, number}} empfangen.",
-      "stoppedError": "{{task}} angehalten: {{message}}"
+      "tokens": "Verwendete Tokens: {{input, number}} gesendet, {{output, number}} empfangen."
     },
     "info": {
       "title": "KI",
@@ -891,5 +884,57 @@
       "noObjects": "Keine Objekte gefunden.",
       "noTags": "Keine Tags gefunden."
     }
+  },
+  "tasks": {
+    "title": {
+      "view": "Aufgaben",
+      "faces_one": "Gesichter auf {{count, number}} Foto finden",
+      "faces_other": "Gesichter auf {{count, number}} Fotos finden",
+      "export_one": "{{count, number}} Foto exportieren",
+      "export_other": "{{count, number}} Fotos exportieren",
+      "scan": "Bibliothek durchsuchen",
+      "scanFolder": "{{folder}} durchsuchen"
+    },
+    "state": {
+      "waiting": "Wartet",
+      "running": "Läuft",
+      "pausing": "Wird angehalten…",
+      "paused": "Angehalten",
+      "cancelling": "Wird abgebrochen…",
+      "finished": "Fertig",
+      "cancelled": "Abgebrochen",
+      "failed": "Fehlgeschlagen"
+    },
+    "startedBySystem": "Paloma",
+    "startedByYou": "dir",
+    "startedByUnknown": "einem anderen Benutzer",
+    "startedBy": "Gestartet von {{name}}, {{date}}",
+    "indicator": {
+      "running": "{{task}}: {{done, number}} von {{total, number}}. Aufgaben öffnen",
+      "waiting_one": "{{count, number}} deiner Aufgaben wartet. Aufgaben öffnen",
+      "waiting_other": "{{count, number}} deiner Aufgaben warten. Aufgaben öffnen"
+    },
+    "message": {
+      "failed": "{{task}} wurde beendet: {{message}}",
+      "cancelled": "{{task}} wurde abgebrochen.",
+      "exported_one": "{{count, number}} Foto nach {{folder}} exportiert.",
+      "exported_other": "{{count, number}} Fotos nach {{folder}} exportiert.",
+      "exportFailed_one": "{{count, number}} Foto konnte nicht exportiert werden.",
+      "exportFailed_other": "{{count, number}} Fotos konnten nicht exportiert werden.",
+      "scanned_one": "{{task}}: {{count, number}} Foto hinzugefügt oder aktualisiert.",
+      "scanned_other": "{{task}}: {{count, number}} Fotos hinzugefügt oder aktualisiert."
+    },
+    "failedCount_one": "{{count, number}} Foto fehlgeschlagen.",
+    "failedCount_other": "{{count, number}} Fotos fehlgeschlagen.",
+    "queue": "Warteschlange",
+    "ended": "Beendet",
+    "empty": "Keine Aufgabe läuft oder wartet.",
+    "dropAtEnd": "Hier ablegen, um sie ans Ende zu verschieben",
+    "pause": "Anhalten",
+    "resume": "Fortsetzen",
+    "cancel": "Abbrechen",
+    "remove": "{{task}} aus der Liste entfernen",
+    "moveUp": "{{task}} nach oben verschieben",
+    "moveDown": "{{task}} nach unten verschieben"
   }
 }

@@ -19,6 +19,26 @@ const login = async (username: string) => {
   expect((await c.post('/auth/login/password', { username, password: 'correct horse battery' })).status).toBe(200);
   return c;
 };
+/**
+ * Exports through the API and waits for the export task to end; on 202 the body is the ended export: the photos
+ * asked and written, whether the quota was reached, and the written files (absolute).
+ */
+async function exportPhotos(client: TestClient, request: Record<string, unknown>) {
+  const started = await client.post('/export', request);
+  if (started.status !== 202) return started;
+  const { taskQueue } = await import('../tasks/queue.js');
+  await taskQueue.whenEnded(started.body.id);
+  const task = (await client.get('/tasks')).body.tasks.find((t: { id: string }) => t.id === started.body.id);
+  const root = path.join(tmpDir, 'export', task.ownerName);
+  return {
+    status: started.status,
+    body: {
+      state: task.state, count: task.details.files.length, requested: task.photoCount, quotaExceeded: task.details.quotaExceeded,
+      exportedFiles: task.details.files.map((file: string) => path.join(root, file)),
+    },
+  };
+}
+
 const files = (dir: string) => (fs.existsSync(dir) ? fs.readdirSync(dir).sort() : []);
 
 beforeAll(async () => {
@@ -51,7 +71,7 @@ beforeAll(async () => {
   anna = await login('anna');
   ben = await login('ben');
 
-  const probe = await anna.post('/export', { photoIds: [ids[0]], outputDir: 'probe' });
+  const probe = await exportPhotos(anna, { photoIds: [ids[0]], outputDir: 'probe' });
   photoSize = fs.statSync(probe.body.exportedFiles[0]).size;
 });
 
@@ -64,21 +84,21 @@ afterAll(async () => {
 describe('export folders', () => {
   it('writes into the user own folder', async () => {
     expect(fs.existsSync(path.join(tmpDir, 'export', 'anna', 'probe', 'exported_p0.jpg'))).toBe(true);
-    const { status, body } = await ben.post('/export', { photoIds: [ids[0], ids[1]], outputDir: 'holiday' });
-    expect([status, body.count]).toEqual([200, 2]);
+    const { status, body } = await exportPhotos(ben, { photoIds: [ids[0], ids[1]], outputDir: 'holiday' });
+    expect([status, body.count]).toEqual([202, 2]);
     expect(files(path.join(tmpDir, 'export', 'ben', 'holiday'))).toEqual(['exported_p0.jpg', 'exported_p1.jpg']);
     fs.rmSync(path.join(tmpDir, 'export', 'ben'), { recursive: true });
   });
 
   it('refuses a destination outside the user folder', async () => {
     for (const outputDir of ['../anna', '/tmp']) {
-      expect((await ben.post('/export', { photoIds: [ids[0]], outputDir })).status, outputDir).toBe(400);
+      expect((await exportPhotos(ben, { photoIds: [ids[0]], outputDir })).status, outputDir).toBe(400);
     }
     expect(files(path.join(tmpDir, 'export', 'anna'))).toEqual(['probe']);
   });
 
   it('exports only photos the user sees', async () => {
-    const { body } = await ben.post('/export', { photoIds: [hiddenId], outputDir: 'hidden' });
+    const { body } = await exportPhotos(ben, { photoIds: [hiddenId], outputDir: 'hidden' });
     expect(body.count).toBe(0);
     expect(files(path.join(tmpDir, 'export', 'ben', 'hidden'))).toEqual([]);
   });
@@ -87,22 +107,37 @@ describe('export folders', () => {
 describe('export space quota', () => {
   it('stops before the file that would cross the limit, keeping what was written', async () => {
     await users.updateUser(null, benId, { quotas: { export_bytes: Math.floor(4.5 * photoSize) } });
-    const { status, body } = await ben.post('/export', { photoIds: ids, outputDir: 'holiday' });
-    expect([status, body.count, body.requested, body.quotaExceeded, body.success]).toEqual([200, 4, 10, true, false]);
+    const { status, body } = await exportPhotos(ben, { photoIds: ids, outputDir: 'holiday' });
+    expect([status, body.count, body.requested, body.quotaExceeded]).toEqual([202, 4, 10, true]);
     expect(files(path.join(tmpDir, 'export', 'ben', 'holiday'))).toHaveLength(4);
     expect((await ben.get('/auth/me')).body.quotas[0]).toMatchObject({ kind: 'export_bytes', used: 4 * photoSize });
   });
 
   it('refuses an export when the space is full', async () => {
     await users.updateUser(null, benId, { quotas: { export_bytes: 4 * photoSize } });
-    const { status, body } = await ben.post('/export', { photoIds: [ids[5]], outputDir: 'more' });
+    const { status, body } = await exportPhotos(ben, { photoIds: [ids[5]], outputDir: 'more' });
     expect([status, body.code]).toEqual([409, 'quota_exceeded']);
     expect(fs.existsSync(path.join(tmpDir, 'export', 'ben', 'more'))).toBe(false);
   });
 
+  it('writes nothing when the space was used up while the export waited', async () => {
+    const { taskQueue } = await import('../tasks/queue.js');
+    taskQueue.hold();
+    await users.updateUser(null, benId, { quotas: { export_bytes: 5 * photoSize } });
+    const first = await ben.post('/export', { photoIds: [ids[6]], outputDir: 'first' });
+    const second = await ben.post('/export', { photoIds: [ids[7]], outputDir: 'second' });
+    expect([first.status, second.status]).toEqual([202, 202]);
+    taskQueue.release();
+    const ended = await taskQueue.whenEnded(second.body.id);
+    expect([ended.state, ended.details]).toEqual(['finished', expect.objectContaining({ files: [], quotaExceeded: true })]);
+    expect(fs.existsSync(path.join(tmpDir, 'export', 'ben', 'second', 'exported_p7.jpg'))).toBe(false);
+    fs.rmSync(path.join(tmpDir, 'export', 'ben', 'first'), { recursive: true });
+    await users.updateUser(null, benId, { quotas: { export_bytes: 4 * photoSize } });
+  });
+
   it('counts only the files that remain after deleting some outside Paloma', async () => {
     fs.rmSync(path.join(tmpDir, 'export', 'ben', 'holiday', 'exported_p0.jpg'));
-    expect((await ben.post('/export', { photoIds: [ids[5]], outputDir: 'more' })).body.count).toBe(1);
+    expect((await exportPhotos(ben, { photoIds: [ids[5]], outputDir: 'more' })).body.count).toBe(1);
   });
 
   it('refuses a movie when the space is full, and removes a movie that does not fit', async () => {

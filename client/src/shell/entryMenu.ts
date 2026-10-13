@@ -6,7 +6,7 @@ import { currentLanguage } from '../i18n/index.js';
 import { usePalomaStore } from '../store/usePalomaStore.js';
 import { allows, useLevel } from '../levels/controls.js';
 import type { Level } from '../levels/levels.js';
-import { useFaceDetection } from '../faces/detectionRunner.js';
+import { useFaceDetection } from '../faces/useFaceDetection.js';
 import { useMenuTasks } from '../ai/aiTasks.js';
 import { taskName, taskUnavailable } from '../ai/aiText.js';
 import { useAiRun } from '../ai/useAiRun.js';
@@ -21,11 +21,11 @@ export type EntryMenuItemId = 'slideshow' | 'findFaces' | 'ai' | 'map' | 'info' 
  * faces, the AI tasks, and for an album Edit properties and Delete) at their own levels, then Map and Information.
  * `ai` stands for the AI tasks and their Run again items.
  */
-export function entryMenuItemIds(entry: LibraryEntry, level: Level, detecting = false): EntryMenuItemId[] {
+export function entryMenuItemIds(entry: LibraryEntry, level: Level): EntryMenuItemId[] {
   const ids: EntryMenuItemId[] = [];
   if (allows(level, 'slideshow')) ids.push('slideshow');
   // Like the header's button, not offered while a run exists
-  if (allows(level, 'faces.detect') && !detecting) ids.push('findFaces');
+  if (allows(level, 'faces.detect')) ids.push('findFaces');
   if (allows(level, 'ai.run')) ids.push('ai');
   if (allows(level, 'view.map')) ids.push('map');
   if (allows(level, 'entry.info')) ids.push('info');
@@ -105,10 +105,8 @@ export interface EntryMenuDialogs {
 export function useEntryMenuItems(entry: LibraryEntry, dialogs: EntryMenuDialogs): EntryMenuItem[] {
   const { t } = useTranslation();
   const level = useLevel();
-  const detecting = useFaceDetection((state) => state.progress !== null);
-  const ids = entryMenuItemIds(entry, level, detecting);
+  const ids = entryMenuItemIds(entry, level);
   const aiTasks = useMenuTasks(ids.includes('ai'));
-  const aiRunning = useAiRun((state) => state.current !== null);
   const items: Record<Exclude<EntryMenuItemId, 'ai'>, Omit<EntryMenuItem, 'id' | 'key'>> = {
     slideshow: { label: t('slideshow.start'), icon: Presentation, run: () => { void playEntry(entry); } },
     findFaces: { label: t('faces.detect'), icon: ScanFace, run: () => { void detectEntryFaces(entry); } },
@@ -119,7 +117,7 @@ export function useEntryMenuItems(entry: LibraryEntry, dialogs: EntryMenuDialogs
   };
   // The AI tasks, then each of them again, as in the header's AI menu
   const aiItems = (again: boolean): EntryMenuItem[] => aiTasks.map((task, index) => {
-    const reason = taskUnavailable(task, aiRunning, t as never);
+    const reason = taskUnavailable(task, t as never);
     return {
       id: 'ai', key: `ai-${again ? 'again-' : ''}${task.id}`, label: taskName(task, t), icon: again ? RotateCw : Sparkles,
       disabled: reason !== null, hint: reason ?? undefined,

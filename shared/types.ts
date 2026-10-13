@@ -450,7 +450,8 @@ export type ApiErrorCode =
   | 'ai_task_builtin'
   | 'ai_task_not_builtin'
   | 'ai_task_not_ready'
-  | 'ai_run_in_progress'
+  | 'task_not_found'
+  | 'task_state'
   | 'read_only_field'
   | 'object_not_found'
   | 'origin_not_allowed'
@@ -811,46 +812,120 @@ export interface PhotoAiResult {
   outputTokens: number | null;
 }
 
-export type AiRunState = 'running' | 'cancelling' | 'finished' | 'cancelled' | 'stopped';
-
-/** An AI run: the one in progress, or how the last one ended. */
-export interface AiRunInfo {
-  id: string;
-  taskId: string;
-  taskName: string | null;
-  output: AiOutputKind;
-  state: AiRunState;
-  /** Photos the run has to process */
-  total: number;
-  /** Photos done, failed ones included */
-  done: number;
-  failed: number;
-  tagsAdded: number;
-  descriptionsSet: number;
-  inputTokens: number;
-  outputTokens: number;
-  /** Why the run stopped early */
-  error: string | null;
-  /** The first failures, with the photo and the message */
-  failures: { photoId: number; message: string }[];
-  /** Ids of the photos processed, so views showing them can reload */
-  photoIds: number[];
-  startedAt: string;
-  endedAt: string | null;
-}
-
-/** `GET /api/ai/runs/current`. */
-export interface AiRunStatus {
-  current: AiRunInfo | null;
-  last: AiRunInfo | null;
-}
-
 /** `POST /api/ai/runs`. */
 export interface AiRunRequest {
   taskId: string;
   photoIds: number[];
   /** Process photos already processed with the same task configuration, too */
   again?: boolean;
+}
+
+// --- Task queue (`/api/tasks`) ---
+
+/** What a task does: a folder scan, an AI run, face detection or a photo export. */
+export type TaskKind = 'scan' | 'ai' | 'faces' | 'export';
+
+/** `finished`, `cancelled` and `failed` are ended states. */
+export type TaskState = 'waiting' | 'running' | 'pausing' | 'paused' | 'cancelling' | 'finished' | 'cancelled' | 'failed';
+
+/** A failed unit of a task: the photo and the message. */
+export interface TaskFailure {
+  photoId: number;
+  message: string;
+}
+
+/** What an AI run did so far. */
+export interface AiTaskDetails {
+  kind: 'ai';
+  output: AiOutputKind;
+  again: boolean;
+  tagsAdded: number;
+  descriptionsSet: number;
+  inputTokens: number;
+  outputTokens: number;
+  /** The first failures */
+  failures: TaskFailure[];
+  /** Photos processed, so views showing them can reload */
+  photoIds: number[];
+}
+
+/** What face detection did so far. */
+export interface FacesTaskDetails {
+  kind: 'faces';
+  faces: number;
+  /** Photos with at least one face */
+  photos: number;
+  failures: TaskFailure[];
+  photoIds: number[];
+}
+
+/** What an export did so far; paths are relative to the user's export folder. */
+export interface ExportTaskDetails {
+  kind: 'export';
+  outputDir: string;
+  files: string[];
+  quotaExceeded: boolean;
+}
+
+/** A folder scan: the whole configured folder, or the changes the watcher found in it. */
+export interface ScanTaskDetails {
+  kind: 'scan';
+  mode: 'full' | 'changes';
+  /** Photos indexed or updated */
+  indexed: number;
+  /** Photos removed because their files are gone */
+  removed: number;
+}
+
+export type TaskDetails = AiTaskDetails | FacesTaskDetails | ExportTaskDetails | ScanTaskDetails;
+
+/** A task as one user sees it; tasks of other users leave out what would reveal their photos. */
+export interface TaskInfo {
+  id: string;
+  kind: TaskKind;
+  state: TaskState;
+  /** Started by Paloma (scans) rather than a user */
+  system: boolean;
+  /** The user who started it; null for system tasks and with auth off */
+  ownerId: string | null;
+  ownerName: string | null;
+  /** Started by the user looking at it (always true with auth off, except system tasks) */
+  mine: boolean;
+  /** The user may pause, resume, cancel and move it, or remove it once ended */
+  canControl: boolean;
+  /** Photos the task was asked to process (ai, faces, export) */
+  photoCount: number | null;
+  /** The AI task an `ai` task runs, and its name (null when it was never changed: shown in the UI language) */
+  aiTaskId: string | null;
+  aiTaskName: string | null;
+  /** The configured folder a scan works on; null for users who do not see the whole library */
+  folder: string | null;
+  /** Units to do and done (photos, or files checked for scans), and how many of the done ones failed */
+  total: number;
+  done: number;
+  failed: number;
+  /** Why the task failed; only for its owner and users.manage */
+  error: string | null;
+  /** Only for its owner and users.manage */
+  details: TaskDetails | null;
+  createdAt: string;
+  startedAt: string | null;
+  endedAt: string | null;
+}
+
+/** `GET /api/tasks`: running, waiting and paused tasks in queue order, then ended tasks, newest first. */
+export interface TaskList {
+  tasks: TaskInfo[];
+}
+
+/** `POST /api/tasks/:id/move`: the task to go before, or null for the end. */
+export interface TaskMoveRequest {
+  before: string | null;
+}
+
+/** `POST /api/faces/detect`: the queued task, or null when every photo is already detected. */
+export interface FaceDetectResponse {
+  task: TaskInfo | null;
 }
 
 // --- Object documents and changesets (`/api/objects`, `/api/changes`, MCP) ---

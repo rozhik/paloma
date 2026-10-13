@@ -62,6 +62,7 @@ beforeAll(async () => {
   const app = express();
   app.use(express.json());
   app.use('/api', router);
+  app.use((await import('../services/apiError.js')).apiErrorHandler);
   server = app.listen(0);
   await new Promise((resolve) => server.once('listening', resolve));
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}/api`;
@@ -251,9 +252,12 @@ describe('POST /api/export', () => {
     await send('PUT', `/photos/${photoId}/edits`, { edits: [{ filter: 'crop64', rect: { left: 0, top: 0, right: 0.5, bottom: 1 } }] });
     // The destination is a folder inside the export folder
     const { status, body } = await send('POST', '/export', { photoIds: [photoId], outputDir: 'trip' });
-    expect(status).toBe(200);
-    expect(path.dirname(body.exportedFiles[0])).toBe(path.join(tmpDir, 'export', 'trip'));
-    const { data, info } = await sharp(body.exportedFiles[0]).raw().toBuffer({ resolveWithObject: true });
+    expect([status, body.kind, body.photoCount]).toEqual([202, 'export', 1]);
+    const { taskQueue } = await import('../tasks/queue.js');
+    const ended = await taskQueue.whenEnded(body.id);
+    expect(ended.details).toMatchObject({ outputDir: 'trip', files: [expect.stringMatching(/^trip\//)], quotaExceeded: false });
+    const exported = path.join(tmpDir, 'export', (ended.details as { files: string[] }).files[0]);
+    const { data, info } = await sharp(exported).raw().toBuffer({ resolveWithObject: true });
     expect([info.width, info.height]).toEqual([200, 300]);
     // Only the red left half: the right edge is red, not blue
     const at = ((150 * info.width) + info.width - 1) * info.channels;

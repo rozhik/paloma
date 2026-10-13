@@ -26,10 +26,6 @@ describe('entryMenuItemIds', () => {
   it('offers album management only for albums', () => {
     expect(entryMenuItemIds({ kind: 'folder', id: 1 }, 'developer')).toEqual(['slideshow', 'findFaces', 'ai', 'map', 'info']);
   });
-
-  it('does not offer Find faces while a run exists', () => {
-    expect(entryMenuItemIds(album, 'normal', true)).not.toContain('findFaces');
-  });
 });
 
 describe('playEntry', () => {
@@ -52,24 +48,27 @@ describe('playEntry', () => {
 describe('runEntryTask', () => {
   it("runs the task on the entry's photos and keeps what the library shows", async () => {
     const fetchMock = vi.fn(async (url: string, init?: RequestInit) => (init?.method === 'POST'
-      ? new Response(JSON.stringify({ id: 'r', taskId: 'tags', state: 'running', total: 2, done: 0 }), { status: 202 })
+      ? new Response(JSON.stringify({ id: 'r', kind: 'ai', aiTaskId: 'tags', state: 'waiting', total: 2, done: 0 }), { status: 202 })
+      : url === '/api/tasks' ? new Response(JSON.stringify({ tasks: [] }), { status: 200 })
       : new Response(JSON.stringify([photo(1), photo(2)]), { status: 200 })));
     vi.stubGlobal('fetch', fetchMock);
-    useAiRun.setState({ current: null, error: null });
+    useAiRun.setState({ error: null });
     await runEntryTask(album, 'tags', true);
     const [url, init] = fetchMock.mock.calls[1] as unknown as [string, RequestInit];
     expect(url).toMatch(/^\/api\/ai\/runs\?lang=/);
     expect(JSON.parse(init.body as string)).toEqual({ taskId: 'tags', photoIds: [1, 2], again: true });
-    expect(useAiRun.getState().current).toMatchObject({ taskId: 'tags', total: 2 });
+    // The queue is shown at once with the new run
+    expect((fetchMock.mock.calls[2] as unknown as [string])[0]).toBe('/api/tasks');
+    expect(useAiRun.getState().error).toBeNull();
     expect(usePalomaStore.getState()).toMatchObject({ selectedFolderId: 7, selectedAlbumToken: null, currentView: 'library' });
   });
 
-  it('keeps the refusal of a second run to show it', async () => {
+  it('keeps the refusal of the server to show it', async () => {
     vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => (init?.method === 'POST'
-      ? new Response(JSON.stringify({ error: 'busy', code: 'ai_run_in_progress' }), { status: 409 })
+      ? new Response(JSON.stringify({ error: 'not ready', code: 'ai_task_not_ready' }), { status: 400 })
       : new Response(JSON.stringify([photo(1)]), { status: 200 }))));
     await runEntryTask(album, 'tags', false);
-    expect(useAiRun.getState().error).toMatchObject({ status: 409 });
+    expect(useAiRun.getState().error).toMatchObject({ status: 400 });
   });
 });
 

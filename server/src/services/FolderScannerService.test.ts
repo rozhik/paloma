@@ -909,3 +909,125 @@ describe('the library during a scan', () => {
     expect(indexed()).toBe(COUNT);
   }, 30_000);
 });
+
+describe('scans as tasks', () => {
+  const tasksOfKind = async (kind: string) => {
+    const { taskQueue } = await import('../tasks/queue.js');
+    return (await taskQueue.list()).filter((task) => task.kind === kind);
+  };
+
+  it('adds a start-up scan task per configured folder, started by Paloma', async () => {
+    const other = fs.mkdtempSync(path.join(tmpDir, 'photos_other_'));
+    await makeImage(path.join(photosRoot, 'a.jpg'));
+    await Scanner.startConfiguredFolders({ photosDirs: [photosRoot, other], excludeDirs: [] });
+    const scans = (await tasksOfKind('scan')).filter((task) => [photosRoot, other].includes(task.subject.folder!));
+    expect(scans.map((task) => [task.subject.folder, task.system, task.ownerId, task.state, task.params]))
+      .toEqual(expect.arrayContaining([
+        [photosRoot, true, null, 'finished', expect.objectContaining({ mode: 'full' })],
+        [other, true, null, 'finished', expect.objectContaining({ mode: 'full' })],
+      ]));
+    expect(scans.find((task) => task.subject.folder === photosRoot)).toMatchObject({ total: 1, done: 1, details: { indexed: 1 } });
+  });
+
+  it('skips an unchanged file without reading it again on the next scan, and re-indexes one whose time changed', async () => {
+    const { MetadataService } = await import('./MetadataService.js');
+    await makeImage(path.join(photosRoot, 'same.jpg'));
+    await makeImage(path.join(photosRoot, 'touched.jpg'));
+    await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
+    await Scanner.stopAll();
+    await makeImage(path.join(photosRoot, 'touched.jpg'), 60, 30);
+    const read = vi.spyOn(MetadataService, 'extractMetadata');
+    await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
+    expect(read.mock.calls.map(([file]) => path.basename(file))).toEqual(['touched.jpg']);
+    read.mockRestore();
+    expect(db.select().from(schema.photos).where(eq(schema.photos.filename, 'touched.jpg')).get()?.width).toBe(60);
+  });
+
+  /** Holds the scan before it reads its `after`-th file, until `go()`. */
+  async function holdScanAt(after: number) {
+    const { MetadataService } = await import('./MetadataService.js');
+    const original = MetadataService.extractMetadata.bind(MetadataService);
+    let go!: () => void;
+    const gate = new Promise<void>((resolve) => { go = resolve; });
+    let reached!: () => void;
+    const held = new Promise<void>((resolve) => { reached = resolve; });
+    let calls = 0;
+    const spy = vi.spyOn(MetadataService, 'extractMetadata').mockImplementation(async (file) => {
+      calls += 1;
+      if (calls === after) {
+        reached();
+        await gate;
+      }
+      return original(file);
+    });
+    return { held, go, spy, calls: () => calls };
+  }
+
+  const runningScan = async () => (await tasksOfKind('scan')).find((task) => task.subject.folder === photosRoot && task.state === 'running')!;
+  const indexed = () => db.select({ id: schema.photos.id }).from(schema.photos).all().length;
+
+  it('keeps the photos of a cancelled scan and checks the rest at the next scan', async () => {
+    const { taskQueue } = await import('../tasks/queue.js');
+    for (let i = 0; i < 6; i++) await makeImage(path.join(photosRoot, `c_${i}.jpg`));
+    const hold = await holdScanAt(4);
+    void Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
+    await hold.held;
+    const scan = await runningScan();
+    await taskQueue.cancel(scan.id);
+    hold.go();
+    expect((await taskQueue.whenEnded(scan.id)).state).toBe('cancelled');
+    hold.spy.mockRestore();
+    expect(indexed()).toBe(4);
+    await Scanner.stopAll();
+    await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
+    expect(indexed()).toBe(6);
+  }, 30_000);
+
+  it('continues a paused scan with the files it has not checked', async () => {
+    const { taskQueue } = await import('../tasks/queue.js');
+    for (const dir of ['a', 'b', 'c']) {
+      for (let i = 0; i < 2; i++) await makeImage(path.join(photosRoot, dir, `p${i}.jpg`));
+    }
+    const hold = await holdScanAt(3);
+    const started = Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
+    await hold.held;
+    const scan = await runningScan();
+    await taskQueue.pause(scan.id);
+    hold.go();
+    await vi.waitFor(async () => expect((await taskQueue.get(scan.id)).state).toBe('paused'), WAIT);
+    expect([indexed(), (await taskQueue.get(scan.id)).done]).toEqual([3, 3]);
+    await taskQueue.resume(scan.id);
+    await started;
+    hold.spy.mockRestore();
+    expect(indexed()).toBe(6);
+    // Folder `a` was done before the pause and is not read again; `b` is read from its start
+    expect(hold.calls()).toBe(3 + 1 + 2);
+    expect((await taskQueue.get(scan.id))).toMatchObject({ state: 'finished', done: 6, total: 6 });
+  }, 30_000);
+
+  it('collects the changes found while a scan task waits in that task, ahead of waiting user tasks', async () => {
+    const { taskQueue } = await import('../tasks/queue.js');
+    await Scanner.startConfiguredFolders({ photosDirs: [photosRoot], excludeDirs: [] });
+    // A user task that keeps the queue busy until the test lets it end
+    let finish!: () => void;
+    taskQueue.register({ kind: 'export', run: () => new Promise<void>((resolve) => { finish = resolve; }) });
+    const details = { kind: 'export' as const, outputDir: 'x', files: [], quotaExceeded: false };
+    const busy = await taskQueue.add({ kind: 'export', owner: { id: 'u', name: 'U' }, subject: {}, params: {}, details });
+    const waitingUser = await taskQueue.add({ kind: 'export', owner: { id: 'u', name: 'U' }, subject: {}, params: {}, details });
+    await vi.waitFor(async () => expect((await taskQueue.get(busy.id)).state).toBe('running'), WAIT);
+
+    await dropImage(path.join(photosRoot, 'one.jpg'));
+    await vi.waitFor(async () => expect((await tasksOfKind('scan')).filter((t) => t.state === 'waiting')).toHaveLength(1), WAIT);
+    await dropImage(path.join(photosRoot, 'two.jpg'));
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    const waitingScans = (await tasksOfKind('scan')).filter((t) => t.state === 'waiting');
+    expect(waitingScans).toHaveLength(1);
+    expect(taskQueue.active().map((t) => t.id)).toEqual([busy.id, waitingScans[0].id, waitingUser.id]);
+    expect(indexedPaths()).toEqual([]);
+
+    finish();
+    await vi.waitFor(() => expect(indexedPaths()).toEqual([path.join(photosRoot, 'one.jpg'), path.join(photosRoot, 'two.jpg')]), WAIT);
+    expect((await taskQueue.get(waitingScans[0].id)).details).toMatchObject({ mode: 'changes', indexed: 2 });
+    await taskQueue.cancel(waitingUser.id);
+  }, 30_000);
+});

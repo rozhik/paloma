@@ -145,10 +145,6 @@
   },
   "export": {
     "title": "Пакетный экспорт фотографий",
-    "done_one": "Экспортирована {{count, number}} фотография!",
-    "done_few": "Экспортировано {{count, number}} фотографии!",
-    "done_many": "Экспортировано {{count, number}} фотографий!",
-    "done_other": "Экспортировано {{count, number}} фотографии!",
     "savedTo": "Файлы сохранены в папке:",
     "destination": "Папка назначения:",
     "quality": "Качество JPEG ({{value, number}} %):",
@@ -160,7 +156,12 @@
     "summary_other": "Будет экспортировано <b>{{count, number}}</b> выбранной фотографии с применёнными правками.",
     "exporting": "Экспорт...",
     "start": "Начать экспорт",
-    "quotaPartial": "Экспортировано {{done}} из {{requested}} фото: место для экспорта закончилось."
+    "quotaPartial": "Экспортировано {{done}} из {{requested}} фото: место для экспорта закончилось.",
+    "queued_one": "Экспорт {{count, number}} фото добавлен в очередь задач",
+    "queued_few": "Экспорт {{count, number}} фото добавлен в очередь задач",
+    "queued_many": "Экспорт {{count, number}} фото добавлен в очередь задач",
+    "queued_other": "Экспорт {{count, number}} фото добавлен в очередь задач",
+    "queuedHint": "Когда экспорт завершится, появится сообщение. Следить за ним можно в разделе «Задачи» меню пользователя."
   },
   "print": {
     "title": "Печать фотографий",
@@ -308,10 +309,11 @@
     "ai_task_builtin": "Встроенную AI-задачу нельзя удалить.",
     "ai_task_not_builtin": "Сбросить можно только встроенные AI-задачи.",
     "ai_task_not_ready": "Эта AI-задача ещё не готова. Проверьте её провайдера и модель в настройках сервера.",
-    "ai_run_in_progress": "Уже выполняется другая AI-задача. Подождите, пока она завершится.",
     "read_only_field": "Это поле нельзя изменить.",
     "object_not_found": "Не найдено.",
-    "origin_not_allowed": "Запросы с этой веб-страницы запрещены."
+    "origin_not_allowed": "Запросы с этой веб-страницы запрещены.",
+    "task_not_found": "Этой задачи больше нет.",
+    "task_state": "В текущем состоянии задача не может этого сделать."
   },
   "geo": {
     "coordinates": "{{lat}}; {{lon}}",
@@ -551,13 +553,9 @@
   },
   "faces": {
     "detect": "Найти лица",
-    "cancel": "Остановить поиск лиц (готово {{done, number}} из {{total, number}})",
-    "cancelling": "Остановка…",
     "found": "Найдено лиц: {{faces, number}}, на фото: {{photos, number}}.",
-    "stopped": "Поиск лиц остановлен.",
     "failed": "Фото, которые не удалось проверить: {{failed, number}}.",
     "nothingToDo": "Лица на этих фото уже найдены.",
-    "loadFailed": "Не удалось запустить поиск лиц: {{message}}",
     "noReferenceTitle": "Пока нет лиц «{{name}}» для сравнения",
     "noReferenceHint": "Запустите «Найти лица» для фото «{{name}}» и вернитесь сюда.",
     "noSimilarTitle": "Похожих лиц нет",
@@ -764,7 +762,8 @@
     "account": "Учётная запись",
     "admin": "Администрирование",
     "server": "Настройки сервера",
-    "myPhotos": "Мои фото"
+    "myPhotos": "Мои фото",
+    "tasks": "Задачи"
   },
   "server": {
     "title": "Настройки сервера",
@@ -896,19 +895,14 @@
       "label": "AI-задачи для этих фото",
       "runAgain": "Запустить снова для всех фото",
       "settings": "Настройки AI…",
-      "running": "Выполняется AI-задача. Подождите, пока она завершится.",
       "empty": "Нет AI-задач. Администратор может добавить их в настройках сервера."
     },
     "run": {
-      "progress": "{{task}}: {{done, number}} из {{total, number}} фото",
-      "stop": "Остановить",
-      "cancelling": "Остановка после обрабатываемых фото…",
       "processed_one": "{{task}}: обработано {{count, number}} фото.",
       "processed_few": "{{task}}: обработано {{count, number}} фото.",
       "processed_many": "{{task}}: обработано {{count, number}} фото.",
       "processed_other": "{{task}}: обработано {{count, number}} фото.",
       "nothingToDo": "{{task}}: эти фото уже обработаны. Выберите «Запустить снова», чтобы обработать их ещё раз.",
-      "cancelled": "Остановлено.",
       "tagsAdded_one": "Добавлен {{count, number}} тег.",
       "tagsAdded_few": "Добавлено {{count, number}} тега.",
       "tagsAdded_many": "Добавлено {{count, number}} тегов.",
@@ -921,8 +915,7 @@
       "failed_few": "Не удалось обработать {{count, number}} фото.",
       "failed_many": "Не удалось обработать {{count, number}} фото.",
       "failed_other": "Не удалось обработать {{count, number}} фото.",
-      "tokens": "Использовано токенов: отправлено {{input, number}}, получено {{output, number}}.",
-      "stoppedError": "{{task}} остановлено: {{message}}"
+      "tokens": "Использовано токенов: отправлено {{input, number}}, получено {{output, number}}."
     },
     "info": {
       "title": "AI",
@@ -933,5 +926,71 @@
       "noObjects": "Объекты не найдены.",
       "noTags": "Теги не найдены."
     }
+  },
+  "tasks": {
+    "title": {
+      "view": "Задачи",
+      "faces_one": "Поиск лиц на {{count, number}} фото",
+      "faces_few": "Поиск лиц на {{count, number}} фото",
+      "faces_many": "Поиск лиц на {{count, number}} фото",
+      "faces_other": "Поиск лиц на {{count, number}} фото",
+      "export_one": "Экспорт {{count, number}} фото",
+      "export_few": "Экспорт {{count, number}} фото",
+      "export_many": "Экспорт {{count, number}} фото",
+      "export_other": "Экспорт {{count, number}} фото",
+      "scan": "Сканирование библиотеки",
+      "scanFolder": "Сканирование {{folder}}"
+    },
+    "state": {
+      "waiting": "Ожидает",
+      "running": "Выполняется",
+      "pausing": "Приостанавливается…",
+      "paused": "Приостановлено",
+      "cancelling": "Отменяется…",
+      "finished": "Завершено",
+      "cancelled": "Отменено",
+      "failed": "Ошибка"
+    },
+    "startedBySystem": "Paloma",
+    "startedByYou": "вами",
+    "startedByUnknown": "другим пользователем",
+    "startedBy": "Запущено: {{name}}, {{date}}",
+    "indicator": {
+      "running": "{{task}}: {{done, number}} из {{total, number}}. Открыть задачи",
+      "waiting_one": "Ожидает {{count, number}} ваша задача. Открыть задачи",
+      "waiting_few": "Ожидают {{count, number}} ваши задачи. Открыть задачи",
+      "waiting_many": "Ожидают {{count, number}} ваших задач. Открыть задачи",
+      "waiting_other": "Ожидают {{count, number}} вашей задачи. Открыть задачи"
+    },
+    "message": {
+      "failed": "{{task}} остановлено: {{message}}",
+      "cancelled": "{{task}} отменено.",
+      "exported_one": "Экспортировано {{count, number}} фото в {{folder}}.",
+      "exported_few": "Экспортировано {{count, number}} фото в {{folder}}.",
+      "exported_many": "Экспортировано {{count, number}} фото в {{folder}}.",
+      "exported_other": "Экспортировано {{count, number}} фото в {{folder}}.",
+      "exportFailed_one": "Не удалось экспортировать {{count, number}} фото.",
+      "exportFailed_few": "Не удалось экспортировать {{count, number}} фото.",
+      "exportFailed_many": "Не удалось экспортировать {{count, number}} фото.",
+      "exportFailed_other": "Не удалось экспортировать {{count, number}} фото.",
+      "scanned_one": "{{task}}: добавлено или обновлено {{count, number}} фото.",
+      "scanned_few": "{{task}}: добавлено или обновлено {{count, number}} фото.",
+      "scanned_many": "{{task}}: добавлено или обновлено {{count, number}} фото.",
+      "scanned_other": "{{task}}: добавлено или обновлено {{count, number}} фото."
+    },
+    "failedCount_one": "Ошибки на {{count, number}} фото.",
+    "failedCount_few": "Ошибки на {{count, number}} фото.",
+    "failedCount_many": "Ошибки на {{count, number}} фото.",
+    "failedCount_other": "Ошибки на {{count, number}} фото.",
+    "queue": "Очередь",
+    "ended": "Завершённые",
+    "empty": "Нет выполняющихся или ожидающих задач.",
+    "dropAtEnd": "Перетащите сюда, чтобы переместить в конец",
+    "pause": "Пауза",
+    "resume": "Продолжить",
+    "cancel": "Отменить",
+    "remove": "Убрать «{{task}}» из списка",
+    "moveUp": "Переместить «{{task}}» выше",
+    "moveDown": "Переместить «{{task}}» ниже"
   }
 }

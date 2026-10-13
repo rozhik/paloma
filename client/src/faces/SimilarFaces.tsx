@@ -6,7 +6,7 @@ import type { DetectedFaceInfo, Photo, SimilarFaces as SimilarFacesData } from '
 import { apiRequest, describeError } from '../api/http.js';
 import { assignFaces, dismissFaces, faceCropUrl, fetchSimilarFaces } from '../api/people.js';
 import { usePalomaStore } from '../store/usePalomaStore.js';
-import { useFaceDetection } from './detectionRunner.js';
+import { useFaceDetection } from './useFaceDetection.js';
 
 interface SimilarFacesContentProps {
   /** The person's shown name */

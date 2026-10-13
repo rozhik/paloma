@@ -1,5 +1,5 @@
 import type {
-  AssignFacesResult, DetectedFaceInput, Person, PersonFace, PersonInput, PersonSummary, PhotoPeople, RelativeRect, SimilarFaces,
+  AssignFacesResult, Person, PersonFace, PersonInput, PersonSummary, PhotoPeople, RelativeRect, SimilarFaces,
   UnassignedFaces,
 } from '../../../shared/types.js';
 import { apiRequest } from './http.js';
@@ -34,13 +34,6 @@ export const assignFaces = (id: string, faceIds: number[]): Promise<AssignFacesR
 export const dismissFaces = (id: string, faceIds: number[]): Promise<{ success: true }> =>
   apiRequest('POST', `/api/people/${id}/dismissals`, { faceIds });
 
-/** The photos among `photoIds` that still need face detection with `detector`. */
-export const fetchPendingDetection = (photoIds: number[], detector: string): Promise<{ pending: number[] }> =>
-  apiRequest('POST', '/api/faces/pending', { photoIds, detector });
-
-export const saveDetectedFaces = (photoId: number, detector: string, fileHash: string, faces: DetectedFaceInput[]): Promise<{ faces: number }> =>
-  apiRequest('PUT', `/api/photos/${photoId}/detected-faces`, { detector, fileHash, faces });
-
 /** The person's avatar image; null when they have none (a placeholder is shown). */
 export const avatarUrl = (id: string, version: string | null): string | null =>
   version === null ? null : `/api/people/${id}/avatar?v=${version}`;
@@ -51,9 +44,6 @@ export const rectQuery = (rect: RelativeRect): string =>
 /** A square crop around a face of the unedited photo. */
 export const faceCropUrl = (photoId: number, rect: RelativeRect, size = 160): string =>
   `/api/photos/${photoId}/face?rect=${rectQuery(rect)}&size=${size}`;
-
-/** The image face detection runs on: the unedited photo, upright. */
-export const faceSourceUrl = (photoId: number): string => `/api/photos/${photoId}/face-source`;
 
 /** The people on a photo with their face rectangles, and the detected faces that belong to no one. */
 export const fetchPhotoPeople = (photoId: number): Promise<PhotoPeople> => apiRequest<PhotoPeople>('GET', `/api/photos/${photoId}/people`);

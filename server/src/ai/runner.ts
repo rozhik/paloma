@@ -1,11 +1,12 @@
-import crypto from 'node:crypto';
 import path from 'node:path';
 import { eq, inArray } from 'drizzle-orm';
-import type { AiRunInfo, AiRunStatus, LibraryAccess } from '../../../shared/types.js';
+import type { AiTaskDetails } from '../../../shared/types.js';
 import { db } from '../db/index.js';
 import { all, BATCH_SIZE, chunked } from '../db/query.js';
 import { folders, photos } from '../db/schema.js';
-import { andVisible, currentAccess, runWithAccess } from '../auth/scope.js';
+import { andVisible, currentAccess } from '../auth/scope.js';
+import type { Principal } from '../auth/principal.js';
+import { TaskFailed, taskQueue, type TaskRecord, type TaskRun } from '../tasks/queue.js';
 import { pluginRegistry, type RegisteredAiProvider } from '../plugins/index.js';
 import type { AiAnswer, AiRequest } from '../plugins/api.js';
 import { fail } from '../services/apiError.js';
@@ -40,8 +41,20 @@ interface RunPhoto {
   caption: string | null;
 }
 
+/** What an AI run task works on. */
+interface AiParams {
+  taskId: string;
+  photoIds: number[];
+  again: boolean;
+  /** UI language of the user who started it, for tasks that use the user's language */
+  userLanguage: string;
+  /** With `again`: how many of `photoIds` were started before a pause */
+  next: number;
+}
+
+/** A run in progress: the AI task's configuration as it was when the run started. */
 interface Run {
-  info: AiRunInfo;
+  context: TaskRun<AiParams, AiTaskDetails>;
   task: StoredTask;
   provider: RegisteredAiProvider;
   ctx: ReturnType<typeof aiContext>;
@@ -49,16 +62,15 @@ interface Run {
   language: string;
   modelOptions: AiRequest['options'];
   libraryTags: string[];
-  photos: RunPhoto[];
-  access: LibraryAccess;
   /** Fatal failures (credentials, unreachable) in a row */
   fatalInARow: number;
-  finished: Promise<void>;
+  /** Why the run stopped early */
+  stopped: string | null;
 }
 
 const FATAL: readonly string[] = ['auth', 'unreachable'];
 
-/** The photos among `ids` the current request may see, in the order given. */
+/** The photos among `ids` the current access may see, in the order given. */
 async function visiblePhotos(ids: number[]): Promise<RunPhoto[]> {
   const rows = await chunked(ids, BATCH_SIZE, (chunk) => all(db.select({
     id: photos.id, filename: photos.filename, folderPath: folders.path, fileHash: photos.fileHash, keywords: photos.keywords, caption: photos.caption,
@@ -76,163 +88,161 @@ async function visiblePhotos(ids: number[]): Promise<RunPhoto[]> {
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
+/** The AI task and its provider, or why it cannot run. */
+async function readyTask(taskId: string): Promise<{ task: StoredTask; provider: RegisteredAiProvider } | { problem: string }> {
+  const { tasks, infos } = await currentTasks();
+  const task = tasks.find((t) => t.id === taskId);
+  if (!task) return { problem: 'task_not_found' };
+  const problem = infos.find((t) => t.id === taskId)!.problem;
+  if (problem) return { problem };
+  await pluginRegistry.init();
+  return { task, provider: pluginRegistry.getAiProvider(task.provider!)! };
+}
+
 /**
- * The AI run of the server: at most one at a time, processing photos in the background after the request that
- * started it, with the library access of the user who started it. Results are saved photo by photo, so a
- * cancelled run, or one ended by a restart, can be resumed by running the task again.
+ * `POST /api/ai/runs {taskId, photoIds, again}` in the current request's access: adds an AI run to the task queue.
+ * `userLanguage` is the user's UI language. The photos the user cannot see, and unless `again` those already
+ * processed, are left out.
  */
-export class AiRunner {
-  private current: Run | null = null;
-  private last: AiRunInfo | null = null;
-  private starting = false;
+export async function startAiRun(body: unknown, userLanguage: string, principal: Principal): Promise<TaskRecord<AiParams, AiTaskDetails>> {
+  const value = isObject(body) ? body : {};
+  if (typeof value.taskId !== 'string' || value.taskId === '') fail(400, 'invalid_field', 'taskId must be a task id', { field: 'taskId' });
+  const ids = parsePhotoIds(value.photoIds);
+  if (!ids) fail(400, 'photo_ids_required', 'photoIds must be a non-empty array of photo ids');
+  if (value.again !== undefined && typeof value.again !== 'boolean') fail(400, 'invalid_field', 'again must be true or false', { field: 'again' });
+  const taskId = value.taskId;
+  const again = value.again === true;
 
-  status(): AiRunStatus {
-    return { current: this.current ? structuredClone(this.current.info) : null, last: this.last ? structuredClone(this.last) : null };
+  const ready = await readyTask(taskId);
+  if ('problem' in ready) {
+    if (ready.problem === 'task_not_found') fail(404, 'ai_task_not_found', `AI task ${taskId} not found`, { id: taskId });
+    fail(400, 'ai_task_not_ready', `AI task ${taskId} is not ready: ${ready.problem}`, { id: taskId, problem: ready.problem });
   }
+  const { task, provider } = ready;
+  let list = (await visiblePhotos(ids)).map((photo) => photo.id);
+  if (!again) {
+    const fingerprint = taskFingerprint(task, effectiveModelOptions(task, provider.definition.modelOptions), runLanguage(task, userLanguage));
+    const done = await processedPhotos(task.id, fingerprint, list);
+    list = list.filter((id) => !done.has(id));
+  }
+  const added = await taskQueue.add<AiParams, AiTaskDetails>({
+    kind: 'ai',
+    owner: principal.user ? { id: principal.user.id, name: principal.user.displayName } : null,
+    subject: { photoCount: list.length, aiTaskId: task.id, aiTaskName: task.name },
+    params: { taskId: task.id, photoIds: list, again, userLanguage, next: 0 },
+    access: currentAccess(),
+    details: {
+      kind: 'ai', output: task.output, again, tagsAdded: 0, descriptionsSet: 0, inputTokens: 0, outputTokens: 0, failures: [], photoIds: [],
+    },
+    total: list.length,
+  });
+  console.log(`AI run of ${task.id} added to the queue for ${list.length} photos`);
+  return added;
+}
 
-  /** `POST /api/ai/runs {taskId, photoIds, again}` in the current request's access; `language` is the user's UI language. */
-  async start(body: unknown, language: string): Promise<AiRunInfo> {
-    const value = isObject(body) ? body : {};
-    if (typeof value.taskId !== 'string' || value.taskId === '') fail(400, 'invalid_field', 'taskId must be a task id', { field: 'taskId' });
-    const ids = parsePhotoIds(value.photoIds);
-    if (!ids) fail(400, 'photo_ids_required', 'photoIds must be a non-empty array of photo ids');
-    if (value.again !== undefined && typeof value.again !== 'boolean') fail(400, 'invalid_field', 'again must be true or false', { field: 'again' });
-    if (this.current || this.starting) fail(409, 'ai_run_in_progress', 'Another AI run is in progress');
-    this.starting = true;
-    try {
-      return await this.prepare(value.taskId, ids, value.again === true, language);
-    } finally {
-      this.starting = false;
+/**
+ * Runs an AI run task, with the library access of the user who started it. Results are saved photo by photo,
+ * so a paused, cancelled or interrupted run goes on with the photos it has not done.
+ */
+async function runAiTask(context: TaskRun<AiParams, AiTaskDetails>): Promise<void> {
+  const { task: record } = context;
+  const { params } = record;
+  const ready = await readyTask(params.taskId);
+  if ('problem' in ready) throw new TaskFailed(ready.problem === 'task_not_found' ? `AI task ${params.taskId} no longer exists` : `AI task ${params.taskId} is not ready: ${ready.problem}`);
+  const { task, provider } = ready;
+  const language = runLanguage(task, params.userLanguage);
+  const modelOptions = effectiveModelOptions(task, provider.definition.modelOptions);
+  const fingerprint = taskFingerprint(task, modelOptions, language);
+
+  let list: RunPhoto[];
+  if (params.again) {
+    list = await visiblePhotos(params.photoIds.slice(params.next));
+  } else {
+    list = await visiblePhotos(params.photoIds);
+    const done = await processedPhotos(task.id, fingerprint, list.map((photo) => photo.id));
+    list = list.filter((photo) => !done.has(photo.id));
+  }
+  record.total = record.done + list.length;
+  context.progress();
+
+  const saved = (await aiStore()).read().providers[provider.definition.id] ?? {};
+  const run: Run = {
+    context, task, provider, ctx: aiContext(provider, saved, serverEnv(), new AbortController().signal), fingerprint, language, modelOptions,
+    libraryTags: task.prompt.includes('{libraryTags}') ? await topLibraryTags() : [], fatalInARow: 0, stopped: null,
+  };
+  console.log(`AI run of ${task.id} started on ${list.length} photos`);
+
+  let next = 0;
+  const startedBefore = params.next;
+  const worker = async () => {
+    while (!context.stopping() && run.stopped === null && next < list.length) {
+      const photo = list[next++];
+      if (params.again) params.next = startedBefore + next;
+      await processPhoto(run, photo);
     }
-  }
+  };
+  await Promise.all(Array.from({ length: Math.max(1, task.options.parallel) }, worker));
+  const { details } = record;
+  console.log(`AI run of ${task.id} ended: ${record.done - record.failed} processed, ${record.failed} failed, ${details.tagsAdded} tags added`);
+  if (run.stopped !== null) throw new TaskFailed(run.stopped);
+}
 
-  private async prepare(taskId: string, ids: number[], again: boolean, userLanguage: string): Promise<AiRunInfo> {
-    const { tasks, infos } = await currentTasks();
-    const task = tasks.find((t) => t.id === taskId);
-    if (!task) fail(404, 'ai_task_not_found', `AI task ${taskId} not found`, { id: taskId });
-    const problem = infos.find((t) => t.id === taskId)!.problem;
-    if (problem) fail(400, 'ai_task_not_ready', `AI task ${taskId} is not ready: ${problem}`, { id: taskId, problem });
-    await pluginRegistry.init();
-    const provider = pluginRegistry.getAiProvider(task.provider!)!;
+function failPhoto(run: Run, photo: RunPhoto, message: string): void {
+  const record = run.context.task;
+  record.failed += 1;
+  if (record.details.failures.length < MAX_FAILURES_LISTED) record.details.failures.push({ photoId: photo.id, message });
+}
 
-    const language = runLanguage(task, userLanguage);
-    const modelOptions = effectiveModelOptions(task, provider.definition.modelOptions);
-    const fingerprint = taskFingerprint(task, modelOptions, language);
-    let list = await visiblePhotos(ids);
-    if (!again) {
-      const done = await processedPhotos(task.id, fingerprint, list.map((photo) => photo.id));
-      list = list.filter((photo) => !done.has(photo.id));
-    }
-    const libraryTags = task.prompt.includes('{libraryTags}') ? await topLibraryTags() : [];
-    const saved = (await aiStore()).read().providers[provider.definition.id] ?? {};
-
-    const info: AiRunInfo = {
-      id: crypto.randomUUID(), taskId: task.id, taskName: task.name, output: task.output, state: 'running', total: list.length, done: 0,
-      failed: 0, tagsAdded: 0, descriptionsSet: 0, inputTokens: 0, outputTokens: 0, error: null, failures: [], photoIds: [],
-      startedAt: new Date().toISOString(), endedAt: null,
-    };
-    const run: Run = {
-      info, task, provider, ctx: aiContext(provider, saved, serverEnv(), new AbortController().signal), fingerprint, language,
-      modelOptions, libraryTags, photos: list, access: currentAccess(), fatalInARow: 0, finished: Promise.resolve(),
-    };
-    this.current = run;
-    console.log(`AI run of ${task.id} started on ${list.length} photos`);
-    run.finished = runWithAccess(run.access, () => this.process(run));
-    return structuredClone(info);
-  }
-
-  /** Stops the run after the photos in progress; null when there is none. */
-  cancel(): AiRunInfo | null {
-    const run = this.current;
-    if (!run) return null;
-    if (run.info.state === 'running') run.info.state = 'cancelling';
-    return structuredClone(run.info);
-  }
-
-  /** Resolves when the run in progress, if any, has ended (for tests and shutdown). */
-  async idle(): Promise<void> {
-    await this.current?.finished;
-  }
-
-  private async process(run: Run): Promise<void> {
-    let next = 0;
-    const worker = async () => {
-      while (run.info.state === 'running' && next < run.photos.length) {
-        const photo = run.photos[next++];
-        await this.processPhoto(run, photo);
-      }
-    };
-    try {
-      await Promise.all(Array.from({ length: Math.max(1, run.task.options.parallel) }, worker));
-    } catch (err) {
-      run.info.state = 'stopped';
-      run.info.error = err instanceof Error ? err.message : String(err);
-      console.error('AI run failed:', err);
-    }
-    const { info } = run;
-    info.state = info.state === 'cancelling' ? 'cancelled' : info.state === 'stopped' ? 'stopped' : 'finished';
-    info.endedAt = new Date().toISOString();
-    console.log(`AI run of ${run.task.id} ${info.state}: ${info.done - info.failed} processed, ${info.failed} failed, ${info.tagsAdded} tags added`);
-    this.last = structuredClone(info);
-    this.current = null;
-  }
-
-  private async processPhoto(run: Run, photo: RunPhoto): Promise<void> {
-    const { info, task } = run;
-    try {
-      const answer = checkAnswer(task.output, await this.ask(run, photo));
-      await saveResult({
-        photoId: photo.id, taskId: task.id, fingerprint: run.fingerprint, fileHash: photo.fileHash, provider: run.provider.definition.id,
-        model: task.model!, output: task.output, answer,
-      });
-      info.inputTokens += answer.inputTokens ?? 0;
-      info.outputTokens += answer.outputTokens ?? 0;
-      run.fatalInARow = 0;
-      const applied = await applyResult(photo.id, task, answer);
-      info.tagsAdded += applied.tagsAdded;
-      if (applied.descriptionSet) info.descriptionsSet += 1;
-      if (applied.error) this.fail(run, photo, applied.error);
-    } catch (err) {
-      const error = toCallError(err);
-      this.fail(run, photo, error.message);
-      run.fatalInARow = FATAL.includes(error.kind) ? run.fatalInARow + 1 : 0;
-      if (run.fatalInARow >= STOP_AFTER && info.state !== 'stopped') {
-        info.state = 'stopped';
-        info.error = error.message;
-      }
-    } finally {
-      info.done += 1;
-      info.photoIds.push(photo.id);
-    }
-  }
-
-  private fail(run: Run, photo: RunPhoto, message: string): void {
-    run.info.failed += 1;
-    if (run.info.failures.length < MAX_FAILURES_LISTED) run.info.failures.push({ photoId: photo.id, message });
-  }
-
-  /** Sends one photo to the provider, retrying when the service asks to slow down. */
-  private async ask(run: Run, photo: RunPhoto): Promise<AiAnswer> {
-    const { task } = run;
-    const prompt = expandPrompt(task.prompt, {
-      language: languageName(run.language), maxTags: task.options.maxTags ?? 10, photoTags: photo.keywords, description: photo.caption,
-      libraryTags: run.libraryTags,
+async function processPhoto(run: Run, photo: RunPhoto): Promise<void> {
+  const { task } = run;
+  const record = run.context.task;
+  const { details } = record;
+  try {
+    const answer = checkAnswer(task.output, await ask(run, photo));
+    await saveResult({
+      photoId: photo.id, taskId: task.id, fingerprint: run.fingerprint, fileHash: photo.fileHash, provider: run.provider.definition.id,
+      model: task.model!, output: task.output, answer,
     });
-    const request: AiRequest = {
-      model: task.model!, prompt, output: task.output, image: await prepareImage(photo.filePath, task.options.imageSize),
-      language: languageName(run.language), options: run.modelOptions,
-      ...(task.output === 'tags' ? { maxTags: task.options.maxTags } : {}),
-    };
-    for (let attempt = 0; ; attempt++) {
-      try {
-        return await run.provider.definition.run(request, run.ctx);
-      } catch (err) {
-        const error: AiCallError = toCallError(err);
-        if (error.kind !== 'rate-limit' || attempt >= RATE_LIMIT_RETRIES) throw error;
-        await timing.sleep(error.retryAfterMs ?? 2000 * 2 ** attempt);
-      }
+    details.inputTokens += answer.inputTokens ?? 0;
+    details.outputTokens += answer.outputTokens ?? 0;
+    run.fatalInARow = 0;
+    const applied = await applyResult(photo.id, task, answer);
+    details.tagsAdded += applied.tagsAdded;
+    if (applied.descriptionSet) details.descriptionsSet += 1;
+    if (applied.error) failPhoto(run, photo, applied.error);
+  } catch (err) {
+    const error = toCallError(err);
+    failPhoto(run, photo, error.message);
+    run.fatalInARow = FATAL.includes(error.kind) ? run.fatalInARow + 1 : 0;
+    if (run.fatalInARow >= STOP_AFTER && run.stopped === null) run.stopped = error.message;
+  } finally {
+    record.done += 1;
+    details.photoIds.push(photo.id);
+    run.context.progress();
+  }
+}
+
+/** Sends one photo to the provider, retrying when the service asks to slow down. */
+async function ask(run: Run, photo: RunPhoto): Promise<AiAnswer> {
+  const { task } = run;
+  const prompt = expandPrompt(task.prompt, {
+    language: languageName(run.language), maxTags: task.options.maxTags ?? 10, photoTags: photo.keywords, description: photo.caption,
+    libraryTags: run.libraryTags,
+  });
+  const request: AiRequest = {
+    model: task.model!, prompt, output: task.output, image: await prepareImage(photo.filePath, task.options.imageSize),
+    language: languageName(run.language), options: run.modelOptions,
+    ...(task.output === 'tags' ? { maxTags: task.options.maxTags } : {}),
+  };
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await run.provider.definition.run(request, run.ctx);
+    } catch (err) {
+      const error: AiCallError = toCallError(err);
+      if (error.kind !== 'rate-limit' || attempt >= RATE_LIMIT_RETRIES) throw error;
+      await timing.sleep(error.retryAfterMs ?? 2000 * 2 ** attempt);
     }
   }
 }
 
-export const aiRunner = new AiRunner();
+taskQueue.register({ kind: 'ai', run: runAiTask });

@@ -6,6 +6,7 @@ import { pluginRegistry } from './plugins/index.js';
 import { openDatabase } from './db/index.js';
 import { prepareSetup } from './auth/setup.js';
 import { pruneSessions } from './auth/sessions.js';
+import { taskQueue } from './tasks/queue.js';
 
 const app = createApp();
 
@@ -25,6 +26,8 @@ async function startAuth(): Promise<void> {
 }
 
 function listen(): void {
+  // Tasks left from before a restart wait until the start-up scans are in the queue ahead of them
+  taskQueue.hold();
   app.listen(config.port, () => {
     console.log(`🕊️ Paloma Express Server running on http://localhost:${config.port}`);
 
@@ -39,10 +42,11 @@ function listen(): void {
       .catch((err) => console.error('Failed to load plugins:', err))
       .then(startAuth)
       .catch((err) => console.error('Failed to start users and logins:', err))
-      .then(() => FolderScannerService.startConfiguredFolders())
+      .then(() => FolderScannerService.startConfiguredFolders(undefined, { wait: false }))
       .catch((err) => {
         console.error('Failed to scan photos folders:', err);
       })
+      .finally(() => taskQueue.release())
       .finally(() => placeResolver.start().catch((err) => console.error('Failed to start resolving place names:', err)));
   });
 }

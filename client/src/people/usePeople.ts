@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { PersonSummary } from '../../../shared/types.js';
 import { fetchPeople, fetchUnassignedFaces } from '../api/people.js';
-import { useFaceDetection } from '../faces/detectionRunner.js';
+import { useFaceDetection } from '../faces/useFaceDetection.js';
 import { usePalomaStore } from '../store/usePalomaStore.js';
 
 /** How often the people list is re-read, so people found by the scanner show up */

@@ -39,10 +39,10 @@ The three built-in tasks can be changed and reset to their defaults. **Add task*
 
 Users with the `ai.run` permission (administrators and editors by default), from the Normal level, find an **AI** menu wherever **Find faces** is offered: the headers of folders, albums, tags, people and memories, and the menu of a sidebar entry. A task runs on all photos the grid shows:
 
-- The server runs it in the background, one run at a time. A ring over the grid shows its progress in every browser; activate it to stop the run.
+- The run is a task in the server's [task queue](task-queue.md): it waits for the tasks ahead of it and then runs in the background. Follow, pause, cancel or reorder it under **Tasks** in the user menu; a ring over the library shows the progress of your running task.
 - Photos the task already processed with the same configuration are skipped. **Run again** processes them anyway. Changing a task's provider, model, prompt, model options, image size or language makes it process photos again.
-- Each photo's result is saved as soon as it arrives, so a stopped run, or one ended by a restart, continues where it was when run again.
-- When the service asks to slow down, the photo is retried up to three times. After five photos in a row fail because the key is refused or the server cannot be reached, the run stops and says why.
+- Each photo's result is saved as soon as it arrives, so a paused run, or one interrupted by a restart, continues with the photos it has not done, and a cancelled run continues where it was when run again.
+- When the service asks to slow down, the photo is retried up to three times. After five photos in a row fail because the key is refused or the server cannot be reached, the run stops as `failed` and says why.
 
 ## What is stored where
 

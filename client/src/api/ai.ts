@@ -1,5 +1,5 @@
 import type {
-  AiModelInfo, AiProviderInfo, AiRunInfo, AiRunRequest, AiRunStatus, AiTask, AiTaskInput, PhotoAiResult,
+  AiModelInfo, AiProviderInfo, AiRunRequest, AiTask, AiTaskInput, PhotoAiResult, TaskInfo,
 } from '../../../shared/types.js';
 import { apiRequest } from './http.js';
 
@@ -30,12 +30,10 @@ export const deleteAiTask = (id: string): Promise<{ success: true }> => apiReque
 /** A built-in task back to its defaults, keeping its provider and model. */
 export const resetAiTask = (id: string): Promise<AiTask> => apiRequest('POST', `/api/ai/tasks/${encodeURIComponent(id)}/reset`, {});
 
-/** Starts a run on the server; `lang` is the language answers are in when the task says "the user's". */
-export const startAiRun = (request: AiRunRequest, lang: string): Promise<AiRunInfo> => apiRequest('POST', withLang('/api/ai/runs', lang), request);
-
-export const fetchAiRunStatus = (): Promise<AiRunStatus> => apiRequest('GET', '/api/ai/runs/current');
-
-/** Stops the run after the photos in progress. */
-export const cancelAiRun = (): Promise<AiRunStatus> => apiRequest('DELETE', '/api/ai/runs/current');
+/**
+ * Adds a run to the server's task queue; `lang` is the language answers are in when the task says "the user's".
+ * Following, pausing and cancelling it goes through the tasks API.
+ */
+export const startAiRun = (request: AiRunRequest, lang: string): Promise<TaskInfo> => apiRequest('POST', withLang('/api/ai/runs', lang), request);
 
 export const fetchPhotoAiResults = (photoId: number): Promise<PhotoAiResult[]> => apiRequest('GET', `/api/photos/${photoId}/ai`);

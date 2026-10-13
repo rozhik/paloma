@@ -231,10 +231,14 @@ describe('people and faces', () => {
   });
 
   it('runs face detection only on visible photos', async () => {
-    const pending = await dan.post('/faces/pending', { photoIds: [id.a, id.b], detector: 'test' });
-    expect(pending.body.pending).toEqual([id.b]);
-    const saved = await dan.put(`/photos/${id.a}/detected-faces`, { detector: 'test', fileHash: 'hash-a', faces: [] });
-    expect(saved.status).toBe(404);
+    const { detection } = await import('../faces/detectTask.js');
+    const { taskQueue } = await import('../tasks/queue.js');
+    const seen: string[] = [];
+    detection.detector = { prepare: async () => {}, detect: async (file) => { seen.push(file); return []; } };
+    const started = await dan.post('/faces/detect', { photoIds: [id.a, id.b] });
+    expect([started.status, started.body.task.photoCount, started.body.task.total]).toEqual([202, 1, 1]);
+    const ended = await taskQueue.whenEnded(started.body.task.id);
+    expect(ended.details).toMatchObject({ photoIds: [id.b] });
   });
 });
 

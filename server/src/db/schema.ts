@@ -15,6 +15,8 @@ export const photos = sqliteTable('photos', {
   width: integer('width').notNull().default(0),
   height: integer('height').notNull().default(0),
   fileSize: integer('file_size').notNull().default(0),
+  // Modification time (ms) when indexed; null for photos indexed before it was kept
+  fileMtime: real('file_mtime'),
   isStarred: integer('is_starred', { mode: 'boolean' }).notNull().default(false),
   // Effective location: the folder files' geotag, else the camera's EXIF GPS
   latitude: real('latitude'),
@@ -305,4 +307,34 @@ export const aiObjects = sqliteTable('ai_objects', {
   rect: text('rect').notNull(), // JSON RelativeRect
 }, (table) => ({
   byPhoto: index('ai_objects_photo').on(table.photoId),
+}));
+
+// The task queue: waiting, running, paused and recently ended tasks. `owner_id` has no foreign key, so ended
+// tasks of a deleted user keep showing their name
+export const tasks = sqliteTable('tasks', {
+  id: text('id').primaryKey(),
+  kind: text('kind', { enum: ['scan', 'ai', 'faces', 'export'] }).notNull(),
+  ownerId: text('owner_id'),
+  ownerName: text('owner_name'),
+  system: integer('system', { mode: 'boolean' }).notNull().default(false),
+  state: text('state', { enum: ['waiting', 'running', 'pausing', 'paused', 'cancelling', 'finished', 'cancelled', 'failed'] }).notNull(),
+  // Queue order of tasks that have not ended; moves put a task between its new neighbours
+  position: real('position').notNull(),
+  // JSON: what anyone may see about the task (photo count, AI task, scanned folder)
+  subject: text('subject').notNull(),
+  // JSON: what the task works on, only for the server (photo ids, options, how far it got)
+  params: text('params').notNull(),
+  // JSON LibraryAccess of the owner when the task was added; null for system tasks
+  access: text('access'),
+  // JSON TaskDetails: what the task did so far, for its owner
+  details: text('details').notNull(),
+  total: integer('total').notNull().default(0),
+  done: integer('done').notNull().default(0),
+  failed: integer('failed').notNull().default(0),
+  error: text('error'),
+  createdAt: text('created_at').notNull(),
+  startedAt: text('started_at'),
+  endedAt: text('ended_at'),
+}, (table) => ({
+  byState: index('tasks_state').on(table.state),
 }));

@@ -142,9 +142,6 @@
   },
   "export": {
     "title": "Exporter des photos par lot",
-    "done_one": "{{count, number}} photo exportée !",
-    "done_many": "{{count, number}} de photos exportées !",
-    "done_other": "{{count, number}} photos exportées !",
     "savedTo": "Fichiers enregistrés dans le dossier :",
     "destination": "Dossier de destination :",
     "quality": "Qualité JPEG ({{value, number}} %) :",
@@ -155,7 +152,11 @@
     "summary_other": "<b>{{count, number}}</b> photos sélectionnées seront exportées avec les retouches appliquées.",
     "exporting": "Exportation...",
     "start": "Lancer l’exportation",
-    "quotaPartial": "{{done}} photos sur {{requested}} ont été exportées : votre espace d’export est plein."
+    "quotaPartial": "{{done}} photos sur {{requested}} ont été exportées : votre espace d’export est plein.",
+    "queued_one": "L’export de {{count, number}} photo est dans la file des tâches",
+    "queued_many": "L’export de {{count, number}} photos est dans la file des tâches",
+    "queued_other": "L’export de {{count, number}} photos est dans la file des tâches",
+    "queuedHint": "Un message s’affichera une fois terminé. Vous pouvez le suivre dans Tâches, depuis le menu utilisateur."
   },
   "print": {
     "title": "Imprimer des photos",
@@ -299,10 +300,11 @@
     "ai_task_builtin": "Une tâche d’IA intégrée ne peut pas être supprimée.",
     "ai_task_not_builtin": "Seules les tâches d’IA intégrées peuvent être réinitialisées.",
     "ai_task_not_ready": "Cette tâche d’IA n’est pas prête. Vérifiez son fournisseur et son modèle dans les paramètres du serveur.",
-    "ai_run_in_progress": "Une autre tâche d’IA est en cours. Attendez qu’elle se termine.",
     "read_only_field": "Ce champ ne peut pas être modifié.",
     "object_not_found": "Introuvable.",
-    "origin_not_allowed": "Les requêtes depuis cette page web ne sont pas autorisées."
+    "origin_not_allowed": "Les requêtes depuis cette page web ne sont pas autorisées.",
+    "task_not_found": "Cette tâche n’existe plus.",
+    "task_state": "La tâche ne peut pas faire cela dans son état actuel."
   },
   "geo": {
     "coordinates": "{{lat}} ; {{lon}}",
@@ -535,13 +537,9 @@
   },
   "faces": {
     "detect": "Trouver les visages",
-    "cancel": "Arrêter la recherche de visages ({{done, number}} sur {{total, number}} faites)",
-    "cancelling": "Arrêt…",
     "found": "Visages trouvés : {{faces, number}}, sur {{photos, number}} photos.",
-    "stopped": "Recherche de visages arrêtée.",
     "failed": "Photos qui n’ont pas pu être vérifiées : {{failed, number}}.",
     "nothingToDo": "Les visages de ces photos ont déjà été trouvés.",
-    "loadFailed": "La recherche de visages n’a pas pu démarrer : {{message}}",
     "noReferenceTitle": "Aucun visage de {{name}} à comparer pour l’instant",
     "noReferenceHint": "Lancez « Trouver les visages » sur les photos de {{name}}, puis revenez ici.",
     "noSimilarTitle": "Aucun visage similaire",
@@ -748,7 +746,8 @@
     "account": "Compte",
     "admin": "Administration",
     "server": "Paramètres du serveur",
-    "myPhotos": "Mes photos"
+    "myPhotos": "Mes photos",
+    "tasks": "Tâches"
   },
   "server": {
     "title": "Paramètres du serveur",
@@ -879,18 +878,13 @@
       "label": "Tâches d’IA pour ces photos",
       "runAgain": "Relancer sur toutes les photos",
       "settings": "Paramètres d’IA…",
-      "running": "Une tâche d’IA est en cours. Attendez qu’elle se termine.",
       "empty": "Aucune tâche d’IA. Un administrateur peut en ajouter dans les paramètres du serveur."
     },
     "run": {
-      "progress": "{{task}} : {{done, number}} photos sur {{total, number}}",
-      "stop": "Arrêter",
-      "cancelling": "Arrêt après les photos en cours…",
       "processed_one": "{{task}} : {{count, number}} photo traitée.",
       "processed_many": "{{task}} : {{count, number}} de photos traitées.",
       "processed_other": "{{task}} : {{count, number}} photos traitées.",
       "nothingToDo": "{{task}} : ces photos ont déjà été traitées. Choisissez « Relancer » pour les traiter à nouveau.",
-      "cancelled": "Arrêté.",
       "tagsAdded_one": "{{count, number}} tag ajouté.",
       "tagsAdded_many": "{{count, number}} de tags ajoutés.",
       "tagsAdded_other": "{{count, number}} tags ajoutés.",
@@ -900,8 +894,7 @@
       "failed_one": "{{count, number}} photo n’a pas pu être traitée.",
       "failed_many": "{{count, number}} de photos n’ont pas pu être traitées.",
       "failed_other": "{{count, number}} photos n’ont pas pu être traitées.",
-      "tokens": "Jetons utilisés : {{input, number}} envoyés, {{output, number}} reçus.",
-      "stoppedError": "{{task}} arrêté : {{message}}"
+      "tokens": "Jetons utilisés : {{input, number}} envoyés, {{output, number}} reçus."
     },
     "info": {
       "title": "IA",
@@ -912,5 +905,64 @@
       "noObjects": "Aucun objet trouvé.",
       "noTags": "Aucun tag trouvé."
     }
+  },
+  "tasks": {
+    "title": {
+      "view": "Tâches",
+      "faces_one": "Trouver les visages sur {{count, number}} photo",
+      "faces_many": "Trouver les visages sur {{count, number}} photos",
+      "faces_other": "Trouver les visages sur {{count, number}} photos",
+      "export_one": "Exporter {{count, number}} photo",
+      "export_many": "Exporter {{count, number}} photos",
+      "export_other": "Exporter {{count, number}} photos",
+      "scan": "Analyse de la bibliothèque",
+      "scanFolder": "Analyse de {{folder}}"
+    },
+    "state": {
+      "waiting": "En attente",
+      "running": "En cours",
+      "pausing": "Mise en pause…",
+      "paused": "En pause",
+      "cancelling": "Annulation…",
+      "finished": "Terminée",
+      "cancelled": "Annulée",
+      "failed": "Échec"
+    },
+    "startedBySystem": "Paloma",
+    "startedByYou": "vous",
+    "startedByUnknown": "un autre utilisateur",
+    "startedBy": "Lancée par {{name}}, {{date}}",
+    "indicator": {
+      "running": "{{task}} : {{done, number}} sur {{total, number}}. Ouvrir les tâches",
+      "waiting_one": "{{count, number}} de vos tâches attend. Ouvrir les tâches",
+      "waiting_many": "{{count, number}} de vos tâches attendent. Ouvrir les tâches",
+      "waiting_other": "{{count, number}} de vos tâches attendent. Ouvrir les tâches"
+    },
+    "message": {
+      "failed": "{{task}} s’est arrêtée : {{message}}",
+      "cancelled": "{{task}} a été annulée.",
+      "exported_one": "{{count, number}} photo exportée dans {{folder}}.",
+      "exported_many": "{{count, number}} photos exportées dans {{folder}}.",
+      "exported_other": "{{count, number}} photos exportées dans {{folder}}.",
+      "exportFailed_one": "{{count, number}} photo n’a pas pu être exportée.",
+      "exportFailed_many": "{{count, number}} photos n’ont pas pu être exportées.",
+      "exportFailed_other": "{{count, number}} photos n’ont pas pu être exportées.",
+      "scanned_one": "{{task}} : {{count, number}} photo ajoutée ou mise à jour.",
+      "scanned_many": "{{task}} : {{count, number}} photos ajoutées ou mises à jour.",
+      "scanned_other": "{{task}} : {{count, number}} photos ajoutées ou mises à jour."
+    },
+    "failedCount_one": "{{count, number}} photo en échec.",
+    "failedCount_many": "{{count, number}} photos en échec.",
+    "failedCount_other": "{{count, number}} photos en échec.",
+    "queue": "File d’attente",
+    "ended": "Terminées",
+    "empty": "Aucune tâche en cours ou en attente.",
+    "dropAtEnd": "Déposez ici pour la placer à la fin",
+    "pause": "Pause",
+    "resume": "Reprendre",
+    "cancel": "Annuler",
+    "remove": "Retirer {{task}} de la liste",
+    "moveUp": "Monter {{task}}",
+    "moveDown": "Descendre {{task}}"
   }
 }

@@ -37,26 +37,26 @@ afterEach(() => {
 });
 
 describe('user menu items', () => {
-  it('offer an administrator Account, Admin, Server settings and Log out', () => {
+  it('offer an administrator Account, Tasks, Admin, Server settings and Log out', () => {
     setAuth(me('Anna Kovalenko', ADMIN));
-    expect(userMenuItemsFor('normal')).toEqual(['account', 'admin', 'server', 'logout']);
+    expect(userMenuItemsFor('normal')).toEqual(['account', 'tasks', 'admin', 'server', 'logout']);
   });
 
-  it('offer a viewer Account and Log out', () => {
+  it('offer a viewer Account, Tasks and Log out', () => {
     setAuth(me('Ben', ['library.view']));
-    expect(userMenuItemsFor('developer')).toEqual(['account', 'logout']);
+    expect(userMenuItemsFor('developer')).toEqual(['account', 'tasks', 'logout']);
   });
 
-  it('offer only Log out at Child, and Account from Easy', () => {
+  it('offer only Log out at Child, and Account and Tasks from Easy', () => {
     setAuth(me('Anna Kovalenko', ADMIN));
     expect(userMenuItemsFor('child')).toEqual(['logout']);
-    expect(userMenuItemsFor('easy')).toEqual(['account', 'logout']);
+    expect(userMenuItemsFor('easy')).toEqual(['account', 'tasks', 'logout']);
   });
 
-  it('offer only Server settings with users off', () => {
+  it('offer only Tasks and Server settings with users off', () => {
     setAuth({ mode: 'off', via: 'off', user: null, permissions: [], access: { all: true }, quotas: [] });
-    expect(userMenuItemsFor('normal')).toEqual(['server']);
-    expect(userMenuItemsFor('easy')).toEqual([]);
+    expect(userMenuItemsFor('normal')).toEqual(['tasks', 'server']);
+    expect(userMenuItemsFor('easy')).toEqual(['tasks']);
   });
 });
 
@@ -68,13 +68,13 @@ describe('My photos', () => {
 
   it('comes first for a user linked with a person they may see, from Easy', () => {
     setAuth(linked(true));
-    expect(userMenuItemsFor('easy')).toEqual(['photos', 'account', 'logout']);
+    expect(userMenuItemsFor('easy')).toEqual(['photos', 'account', 'tasks', 'logout']);
     expect(userMenuItemsFor('child')).toEqual(['logout']);
   });
 
   it('is not offered when the user may not see the person', () => {
     setAuth(linked(false));
-    expect(userMenuItemsFor('normal')).toEqual(['account', 'logout']);
+    expect(userMenuItemsFor('normal')).toEqual(['account', 'tasks', 'logout']);
   });
 });
 

@@ -5,9 +5,9 @@ import { allows, useLevel } from '../levels/controls.js';
 import type { Level } from '../levels/levels.js';
 import { requestSettings } from '../levels/pinGate.js';
 
-export type NavView = Exclude<AppView, 'account' | 'admin' | 'server'>;
+export type NavView = Exclude<AppView, 'account' | 'tasks' | 'admin' | 'server'>;
 
-/** The views the navigation offers, in order; Account, Admin and Server settings are in the user menu. */
+/** The views the navigation offers, in order; Account, Tasks, Admin and Server settings are in the user menu. */
 export const NAV_ITEMS: readonly { view: NavView; icon: LucideIcon; labelKey: `nav.${NavView}` }[] = [
   { view: 'library', icon: Image, labelKey: 'nav.library' },
   { view: 'people', icon: Users, labelKey: 'nav.people' },

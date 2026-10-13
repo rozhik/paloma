@@ -10,9 +10,9 @@ import { useAiTasks, useMenuTasks } from './aiTasks.js';
 import { useAiRun } from './useAiRun.js';
 
 /** A menu item for a task: disabled, with the reason under its name, when it cannot start. */
-const TaskItem: React.FC<{ task: AiTask; running: boolean; again?: boolean; onRun: () => void }> = ({ task, running, again, onRun }) => {
+const TaskItem: React.FC<{ task: AiTask; again?: boolean; onRun: () => void }> = ({ task, again, onRun }) => {
   const { t } = useTranslation();
-  const reason = taskUnavailable(task, running, t as never);
+  const reason = taskUnavailable(task, t as never);
   return (
     <Dropdown.Item as="button" type="button" disabled={reason !== null} onClick={onRun} data-ai-task={task.id} data-ai-again={again ? 'true' : undefined}>
       <span className="d-flex align-items-center gap-2">
@@ -24,22 +24,24 @@ const TaskItem: React.FC<{ task: AiTask; running: boolean; again?: boolean; onRu
   );
 };
 
-/** The items of an AI menu: each task, then Run again for each, then a link to the AI settings when allowed. */
+/**
+ * The items of an AI menu: each task, then Run again for each, then a link to the AI settings when allowed. A run
+ * started while another exists waits in the task queue.
+ */
 export const AiMenuItems: React.FC<{ tasks: AiTask[]; onRun: (task: AiTask, again: boolean) => void }> = ({ tasks, onRun }) => {
   const { t } = useTranslation();
-  const running = useAiRun((state) => state.current !== null);
   const canConfigure = useAllows('view.server');
   const setCurrentView = usePalomaStore((state) => state.setCurrentView);
   return (
     <>
       <Dropdown.Header>{t('ai.menu.label')}</Dropdown.Header>
       {tasks.length === 0 && <Dropdown.ItemText className="text-secondary text-wrap">{t('ai.menu.empty')}</Dropdown.ItemText>}
-      {tasks.map((task) => <TaskItem key={task.id} task={task} running={running} onRun={() => onRun(task, false)} />)}
+      {tasks.map((task) => <TaskItem key={task.id} task={task} onRun={() => onRun(task, false)} />)}
       {tasks.length > 0 && (
         <>
           <Dropdown.Divider />
           <Dropdown.Header>{t('ai.menu.runAgain')}</Dropdown.Header>
-          {tasks.map((task) => <TaskItem key={task.id} task={task} running={running} again onRun={() => onRun(task, true)} />)}
+          {tasks.map((task) => <TaskItem key={task.id} task={task} again onRun={() => onRun(task, true)} />)}
         </>
       )}
       {canConfigure && (

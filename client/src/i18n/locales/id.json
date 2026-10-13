@@ -136,7 +136,6 @@
   },
   "export": {
     "title": "Ekspor foto massal",
-    "done_other": "{{count, number}} foto berhasil diekspor!",
     "savedTo": "File disimpan di folder:",
     "destination": "Folder tujuan:",
     "quality": "Kualitas JPEG ({{value, number}}%):",
@@ -145,7 +144,9 @@
     "summary_other": "<b>{{count, number}}</b> foto terpilih akan diekspor dengan hasil editan.",
     "exporting": "Mengekspor...",
     "start": "Mulai ekspor",
-    "quotaPartial": "{{done}} dari {{requested}} foto telah diekspor: ruang ekspor Anda penuh."
+    "quotaPartial": "{{done}} dari {{requested}} foto telah diekspor: ruang ekspor Anda penuh.",
+    "queued_other": "Ekspor {{count, number}} foto ada di antrean tugas",
+    "queuedHint": "Pesan akan muncul saat selesai. Anda dapat memantaunya di Tugas pada menu pengguna."
   },
   "print": {
     "title": "Cetak foto",
@@ -281,10 +282,11 @@
     "ai_task_builtin": "Tugas AI bawaan tidak dapat dihapus.",
     "ai_task_not_builtin": "Hanya tugas AI bawaan yang dapat diatur ulang.",
     "ai_task_not_ready": "Tugas AI ini belum siap. Periksa penyedia dan modelnya di Pengaturan server.",
-    "ai_run_in_progress": "Tugas AI lain sedang berjalan. Tunggu hingga selesai.",
     "read_only_field": "Kolom ini tidak dapat diubah.",
     "object_not_found": "Tidak ditemukan.",
-    "origin_not_allowed": "Permintaan dari halaman web ini tidak diizinkan."
+    "origin_not_allowed": "Permintaan dari halaman web ini tidak diizinkan.",
+    "task_not_found": "Tugas ini sudah tidak ada.",
+    "task_state": "Tugas tidak dapat melakukan itu dalam keadaannya sekarang."
   },
   "geo": {
     "coordinates": "{{lat}}; {{lon}}",
@@ -503,13 +505,9 @@
   },
   "faces": {
     "detect": "Cari wajah",
-    "cancel": "Hentikan pencarian wajah ({{done, number}} dari {{total, number}} selesai)",
-    "cancelling": "Menghentikan…",
     "found": "Wajah ditemukan: {{faces, number}}, pada {{photos, number}} foto.",
-    "stopped": "Pencarian wajah dihentikan.",
     "failed": "Foto yang tidak dapat diperiksa: {{failed, number}}.",
     "nothingToDo": "Wajah pada foto-foto ini sudah ditemukan.",
-    "loadFailed": "Pencarian wajah tidak dapat dimulai: {{message}}",
     "noReferenceTitle": "Belum ada wajah {{name}} untuk dibandingkan",
     "noReferenceHint": "Jalankan “Cari wajah” pada foto {{name}}, lalu kembali ke sini.",
     "noSimilarTitle": "Tidak ada wajah serupa",
@@ -716,7 +714,8 @@
     "account": "Akun",
     "admin": "Administrasi",
     "server": "Pengaturan server",
-    "myPhotos": "Foto saya"
+    "myPhotos": "Foto saya",
+    "tasks": "Tugas"
   },
   "server": {
     "title": "Pengaturan server",
@@ -845,21 +844,15 @@
       "label": "Tugas AI untuk foto-foto ini",
       "runAgain": "Jalankan lagi pada semua foto",
       "settings": "Pengaturan AI…",
-      "running": "Tugas AI sedang berjalan. Tunggu hingga selesai.",
       "empty": "Tidak ada tugas AI. Administrator dapat menambahkannya di Pengaturan server."
     },
     "run": {
-      "progress": "{{task}}: {{done, number}} dari {{total, number}} foto",
-      "stop": "Hentikan",
-      "cancelling": "Berhenti setelah foto yang sedang diproses…",
       "processed_other": "{{task}}: {{count, number}} foto diproses.",
       "nothingToDo": "{{task}}: foto-foto ini sudah diproses. Pilih “Jalankan lagi” untuk memprosesnya lagi.",
-      "cancelled": "Dihentikan.",
       "tagsAdded_other": "{{count, number}} tag ditambahkan.",
       "descriptionsSet_other": "{{count, number}} deskripsi ditulis.",
       "failed_other": "{{count, number}} foto tidak dapat diproses.",
-      "tokens": "Token terpakai: {{input, number}} dikirim, {{output, number}} diterima.",
-      "stoppedError": "{{task}} berhenti: {{message}}"
+      "tokens": "Token terpakai: {{input, number}} dikirim, {{output, number}} diterima."
     },
     "info": {
       "title": "AI",
@@ -870,5 +863,50 @@
       "noObjects": "Tidak ada objek yang ditemukan.",
       "noTags": "Tidak ada tag yang ditemukan."
     }
+  },
+  "tasks": {
+    "title": {
+      "view": "Tugas",
+      "faces_other": "Cari wajah di {{count, number}} foto",
+      "export_other": "Ekspor {{count, number}} foto",
+      "scan": "Pemindaian pustaka",
+      "scanFolder": "Pemindaian {{folder}}"
+    },
+    "state": {
+      "waiting": "Menunggu",
+      "running": "Berjalan",
+      "pausing": "Menjeda…",
+      "paused": "Dijeda",
+      "cancelling": "Membatalkan…",
+      "finished": "Selesai",
+      "cancelled": "Dibatalkan",
+      "failed": "Gagal"
+    },
+    "startedBySystem": "Paloma",
+    "startedByYou": "Anda",
+    "startedByUnknown": "pengguna lain",
+    "startedBy": "Dimulai oleh {{name}}, {{date}}",
+    "indicator": {
+      "running": "{{task}}: {{done, number}} dari {{total, number}}. Buka tugas",
+      "waiting_other": "{{count, number}} tugas Anda menunggu. Buka tugas"
+    },
+    "message": {
+      "failed": "{{task}} berhenti: {{message}}",
+      "cancelled": "{{task}} dibatalkan.",
+      "exported_other": "{{count, number}} foto diekspor ke {{folder}}.",
+      "exportFailed_other": "{{count, number}} foto tidak dapat diekspor.",
+      "scanned_other": "{{task}}: {{count, number}} foto ditambahkan atau diperbarui."
+    },
+    "failedCount_other": "{{count, number}} foto gagal.",
+    "queue": "Antrean",
+    "ended": "Selesai",
+    "empty": "Tidak ada tugas yang berjalan atau menunggu.",
+    "dropAtEnd": "Letakkan di sini untuk memindahkannya ke akhir",
+    "pause": "Jeda",
+    "resume": "Lanjutkan",
+    "cancel": "Batalkan",
+    "remove": "Hapus {{task}} dari daftar",
+    "moveUp": "Pindahkan {{task}} ke atas",
+    "moveDown": "Pindahkan {{task}} ke bawah"
   }
 }

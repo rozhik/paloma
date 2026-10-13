@@ -20,8 +20,8 @@ import { PersonHeader } from './people/PersonHeader.js';
 import { usePerson } from './people/usePerson.js';
 import { SimilarFaces } from './faces/SimilarFaces.js';
 import { UnrecognizedFaces } from './faces/UnrecognizedFaces.js';
-import { FaceDetectionOverlay } from './faces/FaceDetectionProgress.js';
-import { AiRunOverlay } from './ai/AiRunProgress.js';
+import { TaskIndicator } from './tasks/TaskIndicator.js';
+import { TasksView } from './tasks/TasksView.js';
 import { Slideshow } from './components/slideshow/Slideshow.js';
 import { useLibraryPhotos } from './shell/useLibraryPhotos.js';
 import { useAppearanceSync, useSkin } from './appearance/runtime.js';
@@ -100,6 +100,7 @@ export const App: React.FC = () => {
     settings: <SettingsView />,
     admin: <AdminView />,
     account: <AccountView />,
+    tasks: <TasksView />,
     server: <ServerSettingsView />,
   }[currentView];
 
@@ -121,8 +122,7 @@ export const App: React.FC = () => {
       <MovieMakerModal show={showMovieModal} onHide={() => setShowMovieModal(false)} />
 
       {/* Over whatever view opened it, which stays mounted with its scroll position */}
-      <FaceDetectionOverlay />
-      <AiRunOverlay />
+      <TaskIndicator />
 
       <PhotoViewer />
 

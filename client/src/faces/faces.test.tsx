@@ -8,10 +8,9 @@ import { NavBar } from '../components/viewer/NavBar.js';
 import { barLayout } from '../components/viewer/barLayout.js';
 import { FaceFramesView } from '../components/viewer/FaceFrames.js';
 import { FaceDetectionButton } from './FaceDetectionButton.js';
-import { ProgressRing, resultMessage } from './FaceDetectionProgress.js';
 import { FaceCropGrid, SimilarFacesContent, toggled } from './SimilarFaces.js';
 import { UnrecognizedHeader } from './UnrecognizedFaces.js';
-import { useFaceDetection } from './detectionRunner.js';
+import { useFaceDetection, type DetectionDeps } from './useFaceDetection.js';
 
 function setSettings(patch: Partial<UiSettings>) {
   useUiSettings.setState(patch);
@@ -24,45 +23,42 @@ beforeAll(async () => {
 
 afterEach(() => {
   setSettings({ level: DEFAULT_UI_SETTINGS.level });
-  useFaceDetection.setState({ progress: null, result: null });
-  Object.assign(useFaceDetection.getInitialState(), { progress: null, result: null });
+  useFaceDetection.setState({ nothingToDo: false, error: null });
 });
 
 const html = (node: React.ReactElement) => renderToStaticMarkup(node).replace(/&quot;/g, '"').replace(/&#x27;/g, "'");
 
-describe('face detection progress', () => {
-  it('fills the ring to the share done and names the cancel action', () => {
-    const markup = html(<ProgressRing progress={{ done: 12, total: 30, cancelling: false }} onCancel={() => {}} />);
-    expect(markup).toContain(`aria-label="${i18n.t('faces.cancel', { done: 12, total: 30 })}"`);
-    expect(markup).toContain('12 / 30');
-    // 60% of the circle is still empty
-    const circumference = 2 * Math.PI * 26;
-    expect(markup).toContain(`stroke-dashoffset="${circumference * 0.6}"`);
+describe('face detection', () => {
+  const deps = (task: unknown): DetectionDeps & { calls: number[][] } => {
+    const calls: number[][] = [];
+    return { calls, start: async (photoIds: number[]) => { calls.push(photoIds); return { task } as never; }, added: async () => {} };
+  };
+
+  it('adds a detection task on the server for the photos of the grid', async () => {
+    const d = deps({ id: 't1' });
+    await useFaceDetection.getState().start([{ id: 1 }, { id: 2 }], d);
+    expect(d.calls).toEqual([[1, 2]]);
+    expect(useFaceDetection.getState().nothingToDo).toBe(false);
   });
 
-  it('is disabled while stopping', () => {
-    expect(html(<ProgressRing progress={{ done: 3, total: 30, cancelling: true }} onCancel={() => {}} />)).toContain('disabled=""');
+  it('says so when every photo was already detected', async () => {
+    await useFaceDetection.getState().start([{ id: 1 }], deps(null));
+    expect(useFaceDetection.getState().nothingToDo).toBe(true);
   });
 
-  it('says how many faces were found on how many photos, and what went wrong', () => {
-    const t = i18n.t.bind(i18n) as never;
-    const base = { faces: 17, photos: 11, failed: 0, total: 30, cancelled: false, error: null };
-    expect(resultMessage(base, t)).toBe(i18n.t('faces.found', { faces: 17, photos: 11 }));
-    expect(resultMessage({ ...base, cancelled: true, failed: 2 }, t))
-      .toBe(`${i18n.t('faces.stopped')} ${i18n.t('faces.found', { faces: 17, photos: 11 })} ${i18n.t('faces.failed', { failed: 2 })}`);
-    expect(resultMessage({ ...base, total: 0 }, t)).toBe(i18n.t('faces.nothingToDo'));
-    expect(resultMessage({ ...base, error: new Error('no WebGL') }, t)).toContain('no WebGL');
+  it('keeps the refusal of the server', async () => {
+    const refusing: DetectionDeps = { start: async () => { throw new Error('nope'); }, added: async () => {} };
+    await useFaceDetection.getState().start([{ id: 1 }], refusing);
+    expect(useFaceDetection.getState().error).toEqual(new Error('nope'));
   });
 
-  it('offers detection at Normal for a grid with photos, and not at Easy or while running', () => {
+  it('offers detection at Normal for a grid with photos, and not at Easy', () => {
     const photos = [{ id: 1 }] as Photo[];
     expect(html(<FaceDetectionButton photos={photos} />)).toContain(i18n.t('faces.detect'));
     expect(html(<FaceDetectionButton photos={[]} />)).toBe('');
     setSettings({ level: 'easy' });
     expect(html(<FaceDetectionButton photos={photos} />)).toBe('');
     setSettings({ level: 'normal' });
-    Object.assign(useFaceDetection.getInitialState(), { progress: { done: 0, total: 1, cancelling: false } });
-    expect(html(<FaceDetectionButton photos={photos} />)).toBe('');
   });
 });
 

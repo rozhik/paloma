@@ -136,7 +136,6 @@
   },
   "export": {
     "title": "写真の一括書き出し",
-    "done_other": "{{count, number}} 枚の写真を書き出しました！",
     "savedTo": "保存先フォルダ:",
     "destination": "保存先フォルダ:",
     "quality": "JPEG 品質（{{value, number}}%）:",
@@ -145,7 +144,9 @@
     "summary_other": "選択した <b>{{count, number}}</b> 枚の写真を、編集を適用して書き出します。",
     "exporting": "書き出し中...",
     "start": "書き出しを開始",
-    "quotaPartial": "{{requested}} 枚中 {{done}} 枚の写真をエクスポートしました。エクスポート領域がいっぱいです。"
+    "quotaPartial": "{{requested}} 枚中 {{done}} 枚の写真をエクスポートしました。エクスポート領域がいっぱいです。",
+    "queued_other": "{{count, number}} 枚の写真のエクスポートをタスクキューに追加しました",
+    "queuedHint": "完了するとメッセージが表示されます。ユーザーメニューの「タスク」で進行状況を確認できます。"
   },
   "print": {
     "title": "写真を印刷",
@@ -281,10 +282,11 @@
     "ai_task_builtin": "組み込みの AI タスクは削除できません。",
     "ai_task_not_builtin": "リセットできるのは組み込みの AI タスクだけです。",
     "ai_task_not_ready": "この AI タスクはまだ準備ができていません。サーバー設定でプロバイダーとモデルを確認してください。",
-    "ai_run_in_progress": "別の AI タスクが実行中です。終わるまでお待ちください。",
     "read_only_field": "この項目は変更できません。",
     "object_not_found": "見つかりません。",
-    "origin_not_allowed": "この Web ページからのリクエストは許可されていません。"
+    "origin_not_allowed": "この Web ページからのリクエストは許可されていません。",
+    "task_not_found": "このタスクはもうありません。",
+    "task_state": "現在の状態のタスクではその操作はできません。"
   },
   "geo": {
     "coordinates": "{{lat}}、{{lon}}",
@@ -503,13 +505,9 @@
   },
   "faces": {
     "detect": "顔を検出",
-    "cancel": "顔の検出を中止（{{total, number}} 枚中 {{done, number}} 枚完了）",
-    "cancelling": "中止しています…",
     "found": "見つかった顔：{{faces, number}}、写真 {{photos, number}} 枚。",
-    "stopped": "顔の検出を中止しました。",
     "failed": "確認できなかった写真：{{failed, number}}。",
     "nothingToDo": "これらの写真の顔はすでに検出済みです。",
-    "loadFailed": "顔の検出を開始できませんでした：{{message}}",
     "noReferenceTitle": "比較できる {{name}} の顔がまだありません",
     "noReferenceHint": "{{name}} の写真で「顔を検出」を実行してから、ここに戻ってください。",
     "noSimilarTitle": "似ている顔はありません",
@@ -716,7 +714,8 @@
     "account": "アカウント",
     "admin": "管理パネル",
     "server": "サーバー設定",
-    "myPhotos": "自分の写真"
+    "myPhotos": "自分の写真",
+    "tasks": "タスク"
   },
   "server": {
     "title": "サーバー設定",
@@ -845,21 +844,15 @@
       "label": "これらの写真の AI タスク",
       "runAgain": "すべての写真でもう一度実行",
       "settings": "AI 設定…",
-      "running": "AI タスクが実行中です。終わるまでお待ちください。",
       "empty": "AI タスクがありません。管理者がサーバー設定で追加できます。"
     },
     "run": {
-      "progress": "{{task}}：{{total, number}} 枚中 {{done, number}} 枚",
-      "stop": "停止",
-      "cancelling": "処理中の写真のあとで停止します…",
       "processed_other": "{{task}}：{{count, number}} 枚の写真を処理しました。",
       "nothingToDo": "{{task}}：これらの写真は処理済みです。もう一度処理するには「もう一度実行」を選んでください。",
-      "cancelled": "停止しました。",
       "tagsAdded_other": "{{count, number}} 個のタグを追加しました。",
       "descriptionsSet_other": "{{count, number}} 件の説明を書きました。",
       "failed_other": "{{count, number}} 枚の写真を処理できませんでした。",
-      "tokens": "使用トークン：送信 {{input, number}}、受信 {{output, number}}。",
-      "stoppedError": "{{task}} が停止しました：{{message}}"
+      "tokens": "使用トークン：送信 {{input, number}}、受信 {{output, number}}。"
     },
     "info": {
       "title": "AI",
@@ -870,5 +863,50 @@
       "noObjects": "物体は見つかりませんでした。",
       "noTags": "タグは見つかりませんでした。"
     }
+  },
+  "tasks": {
+    "title": {
+      "view": "タスク",
+      "faces_other": "{{count, number}} 枚の写真で顔を検出",
+      "export_other": "{{count, number}} 枚の写真をエクスポート",
+      "scan": "ライブラリのスキャン",
+      "scanFolder": "{{folder}} のスキャン"
+    },
+    "state": {
+      "waiting": "待機中",
+      "running": "実行中",
+      "pausing": "一時停止中…",
+      "paused": "一時停止",
+      "cancelling": "キャンセル中…",
+      "finished": "完了",
+      "cancelled": "キャンセル済み",
+      "failed": "失敗"
+    },
+    "startedBySystem": "Paloma",
+    "startedByYou": "あなた",
+    "startedByUnknown": "別のユーザー",
+    "startedBy": "開始: {{name}}、{{date}}",
+    "indicator": {
+      "running": "{{task}}: {{total, number}} 件中 {{done, number}} 件。タスクを開く",
+      "waiting_other": "あなたのタスク {{count, number}} 件が待機中です。タスクを開く"
+    },
+    "message": {
+      "failed": "{{task}} が停止しました: {{message}}",
+      "cancelled": "{{task}} はキャンセルされました。",
+      "exported_other": "{{count, number}} 枚の写真を {{folder}} にエクスポートしました。",
+      "exportFailed_other": "{{count, number}} 枚の写真をエクスポートできませんでした。",
+      "scanned_other": "{{task}}: {{count, number}} 枚の写真を追加または更新しました。"
+    },
+    "failedCount_other": "{{count, number}} 枚の写真が失敗しました。",
+    "queue": "キュー",
+    "ended": "終了",
+    "empty": "実行中または待機中のタスクはありません。",
+    "dropAtEnd": "ここにドロップすると最後に移動します",
+    "pause": "一時停止",
+    "resume": "再開",
+    "cancel": "キャンセル",
+    "remove": "{{task}} を一覧から削除",
+    "moveUp": "{{task}} を上へ移動",
+    "moveDown": "{{task}} を下へ移動"
   }
 }

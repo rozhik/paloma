@@ -151,12 +151,6 @@
   },
   "export": {
     "title": "تصدير الصور دفعة واحدة",
-    "done_zero": "تم تصدير {{count, number}} صورة!",
-    "done_one": "تم تصدير صورة واحدة ({{count, number}})!",
-    "done_two": "تم تصدير صورتين ({{count, number}})!",
-    "done_few": "تم تصدير {{count, number}} صور!",
-    "done_many": "تم تصدير {{count, number}} صورة!",
-    "done_other": "تم تصدير {{count, number}} صورة!",
     "savedTo": "حُفظت الملفات في المجلد:",
     "destination": "مجلد الوجهة:",
     "quality": "جودة JPEG ({{value, number}}٪):",
@@ -170,7 +164,14 @@
     "summary_other": "سيتم تصدير <b>{{count, number}}</b> صورة محددة مع تطبيق التعديلات.",
     "exporting": "جارٍ التصدير...",
     "start": "بدء التصدير",
-    "quotaPartial": "تم تصدير {{done}} من {{requested}} صورة: امتلأت مساحة التصدير الخاصة بك."
+    "quotaPartial": "تم تصدير {{done}} من {{requested}} صورة: امتلأت مساحة التصدير الخاصة بك.",
+    "queued_zero": "أُضيف تصدير {{count, number}} صورة إلى قائمة المهام",
+    "queued_one": "أُضيف تصدير {{count, number}} صورة إلى قائمة المهام",
+    "queued_two": "أُضيف تصدير {{count, number}} صورة إلى قائمة المهام",
+    "queued_few": "أُضيف تصدير {{count, number}} صورة إلى قائمة المهام",
+    "queued_many": "أُضيف تصدير {{count, number}} صورة إلى قائمة المهام",
+    "queued_other": "أُضيف تصدير {{count, number}} صورة إلى قائمة المهام",
+    "queuedHint": "ستظهر رسالة عند الانتهاء. يمكنك متابعتها في المهام من قائمة المستخدم."
   },
   "print": {
     "title": "طباعة الصور",
@@ -326,10 +327,11 @@
     "ai_task_builtin": "لا يمكن حذف مهمة ذكاء اصطناعي مدمجة.",
     "ai_task_not_builtin": "لا يمكن إعادة تعيين إلا مهام الذكاء الاصطناعي المدمجة.",
     "ai_task_not_ready": "مهمة الذكاء الاصطناعي هذه ليست جاهزة. تحقّق من مزوّدها ونموذجها في إعدادات الخادم.",
-    "ai_run_in_progress": "هناك مهمة ذكاء اصطناعي أخرى قيد التشغيل. انتظر حتى تنتهي.",
     "read_only_field": "لا يمكن تغيير هذا الحقل.",
     "object_not_found": "غير موجود.",
-    "origin_not_allowed": "الطلبات من صفحة الويب هذه غير مسموح بها."
+    "origin_not_allowed": "الطلبات من صفحة الويب هذه غير مسموح بها.",
+    "task_not_found": "لم تعد هذه المهمة موجودة.",
+    "task_state": "لا يمكن للمهمة فعل ذلك في حالتها الحالية."
   },
   "geo": {
     "coordinates": "{{lat}}، {{lon}}",
@@ -583,13 +585,9 @@
   },
   "faces": {
     "detect": "العثور على الوجوه",
-    "cancel": "إيقاف العثور على الوجوه (اكتمل {{done, number}} من {{total, number}})",
-    "cancelling": "جارٍ الإيقاف…",
     "found": "الوجوه التي عُثر عليها: {{faces, number}}، في {{photos, number}} صورة.",
-    "stopped": "توقف العثور على الوجوه.",
     "failed": "صور تعذّر فحصها: {{failed, number}}.",
     "nothingToDo": "عُثر على الوجوه في هذه الصور من قبل.",
-    "loadFailed": "تعذّر بدء العثور على الوجوه: {{message}}",
     "noReferenceTitle": "لا توجد وجوه لـ {{name}} للمقارنة بعد",
     "noReferenceHint": "شغّل «العثور على الوجوه» على صور {{name}} ثم عد إلى هنا.",
     "noSimilarTitle": "لا توجد وجوه مشابهة",
@@ -796,7 +794,8 @@
     "account": "الحساب",
     "admin": "الإدارة",
     "server": "إعدادات الخادم",
-    "myPhotos": "صوري"
+    "myPhotos": "صوري",
+    "tasks": "المهام"
   },
   "server": {
     "title": "إعدادات الخادم",
@@ -930,13 +929,9 @@
       "label": "مهام الذكاء الاصطناعي لهذه الصور",
       "runAgain": "التشغيل مجددًا على كل الصور",
       "settings": "إعدادات الذكاء الاصطناعي…",
-      "running": "هناك مهمة ذكاء اصطناعي قيد التشغيل. انتظر حتى تنتهي.",
       "empty": "لا توجد مهام ذكاء اصطناعي. يمكن للمسؤول إضافتها في إعدادات الخادم."
     },
     "run": {
-      "progress": "{{task}}: {{done, number}} من {{total, number}} صورة",
-      "stop": "إيقاف",
-      "cancelling": "سيتوقف بعد الصور الجارية معالجتها…",
       "processed_zero": "{{task}}: لم تُعالج أي صورة ({{count, number}}).",
       "processed_one": "{{task}}: عولجت صورة واحدة ({{count, number}}).",
       "processed_two": "{{task}}: عولجت صورتان ({{count, number}}).",
@@ -944,7 +939,6 @@
       "processed_many": "{{task}}: عولجت {{count, number}} صورة.",
       "processed_other": "{{task}}: عولجت {{count, number}} صورة.",
       "nothingToDo": "{{task}}: عولجت هذه الصور من قبل. اختر «التشغيل مجددًا» لمعالجتها مرة أخرى.",
-      "cancelled": "توقف.",
       "tagsAdded_zero": "لم يُضف أي وسم ({{count, number}}).",
       "tagsAdded_one": "أُضيف وسم واحد ({{count, number}}).",
       "tagsAdded_two": "أُضيف وسمان ({{count, number}}).",
@@ -963,8 +957,7 @@
       "failed_few": "تعذّرت معالجة {{count, number}} صور.",
       "failed_many": "تعذّرت معالجة {{count, number}} صورة.",
       "failed_other": "تعذّرت معالجة {{count, number}} صورة.",
-      "tokens": "الرموز المستخدمة: {{input, number}} مُرسلة، {{output, number}} مُستلمة.",
-      "stoppedError": "توقفت {{task}}: {{message}}"
+      "tokens": "الرموز المستخدمة: {{input, number}} مُرسلة، {{output, number}} مُستلمة."
     },
     "info": {
       "title": "الذكاء الاصطناعي",
@@ -975,5 +968,85 @@
       "noObjects": "لم يُعثر على كائنات.",
       "noTags": "لم يُعثر على وسوم."
     }
+  },
+  "tasks": {
+    "title": {
+      "view": "المهام",
+      "faces_zero": "العثور على الوجوه في {{count, number}} صورة",
+      "faces_one": "العثور على الوجوه في {{count, number}} صورة",
+      "faces_two": "العثور على الوجوه في {{count, number}} صورة",
+      "faces_few": "العثور على الوجوه في {{count, number}} صورة",
+      "faces_many": "العثور على الوجوه في {{count, number}} صورة",
+      "faces_other": "العثور على الوجوه في {{count, number}} صورة",
+      "export_zero": "تصدير {{count, number}} صورة",
+      "export_one": "تصدير {{count, number}} صورة",
+      "export_two": "تصدير {{count, number}} صورة",
+      "export_few": "تصدير {{count, number}} صورة",
+      "export_many": "تصدير {{count, number}} صورة",
+      "export_other": "تصدير {{count, number}} صورة",
+      "scan": "فحص المكتبة",
+      "scanFolder": "فحص {{folder}}"
+    },
+    "state": {
+      "waiting": "في الانتظار",
+      "running": "قيد التشغيل",
+      "pausing": "جارٍ الإيقاف المؤقت…",
+      "paused": "متوقفة مؤقتًا",
+      "cancelling": "جارٍ الإلغاء…",
+      "finished": "اكتملت",
+      "cancelled": "أُلغيت",
+      "failed": "فشلت"
+    },
+    "startedBySystem": "Paloma",
+    "startedByYou": "أنت",
+    "startedByUnknown": "مستخدم آخر",
+    "startedBy": "بدأها {{name}}، {{date}}",
+    "indicator": {
+      "running": "{{task}}: {{done, number}} من {{total, number}}. فتح المهام",
+      "waiting_zero": "{{count, number}} من مهامك في الانتظار. فتح المهام",
+      "waiting_one": "{{count, number}} من مهامك في الانتظار. فتح المهام",
+      "waiting_two": "{{count, number}} من مهامك في الانتظار. فتح المهام",
+      "waiting_few": "{{count, number}} من مهامك في الانتظار. فتح المهام",
+      "waiting_many": "{{count, number}} من مهامك في الانتظار. فتح المهام",
+      "waiting_other": "{{count, number}} من مهامك في الانتظار. فتح المهام"
+    },
+    "message": {
+      "failed": "توقفت {{task}}: {{message}}",
+      "cancelled": "أُلغيت {{task}}.",
+      "exported_zero": "صُدّرت {{count, number}} صورة إلى {{folder}}.",
+      "exported_one": "صُدّرت {{count, number}} صورة إلى {{folder}}.",
+      "exported_two": "صُدّرت {{count, number}} صورة إلى {{folder}}.",
+      "exported_few": "صُدّرت {{count, number}} صورة إلى {{folder}}.",
+      "exported_many": "صُدّرت {{count, number}} صورة إلى {{folder}}.",
+      "exported_other": "صُدّرت {{count, number}} صورة إلى {{folder}}.",
+      "exportFailed_zero": "تعذّر تصدير {{count, number}} صورة.",
+      "exportFailed_one": "تعذّر تصدير {{count, number}} صورة.",
+      "exportFailed_two": "تعذّر تصدير {{count, number}} صورة.",
+      "exportFailed_few": "تعذّر تصدير {{count, number}} صورة.",
+      "exportFailed_many": "تعذّر تصدير {{count, number}} صورة.",
+      "exportFailed_other": "تعذّر تصدير {{count, number}} صورة.",
+      "scanned_zero": "{{task}}: أُضيفت أو حُدّثت {{count, number}} صورة.",
+      "scanned_one": "{{task}}: أُضيفت أو حُدّثت {{count, number}} صورة.",
+      "scanned_two": "{{task}}: أُضيفت أو حُدّثت {{count, number}} صورة.",
+      "scanned_few": "{{task}}: أُضيفت أو حُدّثت {{count, number}} صورة.",
+      "scanned_many": "{{task}}: أُضيفت أو حُدّثت {{count, number}} صورة.",
+      "scanned_other": "{{task}}: أُضيفت أو حُدّثت {{count, number}} صورة."
+    },
+    "failedCount_zero": "فشلت {{count, number}} صورة.",
+    "failedCount_one": "فشلت {{count, number}} صورة.",
+    "failedCount_two": "فشلت {{count, number}} صورة.",
+    "failedCount_few": "فشلت {{count, number}} صورة.",
+    "failedCount_many": "فشلت {{count, number}} صورة.",
+    "failedCount_other": "فشلت {{count, number}} صورة.",
+    "queue": "قائمة الانتظار",
+    "ended": "المنتهية",
+    "empty": "لا توجد مهام قيد التشغيل أو في الانتظار.",
+    "dropAtEnd": "أفلِتها هنا لنقلها إلى النهاية",
+    "pause": "إيقاف مؤقت",
+    "resume": "استئناف",
+    "cancel": "إلغاء",
+    "remove": "إزالة {{task}} من القائمة",
+    "moveUp": "نقل {{task}} لأعلى",
+    "moveDown": "نقل {{task}} لأسفل"
   }
 }

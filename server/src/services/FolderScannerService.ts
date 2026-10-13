@@ -1,4 +1,5 @@
 import chokidar, { FSWatcher } from 'chokidar';
+import crypto from 'node:crypto';
 import path from 'node:path';
 import fs from 'node:fs';
 import { db, type Db } from '../db/index.js';
@@ -12,15 +13,16 @@ import { METADATA_VERSION, MetadataService } from './MetadataService.js';
 import { effectiveLocation } from './location.js';
 import { ThumbnailService } from './ThumbnailService.js';
 import { SidecarService, type FolderState, type PhotoFields } from './SidecarService.js';
-import type { PalomaAlbumDefinition, PalomaPerson } from '../../../shared/types.js';
+import type { PalomaAlbumDefinition, PalomaPerson, ScanTaskDetails } from '../../../shared/types.js';
 import { effectiveText, parseKeywords, peopleOfFaces, textKey, type FileText } from './libraryText.js';
 import { config } from '../config.js';
 import { isIgnoredName, isExcluded, isPathCovered, collapseRoots, isFolderMetaFile } from './scanPaths.js';
 import { withFolderLock } from './folderLock.js';
+import { isEnded, TaskFailed, taskQueue, type TaskRecord, type TaskRun } from '../tasks/queue.js';
 
 const SUPPORTED_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.tiff', '.bmp', '.heic']);
 
-type IndexEvent = 'add' | 'change';
+type IndexEvent = 'add' | 'change' | 'scan';
 
 export interface ScanOptions {
   photosDirs: readonly string[];
@@ -161,56 +163,258 @@ async function setPhotoFields(tx: Db, photoId: number, fields: PhotoFields | und
   await setPhotoPeople(tx, photoId, fields);
 }
 
+/** What a scan task works on; `items` are the watcher's changes not yet applied (changes mode). */
+interface ScanParams {
+  root: string;
+  mode: 'full' | 'changes';
+  /** Full mode: the last folder done, relative to the root, in scan order */
+  doneDir?: string;
+  /** Changes mode: paths with what happened to them, in the order they happened */
+  items?: Array<[string, ChangeEvent]>;
+}
+
+/** A watcher change: a photo added, changed or deleted, or a folder's sidecar or Picasa file changed. */
+type ChangeEvent = 'add' | 'change' | 'unlink' | 'meta';
+
+/** A configured folder: its watcher, the changes waiting for a scan task, and the folders and sidecars seen. */
+interface Root {
+  path: string;
+  watcher: FSWatcher | null;
+  pending: Map<string, ChangeEvent>;
+  /** The waiting scan task the pending changes go to */
+  pendingTask: string | null;
+  /** That task is being added */
+  adding: boolean;
+  folderIds: Map<string, number>;
+  folderStates: Map<string, FolderState>;
+}
+
+const isPhotoFile = (filePath: string) => SUPPORTED_EXTENSIONS.has(path.extname(filePath).toLowerCase());
+
+export interface StartOptions {
+  /** Resolve only when the start-up scans have ended (default); the server does not wait, as it holds the queue */
+  wait?: boolean;
+}
+
 export class FolderScannerService {
-  private static watchers: Map<string, FSWatcher> = new Map();
+  private static roots: Map<string, Root> = new Map();
 
   /**
-   * Removes folders the configuration no longer covers, then scans and watches the configured
-   * folders. Resolves once the initial scan is indexed.
+   * Removes folders the configuration no longer covers, starts watching the configured folders, and adds a scan
+   * task for each. Resolves once those scans have ended, unless `wait` is false.
    */
-  public static async startConfiguredFolders(options: ScanOptions = config): Promise<void> {
+  public static async startConfiguredFolders(options: ScanOptions = config, { wait = true }: StartOptions = {}): Promise<void> {
     excludeDirs = options.excludeDirs;
     await this.pruneFolders(options);
+    const roots = collapseRoots(options.photosDirs);
+
+    // Scans left from before a restart: a full scan of a configured folder goes on, the rest is redone by it
+    const kept = new Map<string, TaskRecord<ScanParams>>();
+    for (const task of (await taskQueue.list()).filter((t) => t.kind === 'scan' && !isEnded(t.state)) as TaskRecord<ScanParams>[]) {
+      if (task.params.mode === 'full' && roots.includes(task.params.root) && !kept.has(task.params.root) && task.state !== 'running') kept.set(task.params.root, task);
+      else if (task.state !== 'running') await taskQueue.cancel(task.id);
+    }
 
     // Only outer roots get a watcher, so nested roots don't index the same files twice
-    await Promise.all(collapseRoots(options.photosDirs).map((dir) =>
-      this.scanAndWatchFolder(dir).catch((err) => {
+    const scans: string[] = [];
+    for (const dir of roots) {
+      try {
+        await this.watchRoot(dir);
+      } catch (err) {
         console.error(`Failed to scan photos folder ${dir}:`, err);
-      }),
-    ));
+        continue;
+      }
+      scans.push(kept.get(dir)?.id ?? (await this.addScan(dir, 'full')).id);
+    }
+    if (wait) await Promise.all(scans.map((id) => taskQueue.whenEnded(id)));
   }
 
-  private static async scanAndWatchFolder(folderPath: string): Promise<number> {
-    const absPath = path.resolve(folderPath);
+  /** Adds a scan task started by Paloma; it goes before waiting user tasks. */
+  private static addScan(root: string, mode: ScanParams['mode'], id?: string): Promise<TaskRecord<ScanParams>> {
+    return taskQueue.add<ScanParams, ScanTaskDetails>({
+      id, kind: 'scan', system: true, subject: { folder: root }, params: { root, mode, ...(mode === 'changes' ? { items: [] } : {}) },
+      details: { kind: 'scan', mode, indexed: 0, removed: 0 },
+    });
+  }
 
+  private static async watchRoot(folderPath: string): Promise<Root> {
+    const absPath = path.resolve(folderPath);
     try {
       await fs.promises.access(absPath);
     } catch {
       throw new Error(`Directory does not exist: ${absPath}`);
     }
+    await this.roots.get(absPath)?.watcher?.close();
+    const root: Root = { path: absPath, watcher: null, pending: new Map(), pendingTask: null, adding: false, folderIds: new Map(), folderStates: new Map() };
+    this.roots.set(absPath, root);
 
-    const rootFolderId = await this.upsertFolder(absPath);
+    // The scan task looks at the files already there; the watcher reports what changes after
+    const watcher = chokidar.watch(absPath, { ignored: isIgnored, persistent: true, ignoreInitial: true });
+    root.watcher = watcher;
 
-    // Each subdirectory with photos becomes its own folder, with its own sidecar
-    const folderIds = new Map<string, number>([[absPath, rootFolderId]]);
-    const folderStates = new Map<string, FolderState>();
-    let ready = false;
-    const getFolderId = async (dir: string): Promise<number> => {
-      let id = folderIds.get(dir);
+    // Live events can arrive while a file is still being copied; it is recorded once writing stops
+    const settling = new Set<string>();
+    const onFile = (event: 'add' | 'change') => async (filePath: string) => {
+      if (isFolderMetaFile(path.basename(filePath))) return this.recordChange(root, path.dirname(filePath), 'meta');
+      if (!isPhotoFile(filePath) || settling.has(filePath)) return;
+      settling.add(filePath);
+      const stable = await waitUntilStable(filePath);
+      settling.delete(filePath);
+      if (stable) await this.recordChange(root, filePath, event);
+    };
+    watcher.on('add', onFile('add'));
+    watcher.on('change', onFile('change'));
+    watcher.on('unlink', (filePath) => {
+      const meta = isFolderMetaFile(path.basename(filePath));
+      if (meta || isPhotoFile(filePath)) void this.recordChange(root, meta ? path.dirname(filePath) : filePath, meta ? 'meta' : 'unlink');
+    });
+    await new Promise<void>((resolve) => watcher.once('ready', resolve));
+    return root;
+  }
+
+  /** Keeps a watcher change for the root's waiting scan task, adding one when none waits. */
+  private static async recordChange(root: Root, target: string, event: ChangeEvent): Promise<void> {
+    if (this.roots.get(root.path) !== root) return;
+    // A photo added and changed before the scan is still an add
+    root.pending.set(target, event === 'change' && root.pending.get(target) === 'add' ? 'add' : event);
+    if (root.adding) return;
+    const waiting = root.pendingTask ? await taskQueue.find((t) => t.id === root.pendingTask) : undefined;
+    if (waiting && (waiting.state === 'waiting' || waiting.state === 'paused')) {
+      waiting.total = waiting.done + root.pending.size + ((waiting.params as ScanParams).items?.length ?? 0);
+      return;
+    }
+    // Known before the task is added, so the task itself finds the changes recorded meanwhile
+    root.pendingTask = crypto.randomUUID();
+    root.adding = true;
+    try {
+      await this.addScan(root.path, 'changes', root.pendingTask);
+    } finally {
+      root.adding = false;
+    }
+  }
+
+  /** The root a scan task works on; one that is no longer watched still gets its folders looked up. */
+  private static rootOf(rootPath: string): Root {
+    let root = this.roots.get(rootPath);
+    if (!root) {
+      root = { path: rootPath, watcher: null, pending: new Map(), pendingTask: null, adding: false, folderIds: new Map(), folderStates: new Map() };
+      this.roots.set(rootPath, root);
+    }
+    return root;
+  }
+
+  /** Runs a scan task: the whole configured folder, or the changes the watcher found in it. */
+  public static async runScan(run: TaskRun<ScanParams, ScanTaskDetails>): Promise<void> {
+    const { task } = run;
+    const root = this.rootOf(task.params.root);
+    if (task.params.mode === 'changes') return this.runChanges(run, root);
+    try {
+      await fs.promises.access(root.path);
+    } catch {
+      console.error(`Failed to scan photos folder ${root.path}: Directory does not exist`);
+      throw new TaskFailed(`Directory does not exist: ${root.path}`);
+    }
+    root.folderIds.set(root.path, await this.upsertFolder(root.path));
+    const getFolderId = this.folderIdGetter(root);
+    const getFolderState = this.folderStateGetter(root);
+    // Each folder's files are read afresh by a full scan
+    root.folderStates.clear();
+
+    const dirs = await this.listPhotoDirs(root.path);
+    task.total = [...dirs.values()].reduce((sum, files) => sum + files.length, 0);
+    task.done = 0;
+    for (const [dir, files] of dirs) {
+      const relative = path.relative(root.path, dir);
+      if (task.params.doneDir !== undefined && relative.localeCompare(task.params.doneDir) <= 0) {
+        task.done += files.length;
+        continue;
+      }
+      for (const filePath of files) {
+        if (run.stopping()) return;
+        if (await this.indexPhoto(filePath, 'scan', getFolderId, getFolderState)) task.details.indexed += 1;
+        task.done += 1;
+        run.progress();
+      }
+      if (run.stopping()) return;
+      // Photos already in the library skip indexing; bring their fields and albums in line with the folder files
+      if (files.length > 0 || dir === root.path) await this.refreshFolder(root, dir);
+      task.params.doneDir = relative;
+      run.progress();
+    }
+  }
+
+  private static async runChanges(run: TaskRun<ScanParams, ScanTaskDetails>, root: Root): Promise<void> {
+    const { task } = run;
+    // The changes found until now are this task's; later ones go to a new task
+    if (root.pendingTask === task.id) {
+      task.params.items = [...(task.params.items ?? []), ...root.pending];
+      root.pending = new Map();
+      root.pendingTask = null;
+    }
+    const items = task.params.items ?? [];
+    task.total = task.done + items.length;
+    const getFolderId = this.folderIdGetter(root);
+    const getFolderState = this.folderStateGetter(root);
+    while (items.length > 0 && !run.stopping()) {
+      const [target, event] = items[0];
+      try {
+        if (event === 'meta') {
+          await this.refreshFolder(root, target);
+        } else if (event === 'unlink') {
+          if (await this.removeFile(target)) task.details.removed += 1;
+        } else if (await this.indexPhoto(target, event, getFolderId, getFolderState)) {
+          task.details.indexed += 1;
+        }
+      } catch (err) {
+        console.error(`Failed to update the library from ${target}:`, err);
+      }
+      items.shift();
+      task.done += 1;
+      run.progress();
+    }
+  }
+
+  /** The folders under a root that are scanned, each with its photo files, in a stable order. */
+  private static async listPhotoDirs(rootPath: string): Promise<Map<string, string[]>> {
+    const dirs = new Map<string, string[]>();
+    const walk = async (dir: string): Promise<void> => {
+      let entries: fs.Dirent[];
+      try {
+        entries = await fs.promises.readdir(dir, { withFileTypes: true });
+      } catch (err) {
+        console.error(`Failed to read folder ${dir}:`, err);
+        return;
+      }
+      entries.sort((a, b) => a.name.localeCompare(b.name));
+      dirs.set(dir, entries.filter((e) => e.isFile() && isPhotoFile(e.name) && !isIgnored(path.join(dir, e.name))).map((e) => path.join(dir, e.name)));
+      for (const entry of entries) {
+        if (entry.isDirectory() && !isIgnored(path.join(dir, entry.name))) await walk(path.join(dir, entry.name));
+      }
+    };
+    await walk(rootPath);
+    return new Map([...dirs].sort(([a], [b]) => path.relative(rootPath, a).localeCompare(path.relative(rootPath, b))));
+  }
+
+  private static folderIdGetter(root: Root): (dir: string) => Promise<number> {
+    return async (dir) => {
+      let id = root.folderIds.get(dir);
       if (id === undefined) {
         id = await this.upsertFolder(dir);
-        folderIds.set(dir, id);
+        root.folderIds.set(dir, id);
       }
       return id;
     };
-    // Photo fields per folder from .paloma.json or the Picasa .ini; refreshed when either file changes
-    const getFolderState = async (dir: string): Promise<FolderState> => {
-      let state = folderStates.get(dir);
+  }
+
+  /** Photo fields per folder from .paloma.json or the Picasa .ini; refreshed when either file changes. */
+  private static folderStateGetter(root: Root): (dir: string) => Promise<FolderState> {
+    return async (dir) => {
+      let state = root.folderStates.get(dir);
       if (!state) {
         state = await SidecarService.getFolderState(dir);
-        folderStates.set(dir, state);
+        root.folderStates.set(dir, state);
         // The folder's album definitions enter the library with the first look at its files
-        const folderId = folderIds.get(dir);
+        const folderId = root.folderIds.get(dir);
         if (folderId !== undefined) {
           const { albums, people } = state;
           await withTransaction(async (tx) => {
@@ -221,95 +425,28 @@ export class FolderScannerService {
       }
       return state;
     };
-    // Reads the folder files afresh and applies them, under the folder's lock so a change saved meanwhile is not undone
-    const refreshFolder = (dir: string): Promise<void> => withFolderLock(dir, async () => {
-      folderStates.delete(dir);
+  }
+
+  /** Reads the folder files afresh and applies them, under the folder's lock so a change saved meanwhile is not undone. */
+  private static refreshFolder(root: Root, dir: string): Promise<void> {
+    return withFolderLock(dir, async () => {
+      root.folderStates.delete(dir);
       const state = await SidecarService.getFolderState(dir);
-      folderStates.set(dir, state);
+      root.folderStates.set(dir, state);
       await this.applyFolderState(dir, state);
     });
-
-    // Watch folder using chokidar
-    if (this.watchers.has(absPath)) {
-      await this.watchers.get(absPath)?.close();
-    }
-
-    const watcher = chokidar.watch(absPath, {
-      ignored: isIgnored,
-      persistent: true,
-      ignoreInitial: false,
-    });
-
-    // Index files one at a time so a large tree doesn't spawn thousands of concurrent sharp jobs
-    let queue: Promise<void> = Promise.resolve();
-    const later = (job: () => Promise<void>): void => {
-      queue = queue.then(job).catch((err) => console.error(`Failed to update the library from ${absPath}:`, err));
-    };
-
-    // Live events can arrive while a file is still being copied; index it once writing stops.
-    // Initial-scan events go straight to the queue so large libraries aren't slowed down.
-    const settling = new Set<string>();
-    // The initial scan reads these files lazily per folder; later changes re-apply the folder's fields
-    const onFolderMetaFile = (filePath: string): void => {
-      if (!ready) return;
-      const dir = path.dirname(filePath);
-      later(async () => {
-        if (this.watchers.get(absPath) !== watcher) return;
-        await refreshFolder(dir);
-      });
-    };
-    const enqueue = (event: IndexEvent) => async (filePath: string) => {
-      if (isFolderMetaFile(path.basename(filePath))) {
-        onFolderMetaFile(filePath);
-        return;
-      }
-      const ext = path.extname(filePath).toLowerCase();
-      if (!SUPPORTED_EXTENSIONS.has(ext)) return;
-
-      if (ready) {
-        if (settling.has(filePath)) return;
-        settling.add(filePath);
-        const stable = await waitUntilStable(filePath);
-        settling.delete(filePath);
-        if (!stable) return;
-      }
-
-      // A closed or replaced watcher drops work that was still pending
-      later(async () => {
-        if (this.watchers.get(absPath) !== watcher) return;
-        await this.indexPhoto(filePath, event, getFolderId, getFolderState);
-      });
-    };
-    watcher.on('add', enqueue('add'));
-    watcher.on('change', enqueue('change'));
-
-    watcher.on('unlink', (filePath) => {
-      if (isFolderMetaFile(path.basename(filePath))) {
-        onFolderMetaFile(filePath);
-        return;
-      }
-      this.removeFile(filePath).catch((err) => console.error(`Failed to remove ${filePath} from the library:`, err));
-    });
-
-    this.watchers.set(absPath, watcher);
-
-    await new Promise<void>((resolve) => watcher.once('ready', resolve));
-    await queue;
-    // Photos already in the library skip indexing; bring their fields and albums in line with the folder files
-    for (const dir of folderIds.keys()) await refreshFolder(dir);
-    ready = true;
-    return rootFolderId;
   }
 
   /** Removes a deleted file's photo from the library. */
-  private static async removeFile(filePath: string): Promise<void> {
+  private static async removeFile(filePath: string): Promise<boolean> {
     const folder = await get(db.select().from(folders).where(eq(folders.path, path.dirname(filePath))));
-    if (!folder) return;
+    if (!folder) return false;
 
     const removed = await all(db.select({ id: photos.id })
       .from(photos)
       .where(and(eq(photos.folderId, folder.id), eq(photos.filename, path.basename(filePath)))));
     await this.removePhotos(removed.map((p) => p.id));
+    return removed.length > 0;
   }
 
   // Only touches the catalog; files on disk are never modified
@@ -366,13 +503,16 @@ export class FolderScannerService {
       .returning({ id: folders.id }))).id;
   }
 
-  // 'add' indexes new files only; 'change' also refreshes an indexed photo whose content changed
+  /**
+   * 'add' indexes new files only; 'change' also refreshes an indexed photo whose content changed; 'scan' refreshes
+   * it only when its size or modification time changed. True when the photo was indexed or updated.
+   */
   private static async indexPhoto(
     filePath: string,
     event: IndexEvent,
     getFolderId: (dir: string) => Promise<number>,
     getFolderState: (dir: string) => Promise<FolderState>,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const dir = path.dirname(filePath);
     const filename = path.basename(filePath);
     try {
@@ -381,11 +521,25 @@ export class FolderScannerService {
         .from(photos)
         .where(and(eq(photos.folderId, folderId), eq(photos.filename, filename))));
       const outdated = existingPhoto !== undefined && existingPhoto.metadataVersion < METADATA_VERSION;
-      if (existingPhoto && event === 'add' && !outdated) return;
+      if (existingPhoto && event === 'add' && !outdated) return false;
+      if (existingPhoto && event === 'scan' && !outdated) {
+        const stat = await fs.promises.stat(filePath);
+        if (existingPhoto.fileMtime === stat.mtimeMs && existingPhoto.fileSize === stat.size) return false;
+        // Indexed before modification times were kept: taken as unchanged, as it was before
+        if (existingPhoto.fileMtime === null) {
+          await run(db.update(photos).set({ fileMtime: stat.mtimeMs, fileSize: stat.size }).where(eq(photos.id, existingPhoto.id)));
+          return false;
+        }
+      }
 
-      const meta = await MetadataService.extractMetadata(filePath);
+      const [meta, stat] = await Promise.all([MetadataService.extractMetadata(filePath), fs.promises.stat(filePath)]);
       const sameContent = existingPhoto?.fileHash === meta.fileHash;
-      if (sameContent && !outdated) return;
+      if (sameContent && !outdated) {
+        if (existingPhoto.fileMtime !== stat.mtimeMs) {
+          await run(db.update(photos).set({ fileMtime: stat.mtimeMs, fileSize: stat.size }).where(eq(photos.id, existingPhoto.id)));
+        }
+        return false;
+      }
       if (!sameContent) await ThumbnailService.generateThumbnails(filePath, meta.fileHash);
 
       const exif = { latitude: meta.latitude, longitude: meta.longitude };
@@ -394,6 +548,7 @@ export class FolderScannerService {
         width: meta.width,
         height: meta.height,
         fileSize: meta.fileSize,
+        fileMtime: stat.mtimeMs,
         exifLatitude: meta.latitude,
         exifLongitude: meta.longitude,
         dateTaken: meta.dateTaken,
@@ -426,8 +581,10 @@ export class FolderScannerService {
         }
         await setPhotoFields(tx, photoId, fields, fromSidecar.keywords);
       });
+      return true;
     } catch (err) {
       console.error(`Error scanning ${filePath}:`, err);
+      return false;
     }
   }
 
@@ -466,16 +623,28 @@ export class FolderScannerService {
     });
   }
 
+  /** Stops watching a configured folder and cancels its scans. */
   public static async stopWatching(folderPath: string): Promise<void> {
-    const watcher = this.watchers.get(folderPath);
-    if (watcher) {
-      this.watchers.delete(folderPath);
-      await watcher.close();
-    }
+    const root = this.roots.get(folderPath);
+    if (!root) return;
+    this.roots.delete(folderPath);
+    await root.watcher?.close();
+    await this.cancelScans((task) => task.params.root === folderPath);
   }
 
+  /** Stops every watcher and cancels the scans not yet ended (waiting for a running one to stop). */
   public static async stopAll(): Promise<void> {
-    await Promise.all([...this.watchers.values()].map((watcher) => watcher.close()));
-    this.watchers.clear();
+    const roots = [...this.roots.values()];
+    this.roots.clear();
+    await Promise.all(roots.map((root) => root.watcher?.close()));
+    await this.cancelScans(() => true);
+  }
+
+  private static async cancelScans(match: (task: TaskRecord<ScanParams>) => boolean): Promise<void> {
+    const scans = (await taskQueue.list()).filter((t) => t.kind === 'scan' && !isEnded(t.state) && match(t as TaskRecord<ScanParams>));
+    for (const task of scans) await taskQueue.cancel(task.id);
+    await Promise.all(scans.map((task) => taskQueue.whenEnded(task.id)));
   }
 }
+
+taskQueue.register({ kind: 'scan', run: (run: TaskRun<ScanParams, ScanTaskDetails>) => FolderScannerService.runScan(run) });

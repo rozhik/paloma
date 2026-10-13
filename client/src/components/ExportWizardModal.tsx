@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Alert, Modal, Button } from 'react-bootstrap';
-import { ApiRequestError, describeError } from '../api/http.js';
+import { apiRequest, describeError } from '../api/http.js';
+import type { TaskInfo } from '../../../shared/types.js';
 import { usePalomaStore } from '../store/usePalomaStore.js';
+import { refreshTasks } from '../tasks/useTasks.js';
 import { Trans, useTranslation } from 'react-i18next';
 import { Download, CheckCircle2 } from 'lucide-react';
 
@@ -17,34 +19,21 @@ export const ExportWizardModal: React.FC<ExportWizardModalProps> = ({ show, onHi
   const [quality, setQuality] = useState(85);
   const [resizeWidth, setResizeWidth] = useState(1920);
   const [loading, setLoading] = useState(false);
-  const [exportResult, setExportResult] = useState<{ count: number; requested: number; quotaExceeded: boolean } | null>(null);
+  // The export runs as a task on the server; its result is shown when the task ends
+  const [queued, setQueued] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleExport = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setExportResult(null);
+    setQueued(false);
     setError(null);
 
     try {
       const photoIds = selectedPhotos.map((p) => p.id);
-      const res = await fetch('/api/export', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          photoIds,
-          outputDir,
-          quality,
-          resizeWidth,
-        }),
-      });
-
-      const data = await res.json().catch(() => null);
-      if (res.ok) {
-        setExportResult({ count: data.count, requested: data.requested ?? data.count, quotaExceeded: data.quotaExceeded === true });
-      } else {
-        setError(describeError(new ApiRequestError(res.status, data), t));
-      }
+      await apiRequest<TaskInfo>('POST', '/api/export', { photoIds, outputDir, quality, resizeWidth });
+      setQueued(true);
+      void refreshTasks();
     } catch (err) {
       console.error('Export failed:', err);
       setError(describeError(err, t));
@@ -62,15 +51,11 @@ export const ExportWizardModal: React.FC<ExportWizardModalProps> = ({ show, onHi
         </Modal.Title>
       </Modal.Header>
       <Modal.Body className="p-4">
-        {exportResult ? (
+        {queued ? (
           <div className="text-center py-4">
             <CheckCircle2 size={64} className="text-success mb-3" />
-            <h3 className="fw-bold">{t('export.done', { count: exportResult.count })}</h3>
-            {exportResult.quotaExceeded && (
-              <Alert variant="warning" className="fs-5" role="status">
-                {t('export.quotaPartial', { done: exportResult.count, requested: exportResult.requested })}
-              </Alert>
-            )}
+            <h3 className="fw-bold">{t('export.queued', { count: selectedPhotos.length })}</h3>
+            <p className="fs-5 text-muted">{t('export.queuedHint')}</p>
             <p className="fs-5 text-muted">{t('export.savedTo')} <code>{outputDir}</code></p>
             <Button variant="primary" size="lg" className="mt-3" onClick={onHide}>
               {t('common.close')}
