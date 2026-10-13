@@ -16,7 +16,7 @@ Paloma SHALL have exactly these permissions:
 - `export`: export photos and make movies.
 - `account.tokens`: create personal API tokens.
 - `plugins.manage`: switch plugins on and off, and configure AI providers and tasks.
-- `users.manage`: manage users, roles, sessions and tokens of all users.
+- `users.manage`: manage users, roles, sessions and tokens of all users, and pause, resume, cancel and move the tasks of all users and of the system.
 
 #### Scenario: Permission list in the API
 - **WHEN** an administrator requests `GET /api/admin/permissions`

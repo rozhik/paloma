@@ -7,7 +7,7 @@ Defines how AI tasks are run on photos: starting, following and cancelling a run
 ## Requirements
 
 ### Requirement: Running a task on photos
-A user with `ai.run` SHALL be able to run a ready task on a list of photos. The run SHALL happen on the server and continue when the browser is closed or reloaded. Only one run SHALL exist on the server at a time. Videos and photos the user cannot see SHALL be skipped.
+A user with `ai.run` SHALL be able to run a ready task on a list of photos. The run SHALL be an `ai` task in the server's task queue, titled with the AI task's name, and SHALL continue when the browser is closed or reloaded. A run started while another task exists SHALL wait in the queue. Videos and photos the user cannot see SHALL be skipped.
 
 #### Scenario: Run Tags on a folder
 - **WHEN** a folder of 40 photos and 2 videos is shown and the user runs Tags on it
@@ -15,7 +15,7 @@ A user with `ai.run` SHALL be able to run a ready task on a list of photos. The 
 
 #### Scenario: Second run
 - **WHEN** a run is in progress and another user starts Objects
-- **THEN** the server responds 409 and the AI menus do not offer starting a task until the run ends
+- **THEN** the server responds 202 with the Objects task waiting in the queue, and Objects starts when the first run ends
 
 #### Scenario: Task not ready
 - **WHEN** a client starts Tags while its provider is not configured
@@ -37,22 +37,26 @@ A run SHALL skip photos that the same task already processed successfully with i
 - **THEN** the next Tags run processes `a.jpg`
 
 ### Requirement: Run progress
-While a run exists, every browser of a user with `ai.run` SHALL show a circular progress indicator over the grid with the task's name, the share of photos done and the count, e.g. `12 / 30`. The grid SHALL stay usable. Activating the indicator SHALL offer to cancel the run. When the run ends, the indicator SHALL disappear and a message SHALL say how many photos were processed, how many tags were added, how many photos failed and, when the provider reported them, how many tokens were used.
+A run SHALL report as its progress the photos done and the photos to process, e.g. `12 / 30`, and its failed photos. When the run ends, its summary SHALL say how many photos were processed, how many tags were added, how many photos failed and, when the provider reported them, how many tokens were used. The summary and the failures SHALL be shown only to the user who started the run and to users with `users.manage`.
 
 #### Scenario: Progress after a reload
 - **WHEN** a run of 30 photos has done 12 and the user reloads the page
-- **THEN** the indicator shows `12 / 30` again
+- **THEN** the Tasks view shows the run at `12 / 30`
 
 #### Scenario: Finished
 - **WHEN** a Tags run over 30 photos ends after adding 95 tags with 2 photos failed
-- **THEN** the indicator disappears and the message says 28 photos were processed, 95 tags were added and 2 photos failed
+- **THEN** the message to the user who started it says 28 photos were processed, 95 tags were added and 2 photos failed
 
 ### Requirement: Cancelling and resuming a run
-Cancelling SHALL stop the run after the requests in progress end, without starting new ones. Each photo's result SHALL be saved as soon as it arrives, so that a cancelled run, or a run ended by a server restart, loses at most the photos in progress, and a new run skips the photos already done.
+Cancelling or pausing a run SHALL stop it after the requests in progress end, without starting new ones. Each photo's result SHALL be saved as soon as it arrives, so that a cancelled or paused run, or a run interrupted by a server restart, loses at most the photos in progress. A resumed run, and a new run of the same task, SHALL skip the photos already done.
 
 #### Scenario: Cancel and restart
 - **WHEN** the user cancels a Tags run of 30 photos after 12 and runs Tags again on the same grid
 - **THEN** the new run processes the remaining 18 photos
+
+#### Scenario: Pause and resume
+- **WHEN** the user pauses a Tags run of 30 photos after 12 and resumes it
+- **THEN** the run processes the remaining 18 photos
 
 ### Requirement: Failures do not stop a run
 When the provider fails on a photo, the photo SHALL count as failed with the provider's message and the run SHALL continue. When the service asks to slow down, the photo SHALL be retried after a wait, at most three times. When five photos in a row fail because the provider is not configured, refuses the credentials or cannot be reached, the run SHALL stop and its message SHALL show the provider's error.
@@ -106,14 +110,18 @@ After a task with output `text` processes a photo, its text SHALL become the pho
 - **THEN** the response has a Tags result with its tags and an Objects result with its objects and their rectangles
 
 ### Requirement: Runs API
-`POST /api/ai/runs` with a task id, photo ids and whether to run again SHALL start a run and respond 202 with it. `GET /api/ai/runs/current` SHALL return the run in progress with its task, counts and state, or nothing, and the last run's summary. `DELETE /api/ai/runs/current` SHALL cancel it. They SHALL need `ai.run` and otherwise fail with 403; an unknown task SHALL fail with 404 and invalid photo ids with 400.
+`POST /api/ai/runs` with a task id, photo ids and whether to run again SHALL add a run to the task queue and respond 202 with the queued task. It SHALL need `ai.run` and otherwise fail with 403; an unknown task SHALL fail with 404 and invalid photo ids with 400. Following, pausing and cancelling a run SHALL use the tasks API.
 
 #### Scenario: Viewer starts a run
 - **WHEN** auth is on and a viewer sends `POST /api/ai/runs`
 - **THEN** the server responds 403 naming `ai.run`
 
+#### Scenario: Queued run
+- **WHEN** an editor sends `POST /api/ai/runs` for Tags while an export is running
+- **THEN** the server responds 202 with a task of kind `ai`, titled Tags, in state `waiting`
+
 ### Requirement: AI menu in grid headers
-Wherever a grid header offers Find faces, it SHALL also offer an AI menu, from the Normal level, to users with `ai.run`. The menu SHALL list the tasks offered in menus, each running on all photos the grid shows; tasks that are not ready SHALL be shown disabled with the reason. It SHALL offer Run again for each task, and to users with `plugins.manage` a link to the AI section. While a run exists, the tasks SHALL be disabled.
+Wherever a grid header offers Find faces, it SHALL also offer an AI menu, from the Normal level, to users with `ai.run`. The menu SHALL list the tasks offered in menus, each running on all photos the grid shows; tasks that are not ready SHALL be shown disabled with the reason. It SHALL offer Run again for each task, and to users with `plugins.manage` a link to the AI section. Tasks SHALL stay available while other runs exist; choosing one SHALL add a run to the queue.
 
 #### Scenario: Run Objects from an album
 - **WHEN** album `Trip` is shown and the user chooses Objects in its AI menu
@@ -126,6 +134,10 @@ Wherever a grid header offers Find faces, it SHALL also offer an AI menu, from t
 #### Scenario: No configured provider
 - **WHEN** `openai` is not configured and the user opens the AI menu
 - **THEN** every task is disabled and says that its provider is not configured
+
+#### Scenario: Run while another runs
+- **WHEN** a Tags run is in progress and the user chooses Description in the AI menu
+- **THEN** a Description run is added to the queue behind it
 
 ### Requirement: Object frames in the viewer
 From the Normal level, the viewer SHALL have an Objects toggle that draws the shown object boxes of the photo, each labelled with its label and, when known, its confidence. Frames SHALL follow zoom, pan and the photo's crop, rotate and flip edits, as face frames do, and SHALL NOT be drawn when other edits move pixels. The toggle SHALL be remembered in this browser.

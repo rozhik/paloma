@@ -7,33 +7,37 @@ Finds faces on photos automatically, keeps what it finds as hidden library data,
 ## Requirements
 
 ### Requirement: Face detection is started from the grid
-While the library grid shows photos, the user SHALL be able to start face detection for all photos the grid shows, not only the visible ones. Photos that were already detected with the current detector and have not changed since, and videos, SHALL be skipped. Only one detection run SHALL exist at a time.
+While the library grid shows photos, a user with `people.manage` SHALL be able to start face detection for all photos the grid shows, not only the visible ones. Detection SHALL run on the server as a `faces` task in the task queue, and SHALL continue when the browser is closed. Photos that were already detected with the current detector and have not changed since, videos, and photos the user cannot see SHALL be skipped.
 
 #### Scenario: Detect a folder
 - **WHEN** a folder of 40 photos, 10 of them already detected, is shown and the user starts face detection
-- **THEN** the 30 other photos are detected
+- **THEN** a face detection task for the 30 other photos is added to the queue, and they are detected when it runs
 
 #### Scenario: Second start
-- **WHEN** a detection run is in progress
-- **THEN** starting face detection is not offered
+- **WHEN** a detection task is running and the user starts face detection on another folder
+- **THEN** a second detection task waits in the queue behind it
 
-### Requirement: Progress is shown as a ring over the grid
-While detection runs, a circular progress indicator SHALL be drawn over the grid, showing the share of photos done and the count, e.g. `12 / 30`. The grid SHALL stay usable. Activating the indicator SHALL cancel the run; its accessible name SHALL be in the active language. When the run ends, the indicator SHALL disappear and a message SHALL say how many faces were found on how many photos.
+#### Scenario: Browser closed
+- **WHEN** the user starts detection on 500 photos and closes the browser
+- **THEN** detection goes on, and the detected faces are there when the user comes back
+
+### Requirement: Detection progress
+A detection task SHALL report as its progress the photos done and the photos to detect, e.g. `12 / 30`, and its failed photos. When it ends, the message to the user who started it SHALL say how many faces were found on how many photos. Views showing detected faces SHALL show the new faces after the task ends without a reload.
 
 #### Scenario: Progress
 - **WHEN** 12 of 30 photos are done
-- **THEN** the ring is 40% full and shows `12 / 30`, and the user can still scroll and open photos
+- **THEN** the Tasks view shows the detection task at `12 / 30`, and the user can still scroll and open photos
 
 #### Scenario: Finished
-- **WHEN** the run finishes after finding 17 faces on 11 photos
-- **THEN** the ring disappears and the message says 17 faces were found on 11 photos
+- **WHEN** the task finishes after finding 17 faces on 11 photos
+- **THEN** the message says 17 faces were found on 11 photos
 
 ### Requirement: Detection can be cancelled and resumed
-Cancelling SHALL stop the run after the photo being detected. Each photo's result SHALL be saved as soon as that photo is done, so that a cancelled or interrupted run, including a page reload, loses at most the photo in progress, and a new run skips the photos already done.
+Cancelling or pausing a detection task SHALL stop it after the photo being detected. Each photo's result SHALL be saved as soon as that photo is done, so that a cancelled, paused or interrupted task, including a server restart, loses at most the photo in progress. A resumed task, and a new detection, SHALL skip the photos already done.
 
 #### Scenario: Cancel and restart
-- **WHEN** the user cancels a run of 30 photos after 12 and starts detection again on the same grid
-- **THEN** the new run detects the remaining 18 photos
+- **WHEN** the user cancels a detection task of 30 photos after 12 and starts detection again on the same grid
+- **THEN** the new task detects the remaining 18 photos
 
 ### Requirement: Detection writes no files
 Detected faces, their rectangles, scores and face descriptors SHALL be stored only in the library database. Face detection SHALL NOT create or change any file in the photo folders. Detecting a photo again SHALL replace its previous detected faces. Face descriptors SHALL NOT be shown in the UI or returned by the API.
@@ -96,3 +100,14 @@ In the Unrecognized view, the user SHALL be able to select faces and choose who 
 #### Scenario: Name two faces at once
 - **WHEN** the user selects two unrecognized faces and chooses a new person named `Ann`
 - **THEN** `Ann` exists, both photos' entries get a face of `Ann` with those rectangles, and the two faces leave the Unrecognized view
+
+### Requirement: Detection API
+`POST /api/faces/detect` with photo ids SHALL add a detection task for those of them that need detection and respond 202 with it, or 200 with no task when none needs it. It SHALL need `people.manage` and otherwise fail with 403; invalid photo ids SHALL fail with 400.
+
+#### Scenario: Nothing to detect
+- **WHEN** every listed photo was already detected with the current detector
+- **THEN** the server responds 200 without a task and the client says that all photos are already detected
+
+#### Scenario: Viewer starts detection
+- **WHEN** auth is on and a viewer sends `POST /api/faces/detect`
+- **THEN** the server responds 403 naming `people.manage`
