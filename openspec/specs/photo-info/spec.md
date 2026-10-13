@@ -7,7 +7,7 @@ Defines the Info panel of the photo viewer, which shows everything Paloma knows 
 ## Requirements
 
 ### Requirement: Info button opens the panel
-The viewer's navigation bar SHALL have an Info button that opens and closes the Info panel for the photo shown, and shows whether the panel is open. The `i` key SHALL do the same. The panel SHALL start closed each time the viewer opens.
+The viewer's navigation bar SHALL have an Info button that opens and closes the Info panel for the photo shown, and shows whether the panel is open. The key bound to Viewer → Info panel in the user's keymap (`i` in the `mac` and `windows` presets) SHALL do the same. The panel SHALL start closed each time the viewer opens.
 
 #### Scenario: Open the panel
 - **WHEN** the user opens a photo and chooses Info
@@ -16,6 +16,10 @@ The viewer's navigation bar SHALL have an Info button that opens and closes the 
 #### Scenario: Close with Esc
 - **WHEN** the Info panel is open and the user presses Esc
 - **THEN** the panel closes and the viewer stays open
+
+#### Scenario: Rebound key
+- **WHEN** the user has bound Viewer → Info panel to `D` instead of `i`
+- **THEN** `D` opens and closes the panel and `i` does nothing
 
 ### Requirement: Panel is drawn over the photo
 The Info panel SHALL be drawn on top of the photo along the right screen edge, inside any overlay bar on that edge, and SHALL NOT shrink the area the photo is shown in. Its content SHALL scroll when it is taller than the window. In a right-to-left UI language its text SHALL be right-to-left, while it stays on the right edge.

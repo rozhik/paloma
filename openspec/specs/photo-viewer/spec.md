@@ -98,7 +98,7 @@ Close SHALL return to the library view with the same folder, album, filter, sear
 - **THEN** the library shows the same grid, and that photo's thumbnail is in sepia
 
 ### Requirement: Viewer keyboard
-In the viewer, Esc SHALL close the viewer, `←` and `→` SHALL go to the previous and next photo, `i` SHALL open or close the Info panel and `f` SHALL turn face frames on or off, each when the level allows it. In a right-to-left UI language, `←` SHALL go to the next photo and `→` to the previous one, and the Previous and Next icons SHALL be mirrored. Keys typed into a text or slider control SHALL go to that control. While a floating panel, the Info panel or a frame is open, Esc SHALL close it instead of the viewer.
+In the viewer, the keys bound in the user's keymap SHALL close the viewer, go to the previous and next photo, open or close the Info panel, turn face frames on or off, zoom and undo, each when the level allows it. In the `mac` and `windows` presets these SHALL be Esc, `←`, `→`, `i`, `f`, `+`, `-`, `0`, and `Meta+Z` or `Ctrl+Z`. In a right-to-left UI language `←` and `→` SHALL be swapped and the Previous and Next icons mirrored. Keys typed into a text or slider control SHALL go to that control. While a floating panel, the Info panel or a frame is open, Esc SHALL close it instead of the viewer.
 
 #### Scenario: Arrow keys
 - **WHEN** the UI language is English and the user presses `→`
@@ -123,6 +123,10 @@ In the viewer, Esc SHALL close the viewer, `←` and `→` SHALL go to the previ
 #### Scenario: Typing f
 - **WHEN** the Info panel is open and the user types `f` into its tag field
 - **THEN** the letter goes into the field and face frames do not change
+
+#### Scenario: Rebound next
+- **WHEN** the user has bound Viewer → Next photo to `N` only
+- **THEN** `N` shows the next photo and `→` does nothing
 
 ### Requirement: Overlay bars are placed by the settings
 The navigation bar and the edit bar SHALL each be placed along the screen edge chosen in the settings: top, bottom, left or right. On the top or bottom edge a bar SHALL lay out its buttons in a row, and on the left or right edge in a column. When both bars are on the same edge, the navigation bar SHALL be nearest the edge and the edit bar next to it, without overlapping. The edges are physical screen sides and SHALL NOT be mirrored in a right-to-left UI language.

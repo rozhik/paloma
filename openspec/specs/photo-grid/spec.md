@@ -39,11 +39,15 @@ The star button in a card's top-end corner SHALL toggle the photo's star without
 - **THEN** the photo is starred, the viewer does not open, and the selection is unchanged
 
 ### Requirement: Cards work from the keyboard
-A photo card SHALL be reachable with Tab. Enter on a focused card SHALL open the viewer on it, and Space SHALL toggle whether it is selected.
+A photo card SHALL be reachable with Tab. The key bound to Library → Open photo (Enter in every preset) on a focused card SHALL open the viewer on it, and the key bound to Library → Toggle selection (Space in `mac` and `windows`) SHALL toggle whether it is selected.
 
 #### Scenario: Open with Enter
 - **WHEN** a card has keyboard focus and the user presses Enter
 - **THEN** the viewer opens on that photo
+
+#### Scenario: Remote moves between cards
+- **WHEN** the keymap is `tvBox` and the user presses the remote's arrows in the library
+- **THEN** keyboard focus moves to the neighbouring card in that direction
 
 ### Requirement: Card marks a modified photo
 In every skin, the card of a photo whose saved edit chain has at least one step SHALL show a modified mark over its thumbnail, in the same corner in every skin. The mark SHALL have a tooltip and an accessible name in the active UI language. A photo without saved edits SHALL have no mark. The mark SHALL follow saved edits without reloading the page.

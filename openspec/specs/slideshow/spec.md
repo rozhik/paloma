@@ -55,11 +55,15 @@ The slideshow SHALL offer Exit, Previous, Play/Pause, Next and the interval choi
 - **THEN** the controls are hidden, and moving the pointer shows them again
 
 ### Requirement: Slideshow keyboard
-In the slideshow, Space SHALL toggle Play/Pause, `←` and `→` SHALL go to the previous and next photo (swapped in a right-to-left UI language), and Esc SHALL exit.
+In the slideshow, the keys bound in the user's keymap SHALL toggle Play/Pause, go to the previous and next photo, and exit. In the `mac` and `windows` presets these SHALL be Space, `←`, `→` and Esc. In a right-to-left UI language `←` and `→` SHALL be swapped.
 
 #### Scenario: Right-to-left
 - **WHEN** the UI language is Arabic and the user presses `←`
 - **THEN** the next photo is shown
+
+#### Scenario: Remote control
+- **WHEN** the keymap is `tvBox` and the remote's play/pause button is pressed
+- **THEN** the slideshow pauses, and pressing it again plays it
 
 ### Requirement: Exit returns to the library
 Exiting the slideshow, by Exit, Esc or leaving the browser's full screen, SHALL return to the library with the same album or folder, filter, search and selection as before, and SHALL leave full screen.
