@@ -286,7 +286,8 @@
     "object_not_found": "未找到。",
     "origin_not_allowed": "不允许来自此网页的请求。",
     "task_not_found": "此任务已不存在。",
-    "task_state": "任务当前的状态不允许此操作。"
+    "task_state": "任务当前的状态不允许此操作。",
+    "invalid_keymap": "这不是有效的键位映射。"
   },
   "geo": {
     "coordinates": "{{lat}}，{{lon}}",
@@ -908,5 +909,166 @@
     "remove": "从列表中移除 {{task}}",
     "moveUp": "上移 {{task}}",
     "moveDown": "下移 {{task}}"
+  },
+  "keys": {
+    "settingsTitle": "键盘",
+    "settingsHint": "哪些按键执行哪些操作。你的键位映射保存在服务器上，因此在你使用的每个浏览器中都相同。",
+    "current": "你的键位映射：{{name}}",
+    "basedOn": "基于 {{preset}}",
+    "presetsLabel": "使用预设",
+    "presets": {
+      "mac": {
+        "name": "Mac",
+        "description": "Mac 键盘：快捷键使用 ⌘。"
+      },
+      "windows": {
+        "name": "Windows",
+        "description": "Windows 和 Linux 键盘：快捷键使用 Ctrl。"
+      },
+      "tvBox": {
+        "name": "电视盒子",
+        "description": "电视盒子遥控器：方向键、确定、返回、播放/暂停和彩色按钮。"
+      }
+    },
+    "replaceTitle": "替换你的按键？",
+    "replaceBody": "你的键位映射有自己的按键。{{preset}} 会全部替换它们。",
+    "replace": "替换",
+    "edit": "编辑按键",
+    "title": "键位设置",
+    "intro": "按下按键即可添加。每次更改都会立即保存。",
+    "back": "返回设置",
+    "name": "名称",
+    "filter": "按操作或按键筛选",
+    "noMatches": "没有符合筛选的操作。",
+    "noKey": "无按键",
+    "addKey": "添加按键",
+    "addKeyTo": "为“{{action}}”添加按键",
+    "removeKey": "移除 {{key}}",
+    "pressKey": "请按一个键…",
+    "cancel": "取消",
+    "resetAction": "重置",
+    "resetActionLabel": "将“{{action}}”重置为预设的按键",
+    "resetAll": "重置所有按键",
+    "resetAllTitle": "重置所有按键？",
+    "resetAllBody": "每个操作都会恢复 {{preset}} 的按键。",
+    "conflict": "{{key}} 已经是“{{actions}}”的按键。",
+    "moveHere": "移到这里",
+    "reserved": "浏览器可能会占用 {{key}}，因此它可能无法传到 Paloma。",
+    "download": "下载",
+    "upload": "上传",
+    "uploadTitle": "替换你的键位映射？",
+    "uploadBody": "文件中的键位映射“{{name}}”将替换你的。",
+    "uploaded": "键位映射已上传。",
+    "dropped": "以下操作在这里未知，已被略过：{{ids}}",
+    "problems": {
+      "not_keymap": "此文件不是键位映射。",
+      "version": "此键位映射来自更新版本的 Paloma。",
+      "preset": "此键位映射指定了未知的预设。",
+      "name": "名称须为 1 到 64 个字符。",
+      "key": "这不是按键：{{key}}",
+      "conflict": "{{key}} 同时是“{{actions}}”的按键。",
+      "too_large": "文件大于 256 KB。"
+    },
+    "sections": {
+      "global": "全局",
+      "library": "图库",
+      "selection": "所选",
+      "viewer": "查看器",
+      "edit": "编辑",
+      "slideshow": "幻灯片",
+      "people": "人物",
+      "map": "地图",
+      "collage": "拼贴"
+    },
+    "actions": {
+      "global": {
+        "library": "打开图库",
+        "people": "打开人物",
+        "map": "打开地图",
+        "collage": "打开拼贴",
+        "tasks": "打开任务",
+        "settings": "打开设置",
+        "search": "搜索"
+      },
+      "library": {
+        "open": "打开照片",
+        "toggleSelect": "选择或取消选择照片",
+        "focusPrevious": "上一张照片",
+        "focusNext": "下一张照片",
+        "focusUp": "上方的照片",
+        "focusDown": "下方的照片",
+        "selectAll": "选择所有照片",
+        "slideshow": "开始幻灯片"
+      },
+      "selection": {
+        "clear": "清除选择",
+        "star": "加星标",
+        "addToAlbum": "添加到相册",
+        "addTags": "添加标签",
+        "removeTag": "移除标签",
+        "removeFromAlbum": "从相册移除",
+        "makeCover": "设为相册封面",
+        "removeLocation": "移除位置",
+        "export": "导出",
+        "print": "打印",
+        "collage": "拼贴",
+        "movie": "影片"
+      },
+      "viewer": {
+        "close": "关闭查看器",
+        "previous": "上一张照片",
+        "next": "下一张照片",
+        "info": "信息面板",
+        "faces": "人脸框",
+        "objects": "物体框",
+        "star": "加星标",
+        "zoomIn": "放大",
+        "zoomOut": "缩小",
+        "zoomReset": "适合屏幕",
+        "panLeft": "将照片左移",
+        "panRight": "将照片右移",
+        "panUp": "将照片上移",
+        "panDown": "将照片下移"
+      },
+      "edit": {
+        "undo": "撤销",
+        "showOriginal": "显示原图",
+        "basic-transforms": {
+          "crop64": "裁剪",
+          "rotate": "旋转",
+          "flip": "翻转",
+          "straighten": "拉直"
+        },
+        "basic-effects": {
+          "brightness": "亮度",
+          "contrast": "对比度",
+          "bw": "黑白",
+          "sepia": "棕褐色"
+        }
+      },
+      "slideshow": {
+        "playPause": "播放或暂停",
+        "previous": "上一张照片",
+        "next": "下一张照片",
+        "exit": "退出幻灯片"
+      },
+      "people": {
+        "back": "返回图库",
+        "add": "添加人物"
+      },
+      "map": {
+        "back": "返回图库",
+        "placePhotos": "在地图上放置照片",
+        "removeLocation": "移除位置",
+        "zoomIn": "放大",
+        "zoomOut": "缩小"
+      },
+      "collage": {
+        "back": "返回图库",
+        "pile": "堆叠排列",
+        "grid": "网格排列",
+        "download": "下载拼贴"
+      }
+    }
   }
 }

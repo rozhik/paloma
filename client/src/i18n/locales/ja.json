@@ -286,7 +286,8 @@
     "object_not_found": "見つかりません。",
     "origin_not_allowed": "この Web ページからのリクエストは許可されていません。",
     "task_not_found": "このタスクはもうありません。",
-    "task_state": "現在の状態のタスクではその操作はできません。"
+    "task_state": "現在の状態のタスクではその操作はできません。",
+    "invalid_keymap": "有効なキー割り当てではありません。"
   },
   "geo": {
     "coordinates": "{{lat}}、{{lon}}",
@@ -908,5 +909,166 @@
     "remove": "{{task}} を一覧から削除",
     "moveUp": "{{task}} を上へ移動",
     "moveDown": "{{task}} を下へ移動"
+  },
+  "keys": {
+    "settingsTitle": "キーボード",
+    "settingsHint": "どのキーでどの操作をするか。キー割り当てはサーバーに保存されるので、どのブラウザーでも同じです。",
+    "current": "あなたのキー割り当て: {{name}}",
+    "basedOn": "{{preset}} がベース",
+    "presetsLabel": "プリセットを使う",
+    "presets": {
+      "mac": {
+        "name": "Mac",
+        "description": "Mac のキーボード: ショートカットは ⌘ を使います。"
+      },
+      "windows": {
+        "name": "Windows",
+        "description": "Windows と Linux のキーボード: ショートカットは Ctrl を使います。"
+      },
+      "tvBox": {
+        "name": "TV ボックス",
+        "description": "TV ボックスのリモコン: 矢印、OK、戻る、再生/一時停止、カラーボタン。"
+      }
+    },
+    "replaceTitle": "キーを置き換えますか?",
+    "replaceBody": "あなたのキー割り当てには独自のキーがあります。{{preset}} がすべて置き換えます。",
+    "replace": "置き換える",
+    "edit": "キーを編集",
+    "title": "キー割り当て",
+    "intro": "キーを押して追加します。変更はすぐに保存されます。",
+    "back": "設定に戻る",
+    "name": "名前",
+    "filter": "操作またはキーで絞り込む",
+    "noMatches": "絞り込みに合う操作はありません。",
+    "noKey": "キーなし",
+    "addKey": "キーを追加",
+    "addKeyTo": "{{action}} にキーを追加",
+    "removeKey": "{{key}} を削除",
+    "pressKey": "キーを押してください…",
+    "cancel": "キャンセル",
+    "resetAction": "リセット",
+    "resetActionLabel": "{{action}} をプリセットのキーに戻す",
+    "resetAll": "すべてのキーをリセット",
+    "resetAllTitle": "すべてのキーをリセットしますか?",
+    "resetAllBody": "すべての操作が {{preset}} のキーに戻ります。",
+    "conflict": "{{key}} はすでに {{actions}} のキーです。",
+    "moveHere": "ここに移す",
+    "reserved": "ブラウザーが {{key}} を使うため、Paloma に届かないことがあります。",
+    "download": "ダウンロード",
+    "upload": "アップロード",
+    "uploadTitle": "キー割り当てを置き換えますか?",
+    "uploadBody": "ファイルのキー割り当て「{{name}}」で置き換えます。",
+    "uploaded": "キー割り当てをアップロードしました。",
+    "dropped": "次の操作はここでは不明なため、除外しました: {{ids}}",
+    "problems": {
+      "not_keymap": "このファイルはキー割り当てではありません。",
+      "version": "このキー割り当ては新しいバージョンの Paloma のものです。",
+      "preset": "このキー割り当ては不明なプリセットを指定しています。",
+      "name": "名前は 1〜64 文字にしてください。",
+      "key": "キーではありません: {{key}}",
+      "conflict": "{{key}} が {{actions}} の両方のキーになっています。",
+      "too_large": "ファイルが 256 KB を超えています。"
+    },
+    "sections": {
+      "global": "全体",
+      "library": "ライブラリ",
+      "selection": "選択",
+      "viewer": "ビューアー",
+      "edit": "編集",
+      "slideshow": "スライドショー",
+      "people": "人物",
+      "map": "地図",
+      "collage": "コラージュ"
+    },
+    "actions": {
+      "global": {
+        "library": "ライブラリを開く",
+        "people": "人物を開く",
+        "map": "地図を開く",
+        "collage": "コラージュを開く",
+        "tasks": "タスクを開く",
+        "settings": "設定を開く",
+        "search": "検索"
+      },
+      "library": {
+        "open": "写真を開く",
+        "toggleSelect": "写真を選択または選択解除",
+        "focusPrevious": "前の写真",
+        "focusNext": "次の写真",
+        "focusUp": "上の写真",
+        "focusDown": "下の写真",
+        "selectAll": "すべての写真を選択",
+        "slideshow": "スライドショーを開始"
+      },
+      "selection": {
+        "clear": "選択を解除",
+        "star": "スターを付ける",
+        "addToAlbum": "アルバムに追加",
+        "addTags": "タグを追加",
+        "removeTag": "タグを削除",
+        "removeFromAlbum": "アルバムから削除",
+        "makeCover": "アルバムのカバーにする",
+        "removeLocation": "場所を削除",
+        "export": "書き出し",
+        "print": "印刷",
+        "collage": "コラージュ",
+        "movie": "ムービー"
+      },
+      "viewer": {
+        "close": "ビューアーを閉じる",
+        "previous": "前の写真",
+        "next": "次の写真",
+        "info": "情報パネル",
+        "faces": "顔の枠",
+        "objects": "物体の枠",
+        "star": "スターを付ける",
+        "zoomIn": "拡大",
+        "zoomOut": "縮小",
+        "zoomReset": "画面に合わせる",
+        "panLeft": "写真を左へ動かす",
+        "panRight": "写真を右へ動かす",
+        "panUp": "写真を上へ動かす",
+        "panDown": "写真を下へ動かす"
+      },
+      "edit": {
+        "undo": "元に戻す",
+        "showOriginal": "元の写真を表示",
+        "basic-transforms": {
+          "crop64": "切り抜き",
+          "rotate": "回転",
+          "flip": "反転",
+          "straighten": "傾き補正"
+        },
+        "basic-effects": {
+          "brightness": "明るさ",
+          "contrast": "コントラスト",
+          "bw": "白黒",
+          "sepia": "セピア"
+        }
+      },
+      "slideshow": {
+        "playPause": "再生または一時停止",
+        "previous": "前の写真",
+        "next": "次の写真",
+        "exit": "スライドショーを終了"
+      },
+      "people": {
+        "back": "ライブラリに戻る",
+        "add": "人物を追加"
+      },
+      "map": {
+        "back": "ライブラリに戻る",
+        "placePhotos": "写真を地図に配置",
+        "removeLocation": "場所を削除",
+        "zoomIn": "拡大",
+        "zoomOut": "縮小"
+      },
+      "collage": {
+        "back": "ライブラリに戻る",
+        "pile": "重ねて並べる",
+        "grid": "格子状に並べる",
+        "download": "コラージュをダウンロード"
+      }
+    }
   }
 }

@@ -304,7 +304,8 @@
     "object_not_found": "No encontrado.",
     "origin_not_allowed": "No se permiten solicitudes desde esta página web.",
     "task_not_found": "Esta tarea ya no existe.",
-    "task_state": "La tarea no puede hacer eso en su estado actual."
+    "task_state": "La tarea no puede hacer eso en su estado actual.",
+    "invalid_keymap": "Esta no es una asignación de teclas válida."
   },
   "geo": {
     "coordinates": "{{lat}}; {{lon}}",
@@ -964,5 +965,166 @@
     "remove": "Quitar {{task}} de la lista",
     "moveUp": "Subir {{task}}",
     "moveDown": "Bajar {{task}}"
+  },
+  "keys": {
+    "settingsTitle": "Teclado",
+    "settingsHint": "Qué teclas ejecutan qué acciones. Tu asignación de teclas se guarda en el servidor, así que es la misma en todos tus navegadores.",
+    "current": "Tu asignación de teclas: {{name}}",
+    "basedOn": "Basada en {{preset}}",
+    "presetsLabel": "Usar una plantilla",
+    "presets": {
+      "mac": {
+        "name": "Mac",
+        "description": "Un teclado Mac: los atajos usan ⌘."
+      },
+      "windows": {
+        "name": "Windows",
+        "description": "Teclados de Windows y Linux: los atajos usan Ctrl."
+      },
+      "tvBox": {
+        "name": "TV box",
+        "description": "El mando de un TV box: flechas, OK, Atrás, reproducir/pausa y los botones de colores."
+      }
+    },
+    "replaceTitle": "¿Reemplazar tus teclas?",
+    "replaceBody": "Tu asignación tiene teclas propias. {{preset}} las reemplaza todas.",
+    "replace": "Reemplazar",
+    "edit": "Editar teclas",
+    "title": "Atajos de teclado",
+    "intro": "Añade una tecla pulsándola. Cada cambio se guarda al instante.",
+    "back": "Volver a Ajustes",
+    "name": "Nombre",
+    "filter": "Filtrar por acción o tecla",
+    "noMatches": "Ninguna acción coincide con el filtro.",
+    "noKey": "Sin tecla",
+    "addKey": "Añadir tecla",
+    "addKeyTo": "Añadir una tecla a {{action}}",
+    "removeKey": "Quitar {{key}}",
+    "pressKey": "Pulsa una tecla…",
+    "cancel": "Cancelar",
+    "resetAction": "Restablecer",
+    "resetActionLabel": "Restablecer {{action}} a las teclas de la plantilla",
+    "resetAll": "Restablecer todas las teclas",
+    "resetAllTitle": "¿Restablecer todas las teclas?",
+    "resetAllBody": "Cada acción vuelve a tener las teclas de {{preset}}.",
+    "conflict": "{{key}} ya es la tecla de {{actions}}.",
+    "moveHere": "Mover aquí",
+    "reserved": "Puede que el navegador se quede {{key}} y no llegue a Paloma.",
+    "download": "Descargar",
+    "upload": "Subir",
+    "uploadTitle": "¿Reemplazar tu asignación de teclas?",
+    "uploadBody": "La asignación «{{name}}» del archivo reemplaza la tuya.",
+    "uploaded": "La asignación de teclas se ha subido.",
+    "dropped": "Estas acciones no se conocen aquí y se han omitido: {{ids}}",
+    "problems": {
+      "not_keymap": "Este archivo no es una asignación de teclas.",
+      "version": "Esta asignación es de una versión más reciente de Paloma.",
+      "preset": "Esta asignación nombra una plantilla desconocida.",
+      "name": "El nombre debe tener de 1 a 64 caracteres.",
+      "key": "Esto no es una tecla: {{key}}",
+      "conflict": "{{key}} es a la vez la tecla de {{actions}}.",
+      "too_large": "El archivo supera los 256 KB."
+    },
+    "sections": {
+      "global": "General",
+      "library": "Biblioteca",
+      "selection": "Selección",
+      "viewer": "Visor",
+      "edit": "Edición",
+      "slideshow": "Presentación",
+      "people": "Personas",
+      "map": "Mapa",
+      "collage": "Collage"
+    },
+    "actions": {
+      "global": {
+        "library": "Abrir la biblioteca",
+        "people": "Abrir Personas",
+        "map": "Abrir el mapa",
+        "collage": "Abrir Collage",
+        "tasks": "Abrir Tareas",
+        "settings": "Abrir Ajustes",
+        "search": "Buscar"
+      },
+      "library": {
+        "open": "Abrir la foto",
+        "toggleSelect": "Seleccionar o deseleccionar la foto",
+        "focusPrevious": "Foto anterior",
+        "focusNext": "Foto siguiente",
+        "focusUp": "Foto de arriba",
+        "focusDown": "Foto de abajo",
+        "selectAll": "Seleccionar todas las fotos",
+        "slideshow": "Iniciar la presentación"
+      },
+      "selection": {
+        "clear": "Vaciar la selección",
+        "star": "Marcar con estrella",
+        "addToAlbum": "Añadir al álbum",
+        "addTags": "Añadir etiquetas",
+        "removeTag": "Quitar etiqueta",
+        "removeFromAlbum": "Quitar del álbum",
+        "makeCover": "Usar como portada del álbum",
+        "removeLocation": "Quitar ubicación",
+        "export": "Exportar",
+        "print": "Imprimir",
+        "collage": "Collage",
+        "movie": "Película"
+      },
+      "viewer": {
+        "close": "Cerrar el visor",
+        "previous": "Foto anterior",
+        "next": "Foto siguiente",
+        "info": "Panel de información",
+        "faces": "Marcos de caras",
+        "objects": "Marcos de objetos",
+        "star": "Marcar con estrella",
+        "zoomIn": "Acercar",
+        "zoomOut": "Alejar",
+        "zoomReset": "Ajustar a la pantalla",
+        "panLeft": "Mover la foto a la izquierda",
+        "panRight": "Mover la foto a la derecha",
+        "panUp": "Mover la foto hacia arriba",
+        "panDown": "Mover la foto hacia abajo"
+      },
+      "edit": {
+        "undo": "Deshacer",
+        "showOriginal": "Mostrar el original",
+        "basic-transforms": {
+          "crop64": "Recortar",
+          "rotate": "Girar",
+          "flip": "Voltear",
+          "straighten": "Enderezar"
+        },
+        "basic-effects": {
+          "brightness": "Brillo",
+          "contrast": "Contraste",
+          "bw": "Blanco y negro",
+          "sepia": "Sepia"
+        }
+      },
+      "slideshow": {
+        "playPause": "Reproducir o pausar",
+        "previous": "Foto anterior",
+        "next": "Foto siguiente",
+        "exit": "Salir de la presentación"
+      },
+      "people": {
+        "back": "Volver a la biblioteca",
+        "add": "Añadir una persona"
+      },
+      "map": {
+        "back": "Volver a la biblioteca",
+        "placePhotos": "Colocar fotos en el mapa",
+        "removeLocation": "Quitar ubicación",
+        "zoomIn": "Acercar",
+        "zoomOut": "Alejar"
+      },
+      "collage": {
+        "back": "Volver a la biblioteca",
+        "pile": "Ordenar en montón",
+        "grid": "Ordenar en cuadrícula",
+        "download": "Descargar el collage"
+      }
+    }
   }
 }

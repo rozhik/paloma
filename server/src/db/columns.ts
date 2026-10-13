@@ -332,3 +332,16 @@ export function createTaskTables(sqlite: Database.Database): void {
     CREATE INDEX IF NOT EXISTS tasks_state ON tasks(state);
   `);
 }
+
+/** Each user's keymap: `owner` is the user id, or `~single` for the one user while users are off. */
+export function createKeymapTables(sqlite: Database.Database): void {
+  sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS keymaps (
+      owner TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      based_on TEXT NOT NULL,
+      bindings TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+  `);
+}

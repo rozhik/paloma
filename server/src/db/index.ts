@@ -4,7 +4,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { config } from '../config.js';
 import * as schema from './schema.js';
-import { addMissingPhotoColumns, createAiTables, createAuthTables, createGeoTables, createPeopleTables, createTaskTables, createTextTables, dropMvpEdits, migrateAlbumTables } from './columns.js';
+import { addMissingPhotoColumns, createAiTables, createAuthTables, createGeoTables, createPeopleTables, createTaskTables, createTextTables, createKeymapTables, dropMvpEdits, migrateAlbumTables } from './columns.js';
 
 export type Db = BetterSQLite3Database<typeof schema>;
 
@@ -76,6 +76,7 @@ export async function openDatabase(): Promise<void> {
   createAuthTables(opened);
   createAiTables(opened);
   createTaskTables(opened);
+  createKeymapTables(opened);
 
   sqlite = opened;
   db = drizzle(opened, { schema });

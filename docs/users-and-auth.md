@@ -37,7 +37,7 @@ The avatar at the end of the main navigation, in every skin, opens the **user me
 - **Server settings** (for those with `plugins.manage`, or everyone with users off): the plugins, AI providers and tasks, and a read-only overview of the server's `.env` settings.
 - **Log out**.
 
-**Settings** in the navigation holds only what is remembered in this browser: language, level, appearance and the viewer bars. With users off, the user menu shows a person icon and offers only Tasks and Server settings.
+**Settings** in the navigation holds what is remembered in this browser: language, level, appearance and the viewer bars. Its Keyboard section is the exception: each user's [keymap](keybindings.md) is kept on the server, so it follows them to every browser. With users off, the user menu shows a person icon and offers only Tasks and Server settings.
 
 ## Users and people
 

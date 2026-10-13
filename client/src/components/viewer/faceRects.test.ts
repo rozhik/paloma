@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { faceRectMapper, isFacesKey, rectStyle } from './faceRects.js';
+import { faceRectMapper, rectStyle } from './faceRects.js';
 
 const FACE = { left: 0.1, top: 0.2, right: 0.3, bottom: 0.5 };
 const map = (steps: Parameters<typeof faceRectMapper>[0], rect = FACE) => faceRectMapper(steps)!(rect);
@@ -58,12 +58,4 @@ describe('helpers', () => {
     expect(rectStyle(FACE)).toEqual({ left: '10.000%', top: '20.000%', width: '20.000%', height: '30.000%' });
   });
 
-  it('toggles face frames with f, but not while typing, with modifiers or when the level hides them', () => {
-    const key = { key: 'f', ctrlKey: false, metaKey: false, altKey: false };
-    expect(isFacesKey(key, false, true)).toBe(true);
-    expect(isFacesKey({ ...key, key: 'F' }, false, true)).toBe(true);
-    expect(isFacesKey(key, true, true)).toBe(false);
-    expect(isFacesKey({ ...key, ctrlKey: true }, false, true)).toBe(false);
-    expect(isFacesKey(key, false, false)).toBe(false);
-  });
 });

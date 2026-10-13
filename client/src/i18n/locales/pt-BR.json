@@ -304,7 +304,8 @@
     "object_not_found": "Não encontrado.",
     "origin_not_allowed": "Solicitações desta página da web não são permitidas.",
     "task_not_found": "Esta tarefa não existe mais.",
-    "task_state": "A tarefa não pode fazer isso no estado atual."
+    "task_state": "A tarefa não pode fazer isso no estado atual.",
+    "invalid_keymap": "Este não é um mapa de teclas válido."
   },
   "geo": {
     "coordinates": "{{lat}}; {{lon}}",
@@ -964,5 +965,166 @@
     "remove": "Remover {{task}} da lista",
     "moveUp": "Mover {{task}} para cima",
     "moveDown": "Mover {{task}} para baixo"
+  },
+  "keys": {
+    "settingsTitle": "Teclado",
+    "settingsHint": "Quais teclas executam quais ações. Seu mapa de teclas fica no servidor, então é o mesmo em todos os navegadores que você usa.",
+    "current": "Seu mapa de teclas: {{name}}",
+    "basedOn": "Baseado em {{preset}}",
+    "presetsLabel": "Usar um modelo",
+    "presets": {
+      "mac": {
+        "name": "Mac",
+        "description": "Um teclado Mac: os atalhos usam ⌘."
+      },
+      "windows": {
+        "name": "Windows",
+        "description": "Teclados Windows e Linux: os atalhos usam Ctrl."
+      },
+      "tvBox": {
+        "name": "TV box",
+        "description": "O controle de um TV box: setas, OK, Voltar, reproduzir/pausar e os botões coloridos."
+      }
+    },
+    "replaceTitle": "Substituir suas teclas?",
+    "replaceBody": "Seu mapa tem teclas próprias. {{preset}} substitui todas elas.",
+    "replace": "Substituir",
+    "edit": "Editar teclas",
+    "title": "Atalhos de teclado",
+    "intro": "Adicione uma tecla pressionando-a. Cada alteração é salva na hora.",
+    "back": "Voltar às configurações",
+    "name": "Nome",
+    "filter": "Filtrar por ação ou tecla",
+    "noMatches": "Nenhuma ação corresponde ao filtro.",
+    "noKey": "Sem tecla",
+    "addKey": "Adicionar tecla",
+    "addKeyTo": "Adicionar uma tecla a {{action}}",
+    "removeKey": "Remover {{key}}",
+    "pressKey": "Pressione uma tecla…",
+    "cancel": "Cancelar",
+    "resetAction": "Redefinir",
+    "resetActionLabel": "Redefinir {{action}} para as teclas do modelo",
+    "resetAll": "Redefinir todas as teclas",
+    "resetAllTitle": "Redefinir todas as teclas?",
+    "resetAllBody": "Cada ação volta a ter as teclas de {{preset}}.",
+    "conflict": "{{key}} já é a tecla de {{actions}}.",
+    "moveHere": "Mover para cá",
+    "reserved": "O navegador pode reservar {{key}} para si, e a tecla pode não chegar ao Paloma.",
+    "download": "Baixar",
+    "upload": "Enviar",
+    "uploadTitle": "Substituir seu mapa de teclas?",
+    "uploadBody": "O mapa de teclas “{{name}}” do arquivo substitui o seu.",
+    "uploaded": "O mapa de teclas foi enviado.",
+    "dropped": "Estas ações não são conhecidas aqui e foram deixadas de fora: {{ids}}",
+    "problems": {
+      "not_keymap": "Este arquivo não é um mapa de teclas.",
+      "version": "Este mapa de teclas é de uma versão mais nova do Paloma.",
+      "preset": "Este mapa de teclas cita um modelo desconhecido.",
+      "name": "O nome deve ter de 1 a 64 caracteres.",
+      "key": "Isto não é uma tecla: {{key}}",
+      "conflict": "{{key}} é a tecla de {{actions}} ao mesmo tempo.",
+      "too_large": "O arquivo tem mais de 256 KB."
+    },
+    "sections": {
+      "global": "Geral",
+      "library": "Biblioteca",
+      "selection": "Seleção",
+      "viewer": "Visualizador",
+      "edit": "Edição",
+      "slideshow": "Apresentação",
+      "people": "Pessoas",
+      "map": "Mapa",
+      "collage": "Colagem"
+    },
+    "actions": {
+      "global": {
+        "library": "Abrir a biblioteca",
+        "people": "Abrir Pessoas",
+        "map": "Abrir o mapa",
+        "collage": "Abrir Colagem",
+        "tasks": "Abrir Tarefas",
+        "settings": "Abrir as configurações",
+        "search": "Pesquisar"
+      },
+      "library": {
+        "open": "Abrir a foto",
+        "toggleSelect": "Selecionar ou desmarcar a foto",
+        "focusPrevious": "Foto anterior",
+        "focusNext": "Próxima foto",
+        "focusUp": "Foto acima",
+        "focusDown": "Foto abaixo",
+        "selectAll": "Selecionar todas as fotos",
+        "slideshow": "Iniciar a apresentação"
+      },
+      "selection": {
+        "clear": "Limpar a seleção",
+        "star": "Marcar com estrela",
+        "addToAlbum": "Adicionar ao álbum",
+        "addTags": "Adicionar tags",
+        "removeTag": "Remover tag",
+        "removeFromAlbum": "Remover do álbum",
+        "makeCover": "Usar como capa do álbum",
+        "removeLocation": "Remover local",
+        "export": "Exportar",
+        "print": "Imprimir",
+        "collage": "Colagem",
+        "movie": "Filme"
+      },
+      "viewer": {
+        "close": "Fechar o visualizador",
+        "previous": "Foto anterior",
+        "next": "Próxima foto",
+        "info": "Painel de informações",
+        "faces": "Molduras de rostos",
+        "objects": "Molduras de objetos",
+        "star": "Marcar com estrela",
+        "zoomIn": "Aumentar zoom",
+        "zoomOut": "Diminuir zoom",
+        "zoomReset": "Ajustar à tela",
+        "panLeft": "Mover a foto para a esquerda",
+        "panRight": "Mover a foto para a direita",
+        "panUp": "Mover a foto para cima",
+        "panDown": "Mover a foto para baixo"
+      },
+      "edit": {
+        "undo": "Desfazer",
+        "showOriginal": "Mostrar o original",
+        "basic-transforms": {
+          "crop64": "Recortar",
+          "rotate": "Girar",
+          "flip": "Espelhar",
+          "straighten": "Endireitar"
+        },
+        "basic-effects": {
+          "brightness": "Brilho",
+          "contrast": "Contraste",
+          "bw": "Preto e branco",
+          "sepia": "Sépia"
+        }
+      },
+      "slideshow": {
+        "playPause": "Reproduzir ou pausar",
+        "previous": "Foto anterior",
+        "next": "Próxima foto",
+        "exit": "Sair da apresentação"
+      },
+      "people": {
+        "back": "Voltar à biblioteca",
+        "add": "Adicionar uma pessoa"
+      },
+      "map": {
+        "back": "Voltar à biblioteca",
+        "placePhotos": "Colocar fotos no mapa",
+        "removeLocation": "Remover local",
+        "zoomIn": "Aumentar zoom",
+        "zoomOut": "Diminuir zoom"
+      },
+      "collage": {
+        "back": "Voltar à biblioteca",
+        "pile": "Organizar em pilha",
+        "grid": "Organizar em grade",
+        "download": "Baixar a colagem"
+      }
+    }
   }
 }

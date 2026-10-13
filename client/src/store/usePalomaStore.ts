@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { Photo, Folder, Memory } from '../../../shared/types.js';
 
-export type AppView = 'library' | 'collage' | 'map' | 'people' | 'settings' | 'account' | 'tasks' | 'admin' | 'server';
+export type AppView = 'library' | 'collage' | 'map' | 'people' | 'settings' | 'keybindings' | 'account' | 'tasks' | 'admin' | 'server';
 /** The photo viewer: a snapshot of the grid's photos when it opened, and the one shown. */
 export interface ViewerState {
   photos: Photo[];

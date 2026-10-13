@@ -75,7 +75,3 @@ export function rectStyle(rect: RelativeRect): { left: string; top: string; widt
   const percent = (value: number) => `${(value * 100).toFixed(3)}%`;
   return { left: percent(rect.left), top: percent(rect.top), width: percent(rect.right - rect.left), height: percent(rect.bottom - rect.top) };
 }
-
-/** Whether a key turns face frames on or off: `f` without modifiers, outside text fields, when the level offers it. */
-export const isFacesKey = (event: Pick<KeyboardEvent, 'key' | 'ctrlKey' | 'metaKey' | 'altKey'>, typing: boolean, allowed: boolean) =>
-  allowed && !typing && !event.ctrlKey && !event.metaKey && !event.altKey && event.key.toLowerCase() === 'f';

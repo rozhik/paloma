@@ -5,6 +5,7 @@ import { IconButton } from '../../shell/IconButton.js';
 import { usePalomaStore, type SlideshowState } from '../../store/usePalomaStore.js';
 import { SLIDESHOW_INTERVALS, useUiSettings } from '../../settings/uiSettings.js';
 import { slideshowReducer, startPlayback } from './slideshowReducer.js';
+import { LAYER, useKeyActions } from '../../keys/dispatcher.js';
 
 /** How long the controls stay after the pointer last moved */
 const CONTROLS_HIDE_MS = 3000;
@@ -86,26 +87,16 @@ const SlideshowScreen: React.FC<{ slideshow: SlideshowState }> = ({ slideshow })
     return () => before?.focus?.();
   }, []);
 
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (event.ctrlKey || event.metaKey || event.altKey) return;
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        exit();
-      } else if (event.key === ' ') {
-        event.preventDefault();
-        dispatch({ type: 'toggle' });
-      } else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-        event.preventDefault();
-        const forward = (event.key === 'ArrowRight') !== (i18n.dir() === 'rtl');
-        dispatch({ type: forward ? 'next' : 'previous' });
-      } else {
-        return;
-      }
-      showControls();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+  // Keys from the user's keymap; they also bring the controls back
+  const withControls = (run: () => void) => () => {
+    run();
+    showControls();
+  };
+  useKeyActions('slideshow', LAYER.slideshow, {
+    'slideshow.exit': exit,
+    'slideshow.playPause': withControls(() => dispatch({ type: 'toggle' })),
+    'slideshow.previous': withControls(() => dispatch({ type: 'previous' })),
+    'slideshow.next': withControls(() => dispatch({ type: 'next' })),
   });
 
   // In a right-to-left language "previous" points right

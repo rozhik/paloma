@@ -3,6 +3,7 @@ import { fabric } from 'fabric';
 import { usePalomaStore } from '../store/usePalomaStore.js';
 import { useTranslation } from 'react-i18next';
 import { Download, ArrowLeft, RefreshCw, LayoutGrid } from 'lucide-react';
+import { LAYER, useKeyActions } from '../keys/dispatcher.js';
 
 export const CollageBuilder: React.FC = () => {
   const { selectedPhotos, setCurrentView } = usePalomaStore();
@@ -85,6 +86,13 @@ export const CollageBuilder: React.FC = () => {
     link.href = dataURL;
     link.click();
   };
+
+  useKeyActions('collage', LAYER.screen, {
+    'collage.back': () => setCurrentView('library'),
+    'collage.pile': () => populateCollage('pile'),
+    'collage.grid': () => populateCollage('grid'),
+    'collage.download': handleDownload,
+  });
 
   return (
     <div className="d-flex flex-column h-100 w-100 pal-chrome p-3">

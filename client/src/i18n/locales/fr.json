@@ -304,7 +304,8 @@
     "object_not_found": "Introuvable.",
     "origin_not_allowed": "Les requêtes depuis cette page web ne sont pas autorisées.",
     "task_not_found": "Cette tâche n’existe plus.",
-    "task_state": "La tâche ne peut pas faire cela dans son état actuel."
+    "task_state": "La tâche ne peut pas faire cela dans son état actuel.",
+    "invalid_keymap": "Ce n'est pas un jeu de raccourcis valide."
   },
   "geo": {
     "coordinates": "{{lat}} ; {{lon}}",
@@ -964,5 +965,166 @@
     "remove": "Retirer {{task}} de la liste",
     "moveUp": "Monter {{task}}",
     "moveDown": "Descendre {{task}}"
+  },
+  "keys": {
+    "settingsTitle": "Clavier",
+    "settingsHint": "Quelles touches lancent quelles actions. Vos raccourcis sont gardés sur le serveur, ils sont donc les mêmes dans chaque navigateur.",
+    "current": "Vos raccourcis : {{name}}",
+    "basedOn": "Basé sur {{preset}}",
+    "presetsLabel": "Utiliser un modèle",
+    "presets": {
+      "mac": {
+        "name": "Mac",
+        "description": "Un clavier Mac : les raccourcis utilisent ⌘."
+      },
+      "windows": {
+        "name": "Windows",
+        "description": "Claviers Windows et Linux : les raccourcis utilisent Ctrl."
+      },
+      "tvBox": {
+        "name": "Box TV",
+        "description": "Une télécommande de box TV : flèches, OK, Retour, lecture/pause et touches de couleur."
+      }
+    },
+    "replaceTitle": "Remplacer vos touches ?",
+    "replaceBody": "Vos raccourcis ont leurs propres touches. {{preset}} les remplace toutes.",
+    "replace": "Remplacer",
+    "edit": "Modifier les touches",
+    "title": "Raccourcis clavier",
+    "intro": "Ajoutez une touche en l'appuyant. Chaque modification est enregistrée aussitôt.",
+    "back": "Retour aux réglages",
+    "name": "Nom",
+    "filter": "Filtrer par action ou touche",
+    "noMatches": "Aucune action ne correspond au filtre.",
+    "noKey": "Aucune touche",
+    "addKey": "Ajouter une touche",
+    "addKeyTo": "Ajouter une touche à {{action}}",
+    "removeKey": "Retirer {{key}}",
+    "pressKey": "Appuyez sur une touche…",
+    "cancel": "Annuler",
+    "resetAction": "Réinitialiser",
+    "resetActionLabel": "Remettre {{action}} aux touches du modèle",
+    "resetAll": "Réinitialiser toutes les touches",
+    "resetAllTitle": "Réinitialiser toutes les touches ?",
+    "resetAllBody": "Chaque action retrouve les touches de {{preset}}.",
+    "conflict": "{{key}} est déjà la touche de {{actions}}.",
+    "moveHere": "Déplacer ici",
+    "reserved": "Le navigateur peut garder {{key}} pour lui, la touche risque de ne pas atteindre Paloma.",
+    "download": "Télécharger",
+    "upload": "Importer",
+    "uploadTitle": "Remplacer vos raccourcis ?",
+    "uploadBody": "Les raccourcis « {{name}} » du fichier remplacent les vôtres.",
+    "uploaded": "Les raccourcis ont été importés.",
+    "dropped": "Ces actions sont inconnues ici et ont été ignorées : {{ids}}",
+    "problems": {
+      "not_keymap": "Ce fichier n'est pas un jeu de raccourcis.",
+      "version": "Ces raccourcis viennent d'une version plus récente de Paloma.",
+      "preset": "Ces raccourcis nomment un modèle inconnu.",
+      "name": "Le nom doit compter de 1 à 64 caractères.",
+      "key": "Ce n'est pas une touche : {{key}}",
+      "conflict": "{{key}} est la touche à la fois de {{actions}}.",
+      "too_large": "Le fichier dépasse 256 Ko."
+    },
+    "sections": {
+      "global": "Général",
+      "library": "Bibliothèque",
+      "selection": "Sélection",
+      "viewer": "Visionneuse",
+      "edit": "Retouche",
+      "slideshow": "Diaporama",
+      "people": "Personnes",
+      "map": "Carte",
+      "collage": "Collage"
+    },
+    "actions": {
+      "global": {
+        "library": "Ouvrir la bibliothèque",
+        "people": "Ouvrir Personnes",
+        "map": "Ouvrir la carte",
+        "collage": "Ouvrir Collage",
+        "tasks": "Ouvrir les tâches",
+        "settings": "Ouvrir les réglages",
+        "search": "Rechercher"
+      },
+      "library": {
+        "open": "Ouvrir la photo",
+        "toggleSelect": "Sélectionner ou désélectionner la photo",
+        "focusPrevious": "Photo précédente",
+        "focusNext": "Photo suivante",
+        "focusUp": "Photo au-dessus",
+        "focusDown": "Photo en dessous",
+        "selectAll": "Sélectionner toutes les photos",
+        "slideshow": "Lancer le diaporama"
+      },
+      "selection": {
+        "clear": "Vider la sélection",
+        "star": "Mettre une étoile",
+        "addToAlbum": "Ajouter à l'album",
+        "addTags": "Ajouter des tags",
+        "removeTag": "Retirer le tag",
+        "removeFromAlbum": "Retirer de l'album",
+        "makeCover": "Choisir comme couverture",
+        "removeLocation": "Retirer le lieu",
+        "export": "Exporter",
+        "print": "Imprimer",
+        "collage": "Collage",
+        "movie": "Film"
+      },
+      "viewer": {
+        "close": "Fermer la visionneuse",
+        "previous": "Photo précédente",
+        "next": "Photo suivante",
+        "info": "Panneau d'infos",
+        "faces": "Cadres des visages",
+        "objects": "Cadres des objets",
+        "star": "Mettre une étoile",
+        "zoomIn": "Agrandir",
+        "zoomOut": "Réduire",
+        "zoomReset": "Ajuster à l'écran",
+        "panLeft": "Déplacer la photo à gauche",
+        "panRight": "Déplacer la photo à droite",
+        "panUp": "Déplacer la photo vers le haut",
+        "panDown": "Déplacer la photo vers le bas"
+      },
+      "edit": {
+        "undo": "Annuler",
+        "showOriginal": "Voir l'original",
+        "basic-transforms": {
+          "crop64": "Recadrer",
+          "rotate": "Faire pivoter",
+          "flip": "Retourner",
+          "straighten": "Redresser"
+        },
+        "basic-effects": {
+          "brightness": "Luminosité",
+          "contrast": "Contraste",
+          "bw": "Noir et blanc",
+          "sepia": "Sépia"
+        }
+      },
+      "slideshow": {
+        "playPause": "Lire ou mettre en pause",
+        "previous": "Photo précédente",
+        "next": "Photo suivante",
+        "exit": "Quitter le diaporama"
+      },
+      "people": {
+        "back": "Retour à la bibliothèque",
+        "add": "Ajouter une personne"
+      },
+      "map": {
+        "back": "Retour à la bibliothèque",
+        "placePhotos": "Placer des photos sur la carte",
+        "removeLocation": "Retirer le lieu",
+        "zoomIn": "Agrandir",
+        "zoomOut": "Réduire"
+      },
+      "collage": {
+        "back": "Retour à la bibliothèque",
+        "pile": "Disposer en pile",
+        "grid": "Disposer en grille",
+        "download": "Télécharger le collage"
+      }
+    }
   }
 }

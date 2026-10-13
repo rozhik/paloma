@@ -87,6 +87,8 @@ describe('control permissions', () => {
     'photo.open', 'photo.select', 'viewer.navigate', 'viewer.zoom', 'viewer.info', 'viewer.faces', 'slideshow',
     'entry.menu', 'entry.info', 'search', 'people.choose', 'info.people', 'info.exif', 'info.json', 'tray.clear', 'tray.print',
     'viewer.objects', 'info.ai',
+    // They change only the user's own keymap
+    'settings.keyboard', 'view.keybindings', 'keybindings.importExport',
   ];
 
   it('give every control that changes something a permission', () => {

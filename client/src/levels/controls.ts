@@ -24,7 +24,8 @@ export type ControlId =
   | 'user.menu' | 'user.logout' | 'account.tokens'
   | 'entry.menu' | 'entry.info'
   | 'album.editProperties' | 'album.delete'
-  | 'map.placePhotos' | 'map.removeLocation';
+  | 'map.placePhotos' | 'map.removeLocation'
+  | 'settings.keyboard' | 'keybindings.importExport';
 
 /**
  * The lowest level at which each control is shown. A control that can change anything is never `child`.
@@ -104,8 +105,13 @@ export const CONTROL_LEVELS: Record<ControlId, Level> = {
   'ai.run': 'normal',
   'viewer.objects': 'normal',
   'info.ai': 'normal',
+  // The Keyboard section of Settings with choosing a preset, and the Keybindings page with editing keys
+  'settings.keyboard': 'normal',
+  'view.keybindings': 'normal',
 
   'info.exif': 'pro',
+  // Downloading and uploading the keymap as JSON on the Keybindings page
+  'keybindings.importExport': 'pro',
 
   'info.json': 'developer',
 };

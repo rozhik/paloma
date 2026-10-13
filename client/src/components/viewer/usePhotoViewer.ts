@@ -14,8 +14,12 @@ import { useViewerEdits } from './useViewerEdits.js';
 import { ZOOM_STEP, clampPan, clampScale, fitted, isFitted, panBy, zoomAt, type Size, type ZoomState } from './zoomMath.js';
 import { useSkin } from '../../appearance/runtime.js';
 import { useAllows, useLevel } from '../../levels/controls.js';
+import { BUNDLED_FILTER_ACTIONS } from '../../../../shared/keymaps.js';
+import { useKeymapStore } from '../../keys/keymapStore.js';
 import { offeredFilters } from '../../levels/filters.js';
-import { isFacesKey } from './faceRects.js';
+import { LAYER, useKeyActions } from '../../keys/dispatcher.js';
+import { setLeaveOverlay } from '../../keys/useAppKeys.js';
+import { apiRequest } from '../../api/http.js';
 
 /** A rectangle parameter being edited as a frame over the photo. */
 export interface FrameEdit {
@@ -39,9 +43,6 @@ function valuesOf(filter: FilterInfo, step: EditStep | undefined): Record<string
   return values;
 }
 
-const isTyping = (target: EventTarget | null) => target instanceof HTMLElement
-  && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
-
 /** What Esc closes first: the frame, then a floating panel, then the Info panel, else the viewer. */
 export function escapeTarget(open: { frame: boolean; panel: boolean; info: boolean }): 'frame' | 'panel' | 'info' | 'viewer' {
   if (open.frame) return 'frame';
@@ -50,16 +51,12 @@ export function escapeTarget(open: { frame: boolean; panel: boolean; info: boole
   return 'viewer';
 }
 
-/** Whether a key toggles the Info panel: `i` without modifiers, outside text fields, when the level offers it. */
-export const isInfoKey = (event: Pick<KeyboardEvent, 'key' | 'ctrlKey' | 'metaKey' | 'altKey'>, typing: boolean, allowed: boolean) =>
-  allowed && !typing && !event.ctrlKey && !event.metaKey && !event.altKey && event.key.toLowerCase() === 'i';
-
 /**
  * Everything the viewer knows and can do for the photo on screen: navigation, zoom, the edit chain, the open
  * panel and frame, and saving. Shared by every skin; a skin's viewer chrome only renders it.
  */
 export function usePhotoViewer(viewer: ViewerState) {
-  const { moveViewer, closeViewer } = usePalomaStore();
+  const { moveViewer, closeViewer, replaceViewerPhoto } = usePalomaStore();
   const { t, i18n } = useTranslation();
   const photo = viewer.photos[viewer.index];
   const edits = useViewerEdits(photo);
@@ -233,52 +230,72 @@ export function usePhotoViewer(viewer: ViewerState) {
   const paletteValues = (filter: FilterInfo) =>
     valuesOf(filter, lastStep?.filter === filter.name && lastStep.enabled !== false ? lastStep : undefined);
 
-  // Viewer keys; keys typed into controls stay there
+  // Viewer keys from the user's keymap; keys typed into controls stay there (keys/dispatcher.ts)
+  const rtl = i18n.dir() === 'rtl';
+  const pan = (dx: number, dy: number) => () => {
+    // The arrows were mirrored for the keymap; panning follows the arrow that was pressed
+    if (!frame) setZoom(panBy(zoom, (rtl ? -dx : dx) * PAN_STEP, dy * PAN_STEP, full, stage));
+  };
+  const unzoomed = (run: () => void) => ({ run, enabled: () => !frame });
+  const canStar = useAllows('photo.star');
+  const star = async () => {
+    try {
+      replaceViewerPhoto(await apiRequest('PATCH', `/api/photos/${photo.id}/star`, { isStarred: !photo.isStarred }));
+    } catch (err) {
+      setLoadError(describeError(err, t));
+    }
+  };
+  useKeyActions('viewer', LAYER.viewer, {
+    // Esc closes what is open first: the frame, a floating panel, the Info panel, then the viewer
+    'viewer.close': () => {
+      const target = escapeTarget({ frame: !!frame, panel: !!panel, info: showInfo });
+      if (target === 'frame') cancelFrame();
+      else if (target === 'panel') setPanel(null);
+      else if (target === 'info') setInfoOpen(false);
+      else close();
+    },
+    'viewer.previous': prev,
+    'viewer.next': next,
+    'viewer.info': () => setInfoOpen((open) => !open),
+    'viewer.faces': toggleFaces,
+    'viewer.objects': toggleObjects,
+    'viewer.star': { run: star, enabled: () => canStar },
+    'viewer.zoomIn': unzoomed(() => zoomBy(ZOOM_STEP)),
+    'viewer.zoomOut': unzoomed(() => zoomBy(1 / ZOOM_STEP)),
+    'viewer.zoomReset': unzoomed(() => setZoomChoice('fit')),
+    'viewer.panLeft': pan(1, 0),
+    'viewer.panRight': pan(-1, 0),
+    'viewer.panUp': pan(0, 1),
+    'viewer.panDown': pan(0, -1),
+  });
+  /** Presses a filter's button in the edit bar, so the key does what a click does, only for filters the bar offers. */
+  const filterButton = (name: string) => document.querySelector<HTMLButtonElement>(`.viewer-edit [data-filter="${CSS.escape(name)}"]`);
+  const filterHandlers = Object.fromEntries([...(filters?.keys() ?? []), 'rotate'].map((name) => [name, {
+    run: () => filterButton(name)?.click(),
+    enabled: () => canEdit && !(filterButton(name)?.disabled ?? true),
+  }]));
+  const editHandlers: Parameters<typeof useKeyActions>[2] = {
+    'edit.undo': { run: () => dispatch({ type: 'undo' }), enabled: () => canEdit && !frame },
+    'edit.showOriginal': { run: () => setShowOriginal((shown) => !shown), enabled: () => canEdit },
+  };
+  const pluginFilters = useKeymapStore((state) => state.filters);
+  for (const id of [...BUNDLED_FILTER_ACTIONS, ...pluginFilters.map((filter) => filter.id)]) {
+    const handler = filterHandlers[id.split('.').slice(2).join('.')];
+    if (handler) editHandlers[id] = handler;
+  }
+  useKeyActions('edit', LAYER.viewer, editHandlers);
+
+  // A Global key that opens another view leaves the viewer as Close does: after its saves, and not when one failed
   useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      // A dialog over the viewer, like the person picker, handles its own keys
-      if (event.target instanceof Element && event.target.closest('.modal')) return;
-      const typing = isTyping(event.target);
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        const target = escapeTarget({ frame: !!frame, panel: !!panel, info: showInfo });
-        if (target === 'frame') cancelFrame();
-        else if (target === 'panel') setPanel(null);
-        else if (target === 'info') setInfoOpen(false);
-        else close();
-        return;
+    setLeaveOverlay(async () => {
+      if (frame || !(await edits.settle())) {
+        setBlocked(!frame);
+        return false;
       }
-      if (typing) return;
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
-        event.preventDefault();
-        if (canEdit && !frame && !event.shiftKey) dispatch({ type: 'undo' });
-        return;
-      }
-      if (event.ctrlKey || event.metaKey || event.altKey) return;
-      const arrows: Record<string, [number, number]> = { ArrowLeft: [1, 0], ArrowRight: [-1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] };
-      if (event.key in arrows && event.shiftKey) {
-        event.preventDefault();
-        const [dx, dy] = arrows[event.key];
-        if (!frame) setZoom(panBy(zoom, dx * PAN_STEP, dy * PAN_STEP, full, stage));
-      } else if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-        event.preventDefault();
-        const forward = (event.key === 'ArrowRight') !== (i18n.dir() === 'rtl');
-        if (forward) next();
-        else prev();
-      } else if ((event.key === '+' || event.key === '=') && !frame) {
-        zoomBy(ZOOM_STEP);
-      } else if (event.key === '-' && !frame) {
-        zoomBy(1 / ZOOM_STEP);
-      } else if (event.key === '0' && !frame) {
-        setZoomChoice('fit');
-      } else if (isInfoKey(event, typing, canInfo)) {
-        setInfoOpen((open) => !open);
-      } else if (isFacesKey(event, typing, canFaces)) {
-        toggleFaces();
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+      closeViewer();
+      return true;
+    });
+    return () => setLeaveOverlay(null);
   });
 
   const panelFilter = panel?.kind === 'filter' ? filters?.get(panel.name) : undefined;

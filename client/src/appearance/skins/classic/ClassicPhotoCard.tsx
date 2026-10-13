@@ -34,16 +34,6 @@ export const ClassicPhotoCard: React.FC<PhotoCardProps> = ({ photo, onStarToggle
       tabIndex={0}
       aria-label={photo.filename}
       onClick={(event) => (canSelect && (event.ctrlKey || event.metaKey) ? toggleSelectPhoto(photo) : onOpen())}
-      onKeyDown={(event) => {
-        if (event.target !== event.currentTarget) return;
-        if (event.key === 'Enter') {
-          event.preventDefault();
-          onOpen();
-        } else if (event.key === ' ') {
-          event.preventDefault();
-          if (canSelect) toggleSelectPhoto(photo);
-        }
-      }}
     >
       {canSelect && (
         <button

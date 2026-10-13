@@ -17,8 +17,8 @@ interface SquarePhotoCardProps {
 }
 
 /**
- * A square thumbnail card without a caption; the name shows on hover and to screen readers. A click (or Enter)
- * opens the viewer; the checkbox, Ctrl/Cmd+click or Space selects it; the star stars it.
+ * A square thumbnail card without a caption; the name shows on hover and to screen readers. A click opens the viewer;
+ * the checkbox or Ctrl/Cmd+click selects it; the star stars it. Its keys are Library actions of the grid (VirtualGrid).
  */
 export const SquarePhotoCard: React.FC<SquarePhotoCardProps> = ({ photo, onStarToggle, onOpen, className, iconSize = 18 }) => {
   const { t } = useTranslation();
@@ -36,16 +36,6 @@ export const SquarePhotoCard: React.FC<SquarePhotoCardProps> = ({ photo, onStarT
       aria-label={photo.filename}
       title={photo.filename}
       onClick={(event) => (canSelect && (event.ctrlKey || event.metaKey) ? toggleSelectPhoto(photo) : onOpen())}
-      onKeyDown={(event) => {
-        if (event.target !== event.currentTarget) return;
-        if (event.key === 'Enter') {
-          event.preventDefault();
-          onOpen();
-        } else if (event.key === ' ') {
-          event.preventDefault();
-          if (canSelect) toggleSelectPhoto(photo);
-        }
-      }}
     >
       {canSelect && (
         <button

@@ -9,6 +9,7 @@ import { PersonAvatar } from '../people/PersonAvatar.js';
 import { PersonEditorModal } from '../people/PersonEditor.js';
 import { sortPeople, usePeople } from '../people/usePeople.js';
 import { usePalomaStore } from '../store/usePalomaStore.js';
+import { LAYER, useKeyActions } from '../keys/dispatcher.js';
 
 interface PersonCardsProps {
   people: PersonSummary[];
@@ -69,6 +70,11 @@ export const PeopleView: React.FC = () => {
     reload();
     bumpLibrary();
   };
+
+  useKeyActions('people', LAYER.screen, {
+    'people.back': () => setCurrentView('library'),
+    'people.add': () => setEditing({ person: null }),
+  });
 
   return (
     <div className="d-flex flex-column h-100 w-100 pal-chrome p-4 overflow-auto">

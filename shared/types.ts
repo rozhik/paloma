@@ -455,6 +455,7 @@ export type ApiErrorCode =
   | 'read_only_field'
   | 'object_not_found'
   | 'origin_not_allowed'
+  | 'invalid_keymap'
   | 'internal';
 
 /** Body of every API error response. `error` is English text for clients that do not know the code. */
@@ -465,6 +466,8 @@ export interface ApiError {
   params?: Record<string, string | number>;
   /** Folders an album change could not be saved to */
   failedFolders?: string[];
+  /** Why a keymap was refused (`invalid_keymap`) */
+  problems?: KeymapProblem[];
 }
 
 /** `GET /api/geo/settings`: the map and geocoder settings from `.env`. */
@@ -1087,4 +1090,63 @@ export interface ChangesetResponse {
   results: ChangeResult[];
   /** Folders whose `.paloma.json` could not be written; their changes are not applied */
   notChangedFolders?: string[];
+}
+
+// --- Keymaps: which keys run which actions; one per user, kept on the server (docs/keybindings.md) ---
+
+/** A preset keymap shipped with Paloma; presets cannot be changed. */
+export type KeymapPresetId = 'mac' | 'windows' | 'tvBox';
+
+/** A section of the action catalog; a section's actions work on its screen. */
+export type KeySectionId = 'global' | 'library' | 'selection' | 'viewer' | 'edit' | 'slideshow' | 'people' | 'map' | 'collage';
+
+/** A catalog action, e.g. `viewer.next`, or `edit.<plugin>.<filter>` for an edit bar filter. */
+export type ActionId = string;
+
+/** A key with its modifiers in a fixed order: `[Ctrl+][Alt+][Shift+][Meta+]<key>`, e.g. `Meta+Z`, `ArrowRight`, `Space`. */
+export type KeyChord = string;
+
+/** A keymap as stored: the preset it is based on and the actions whose keys differ from it (`[]` = no key on purpose). */
+export interface StoredKeymap {
+  name: string;
+  basedOn: KeymapPresetId;
+  bindings: Record<ActionId, KeyChord[]>;
+}
+
+/**
+ * A keymap as JSON, in API requests and responses and in downloaded files. The listed actions take the listed keys;
+ * every other action has the keys of `basedOn`. `name` fields of sections and actions are for people and ignored.
+ */
+export interface KeymapFile {
+  format: 'paloma-keymap';
+  version: 1;
+  name: string;
+  basedOn: KeymapPresetId;
+  sections: { id: string; name?: string; actions: { id: ActionId; name?: string; keys: KeyChord[] }[] }[];
+}
+
+/** `GET /api/keymap`: the user's keymap, or null while they have none stored (the client uses the device default). */
+export interface KeymapResponse {
+  keymap: KeymapFile | null;
+}
+
+/** `PUT /api/keymap`: the saved keymap, and the unknown sections and action ids that were left out. */
+export interface KeymapSaved {
+  keymap: KeymapFile;
+  dropped: string[];
+}
+
+/** `GET /api/keymap/presets`: each preset with every action and its keys. */
+export interface KeymapPresetInfo {
+  id: KeymapPresetId;
+  keymap: KeymapFile;
+}
+
+/** Why a keymap was refused; in the `problems` of a 400 `invalid_keymap`. */
+export interface KeymapProblem {
+  code: 'not_keymap' | 'version' | 'preset' | 'name' | 'key' | 'conflict' | 'too_large';
+  /** The key that is invalid or shared */
+  key?: string;
+  /** The actions with the invalid or shared key */
+  actions?: ActionId[];
 }

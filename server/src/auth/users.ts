@@ -13,6 +13,7 @@ import { BUILT_IN_ROLES } from './permissions.js';
 import { parseQuotaLimits, quotaInfos, setQuotaLimits } from './quotas.js';
 import { getRole } from './roles.js';
 import { taskQueue } from '../tasks/queue.js';
+import { deleteKeymap } from '../services/keymapApi.js';
 
 export type UserRow = typeof users.$inferSelect;
 
@@ -291,12 +292,13 @@ export async function updateOwnProfile(id: string, body: unknown): Promise<UserI
   return userInfo(await requireUser(id));
 }
 
-/** Deletes a user with their sessions, tokens, logins, access and quotas, and cancels their tasks; their files stay on disk. */
+/** Deletes a user with their sessions, tokens, logins, access, quotas and keymap, and cancels their tasks; their files stay on disk. */
 export async function deleteUser(actorId: string | null, id: string): Promise<void> {
   if (actorId === id) fail(409, 'self_change', 'You cannot delete your own account');
   await withTransaction(async () => {
     await requireUser(id);
     await run(db.delete(users).where(eq(users.id, id)));
+    await deleteKeymap(id);
     await ensureAdminRemains();
   });
   await taskQueue.cancelOwnedBy(id);

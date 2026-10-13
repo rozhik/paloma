@@ -292,7 +292,8 @@
     "object_not_found": "Not found.",
     "origin_not_allowed": "Requests from this web page are not allowed.",
     "task_not_found": "This task no longer exists.",
-    "task_state": "The task cannot do that in its current state."
+    "task_state": "The task cannot do that in its current state.",
+    "invalid_keymap": "This is not a valid keymap."
   },
   "geo": {
     "coordinates": "{{lat}}, {{lon}}",
@@ -933,5 +934,166 @@
     "remove": "Remove {{task}} from the list",
     "moveUp": "Move {{task}} up",
     "moveDown": "Move {{task}} down"
+  },
+  "keys": {
+    "settingsTitle": "Keyboard",
+    "settingsHint": "Which keys run which actions. Your keymap is kept on the server, so it is the same in every browser you use.",
+    "current": "Your keymap: {{name}}",
+    "basedOn": "Based on {{preset}}",
+    "presetsLabel": "Use a preset",
+    "presets": {
+      "mac": {
+        "name": "Mac",
+        "description": "A Mac keyboard: shortcuts use ⌘."
+      },
+      "windows": {
+        "name": "Windows",
+        "description": "Windows and Linux keyboards: shortcuts use Ctrl."
+      },
+      "tvBox": {
+        "name": "TV box",
+        "description": "A TV box remote: arrows, OK, Back, play/pause and the coloured buttons."
+      }
+    },
+    "replaceTitle": "Replace your keys?",
+    "replaceBody": "Your keymap has keys of its own. {{preset}} replaces all of them.",
+    "replace": "Replace",
+    "edit": "Edit keys",
+    "title": "Keybindings",
+    "intro": "Add a key by pressing it. Every change is saved at once.",
+    "back": "Back to Settings",
+    "name": "Name",
+    "filter": "Filter by action or key",
+    "noMatches": "No action matches the filter.",
+    "noKey": "No key",
+    "addKey": "Add key",
+    "addKeyTo": "Add a key to {{action}}",
+    "removeKey": "Remove {{key}}",
+    "pressKey": "Press a key…",
+    "cancel": "Cancel",
+    "resetAction": "Reset",
+    "resetActionLabel": "Reset {{action}} to the keys of the preset",
+    "resetAll": "Reset all keys",
+    "resetAllTitle": "Reset all keys?",
+    "resetAllBody": "Every action gets the keys of {{preset}} again.",
+    "conflict": "{{key}} is already the key of {{actions}}.",
+    "moveHere": "Move here",
+    "reserved": "The browser may keep {{key}} for itself, so it might not reach Paloma.",
+    "download": "Download",
+    "upload": "Upload",
+    "uploadTitle": "Replace your keymap?",
+    "uploadBody": "The keymap “{{name}}” from the file replaces yours.",
+    "uploaded": "The keymap has been uploaded.",
+    "dropped": "These actions are not known here and were left out: {{ids}}",
+    "problems": {
+      "not_keymap": "This file is not a keymap.",
+      "version": "This keymap is from a newer Paloma.",
+      "preset": "This keymap names an unknown preset.",
+      "name": "The name must have 1 to 64 characters.",
+      "key": "This is not a key: {{key}}",
+      "conflict": "{{key}} is the key of both {{actions}}.",
+      "too_large": "The file is larger than 256 KB."
+    },
+    "sections": {
+      "global": "Global",
+      "library": "Library",
+      "selection": "Selection",
+      "viewer": "Viewer",
+      "edit": "Edit",
+      "slideshow": "Slideshow",
+      "people": "People",
+      "map": "Map",
+      "collage": "Collage"
+    },
+    "actions": {
+      "global": {
+        "library": "Open the library",
+        "people": "Open People",
+        "map": "Open the map",
+        "collage": "Open Collage",
+        "tasks": "Open Tasks",
+        "settings": "Open Settings",
+        "search": "Search"
+      },
+      "library": {
+        "open": "Open the photo",
+        "toggleSelect": "Select or unselect the photo",
+        "focusPrevious": "Previous photo",
+        "focusNext": "Next photo",
+        "focusUp": "Photo above",
+        "focusDown": "Photo below",
+        "selectAll": "Select all photos",
+        "slideshow": "Start the slideshow"
+      },
+      "selection": {
+        "clear": "Clear the selection",
+        "star": "Star",
+        "addToAlbum": "Add to album",
+        "addTags": "Add tags",
+        "removeTag": "Remove tag",
+        "removeFromAlbum": "Remove from album",
+        "makeCover": "Make album cover",
+        "removeLocation": "Remove location",
+        "export": "Export",
+        "print": "Print",
+        "collage": "Collage",
+        "movie": "Movie"
+      },
+      "viewer": {
+        "close": "Close the viewer",
+        "previous": "Previous photo",
+        "next": "Next photo",
+        "info": "Info panel",
+        "faces": "Face frames",
+        "objects": "Object frames",
+        "star": "Star",
+        "zoomIn": "Zoom in",
+        "zoomOut": "Zoom out",
+        "zoomReset": "Fit to the screen",
+        "panLeft": "Move the photo left",
+        "panRight": "Move the photo right",
+        "panUp": "Move the photo up",
+        "panDown": "Move the photo down"
+      },
+      "edit": {
+        "undo": "Undo",
+        "showOriginal": "Show the original",
+        "basic-transforms": {
+          "crop64": "Crop",
+          "rotate": "Rotate",
+          "flip": "Flip",
+          "straighten": "Straighten"
+        },
+        "basic-effects": {
+          "brightness": "Brightness",
+          "contrast": "Contrast",
+          "bw": "Black & white",
+          "sepia": "Sepia"
+        }
+      },
+      "slideshow": {
+        "playPause": "Play or pause",
+        "previous": "Previous photo",
+        "next": "Next photo",
+        "exit": "Exit the slideshow"
+      },
+      "people": {
+        "back": "Back to the library",
+        "add": "Add a person"
+      },
+      "map": {
+        "back": "Back to the library",
+        "placePhotos": "Place photos on the map",
+        "removeLocation": "Remove location",
+        "zoomIn": "Zoom in",
+        "zoomOut": "Zoom out"
+      },
+      "collage": {
+        "back": "Back to the library",
+        "pile": "Arrange as a pile",
+        "grid": "Arrange as a grid",
+        "download": "Download the collage"
+      }
+    }
   }
 }

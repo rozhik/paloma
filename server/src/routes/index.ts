@@ -38,6 +38,7 @@ import { registerAdminRoutes } from './admin.js';
 import { registerAiRoutes } from './ai.js';
 import { registerTaskRoutes } from './tasks.js';
 import { registerModelRoutes } from './model.js';
+import { registerKeymapRoutes } from './keymap.js';
 import { registerMcpRoutes } from '../mcp/route.js';
 import { authenticate, need, principalOf } from '../auth/middleware.js';
 import { grantAlbum } from '../auth/users.js';
@@ -62,6 +63,7 @@ registerAdminRoutes(router);
 registerAiRoutes(router);
 registerTaskRoutes(router);
 registerModelRoutes(router);
+registerKeymapRoutes(router);
 registerMcpRoutes(router);
 
 /** Sends an API result: its status with its body. */

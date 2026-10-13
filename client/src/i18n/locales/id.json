@@ -286,7 +286,8 @@
     "object_not_found": "Tidak ditemukan.",
     "origin_not_allowed": "Permintaan dari halaman web ini tidak diizinkan.",
     "task_not_found": "Tugas ini sudah tidak ada.",
-    "task_state": "Tugas tidak dapat melakukan itu dalam keadaannya sekarang."
+    "task_state": "Tugas tidak dapat melakukan itu dalam keadaannya sekarang.",
+    "invalid_keymap": "Ini bukan peta tombol yang valid."
   },
   "geo": {
     "coordinates": "{{lat}}; {{lon}}",
@@ -908,5 +909,166 @@
     "remove": "Hapus {{task}} dari daftar",
     "moveUp": "Pindahkan {{task}} ke atas",
     "moveDown": "Pindahkan {{task}} ke bawah"
+  },
+  "keys": {
+    "settingsTitle": "Keyboard",
+    "settingsHint": "Tombol mana menjalankan tindakan apa. Peta tombol Anda disimpan di server, jadi sama di setiap browser yang Anda pakai.",
+    "current": "Peta tombol Anda: {{name}}",
+    "basedOn": "Berdasarkan {{preset}}",
+    "presetsLabel": "Pakai preset",
+    "presets": {
+      "mac": {
+        "name": "Mac",
+        "description": "Keyboard Mac: pintasan memakai ⌘."
+      },
+      "windows": {
+        "name": "Windows",
+        "description": "Keyboard Windows dan Linux: pintasan memakai Ctrl."
+      },
+      "tvBox": {
+        "name": "TV box",
+        "description": "Remote TV box: panah, OK, Kembali, putar/jeda, dan tombol warna."
+      }
+    },
+    "replaceTitle": "Ganti tombol Anda?",
+    "replaceBody": "Peta tombol Anda punya tombol sendiri. {{preset}} mengganti semuanya.",
+    "replace": "Ganti",
+    "edit": "Edit tombol",
+    "title": "Pintasan tombol",
+    "intro": "Tambahkan tombol dengan menekannya. Setiap perubahan langsung disimpan.",
+    "back": "Kembali ke Pengaturan",
+    "name": "Nama",
+    "filter": "Saring menurut tindakan atau tombol",
+    "noMatches": "Tidak ada tindakan yang cocok dengan saringan.",
+    "noKey": "Tanpa tombol",
+    "addKey": "Tambah tombol",
+    "addKeyTo": "Tambah tombol untuk {{action}}",
+    "removeKey": "Hapus {{key}}",
+    "pressKey": "Tekan sebuah tombol…",
+    "cancel": "Batal",
+    "resetAction": "Atur ulang",
+    "resetActionLabel": "Kembalikan {{action}} ke tombol preset",
+    "resetAll": "Atur ulang semua tombol",
+    "resetAllTitle": "Atur ulang semua tombol?",
+    "resetAllBody": "Setiap tindakan kembali mendapat tombol {{preset}}.",
+    "conflict": "{{key}} sudah menjadi tombol {{actions}}.",
+    "moveHere": "Pindahkan ke sini",
+    "reserved": "Browser mungkin memakai {{key}} sendiri, sehingga tombol itu tidak sampai ke Paloma.",
+    "download": "Unduh",
+    "upload": "Unggah",
+    "uploadTitle": "Ganti peta tombol Anda?",
+    "uploadBody": "Peta tombol “{{name}}” dari file menggantikan milik Anda.",
+    "uploaded": "Peta tombol telah diunggah.",
+    "dropped": "Tindakan ini tidak dikenal di sini dan dilewati: {{ids}}",
+    "problems": {
+      "not_keymap": "File ini bukan peta tombol.",
+      "version": "Peta tombol ini berasal dari Paloma versi lebih baru.",
+      "preset": "Peta tombol ini menyebut preset yang tidak dikenal.",
+      "name": "Nama harus terdiri dari 1 sampai 64 karakter.",
+      "key": "Ini bukan tombol: {{key}}",
+      "conflict": "{{key}} sekaligus menjadi tombol {{actions}}.",
+      "too_large": "File lebih besar dari 256 KB."
+    },
+    "sections": {
+      "global": "Umum",
+      "library": "Pustaka",
+      "selection": "Pilihan",
+      "viewer": "Penampil",
+      "edit": "Edit",
+      "slideshow": "Tayangan slide",
+      "people": "Orang",
+      "map": "Peta",
+      "collage": "Kolase"
+    },
+    "actions": {
+      "global": {
+        "library": "Buka pustaka",
+        "people": "Buka Orang",
+        "map": "Buka peta",
+        "collage": "Buka Kolase",
+        "tasks": "Buka Tugas",
+        "settings": "Buka Pengaturan",
+        "search": "Cari"
+      },
+      "library": {
+        "open": "Buka foto",
+        "toggleSelect": "Pilih atau batalkan pilihan foto",
+        "focusPrevious": "Foto sebelumnya",
+        "focusNext": "Foto berikutnya",
+        "focusUp": "Foto di atas",
+        "focusDown": "Foto di bawah",
+        "selectAll": "Pilih semua foto",
+        "slideshow": "Mulai tayangan slide"
+      },
+      "selection": {
+        "clear": "Kosongkan pilihan",
+        "star": "Beri bintang",
+        "addToAlbum": "Tambah ke album",
+        "addTags": "Tambah tag",
+        "removeTag": "Hapus tag",
+        "removeFromAlbum": "Hapus dari album",
+        "makeCover": "Jadikan sampul album",
+        "removeLocation": "Hapus lokasi",
+        "export": "Ekspor",
+        "print": "Cetak",
+        "collage": "Kolase",
+        "movie": "Film"
+      },
+      "viewer": {
+        "close": "Tutup penampil",
+        "previous": "Foto sebelumnya",
+        "next": "Foto berikutnya",
+        "info": "Panel info",
+        "faces": "Bingkai wajah",
+        "objects": "Bingkai objek",
+        "star": "Beri bintang",
+        "zoomIn": "Perbesar",
+        "zoomOut": "Perkecil",
+        "zoomReset": "Sesuaikan dengan layar",
+        "panLeft": "Geser foto ke kiri",
+        "panRight": "Geser foto ke kanan",
+        "panUp": "Geser foto ke atas",
+        "panDown": "Geser foto ke bawah"
+      },
+      "edit": {
+        "undo": "Urungkan",
+        "showOriginal": "Tampilkan asli",
+        "basic-transforms": {
+          "crop64": "Pangkas",
+          "rotate": "Putar",
+          "flip": "Balik",
+          "straighten": "Luruskan"
+        },
+        "basic-effects": {
+          "brightness": "Kecerahan",
+          "contrast": "Kontras",
+          "bw": "Hitam putih",
+          "sepia": "Sepia"
+        }
+      },
+      "slideshow": {
+        "playPause": "Putar atau jeda",
+        "previous": "Foto sebelumnya",
+        "next": "Foto berikutnya",
+        "exit": "Keluar dari tayangan slide"
+      },
+      "people": {
+        "back": "Kembali ke pustaka",
+        "add": "Tambah orang"
+      },
+      "map": {
+        "back": "Kembali ke pustaka",
+        "placePhotos": "Tempatkan foto di peta",
+        "removeLocation": "Hapus lokasi",
+        "zoomIn": "Perbesar",
+        "zoomOut": "Perkecil"
+      },
+      "collage": {
+        "back": "Kembali ke pustaka",
+        "pile": "Susun bertumpuk",
+        "grid": "Susun berkisi",
+        "download": "Unduh kolase"
+      }
+    }
   }
 }

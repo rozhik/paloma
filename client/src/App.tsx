@@ -28,6 +28,8 @@ import { useAppearanceSync, useSkin } from './appearance/runtime.js';
 import { allows, useLevel } from './levels/controls.js';
 import { usePinGate } from './levels/pinGate.js';
 import { SettingsPinDialog } from './levels/PinDialog.js';
+import { useAppKeys } from './keys/useAppKeys.js';
+import { KeybindingsView } from './keys/KeybindingsView.js';
 
 /**
  * The library: the album's, tag's, memory's or person's header if one is open, else a header with the slideshow, over the
@@ -66,6 +68,7 @@ const Library: React.FC = () => {
 
 export const App: React.FC = () => {
   useAppearanceSync();
+  useAppKeys();
   const level = useLevel();
   const settingsUnlocked = usePinGate((state) => state.unlocked);
   const chosenView = usePalomaStore((state) => state.currentView);
@@ -98,6 +101,7 @@ export const App: React.FC = () => {
     library: <Library />,
     map: <PlacesMap />,
     settings: <SettingsView />,
+    keybindings: <KeybindingsView />,
     admin: <AdminView />,
     account: <AccountView />,
     tasks: <TasksView />,

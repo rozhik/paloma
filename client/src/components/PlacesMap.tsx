@@ -17,6 +17,7 @@ import { currentLanguage } from '../i18n/index.js';
 import { useFormat } from '../i18n/format.js';
 import { ConfirmModal } from './ConfirmModal.js';
 import { PHOTO_DRAG_TYPE } from '../shell/useTray.js';
+import { LAYER, useKeyActions } from '../keys/dispatcher.js';
 
 const PLACES_POLL_MS = 5000;
 const WORLD: L.LatLngBoundsExpression = [[-60, -170], [75, 170]];
@@ -269,6 +270,15 @@ export const PlacesMap: React.FC = () => {
     const at = map.mouseEventToLatLng(event.nativeEvent);
     requestPlacement([photo], { lat: at.lat, lon: L.Util.wrapNum(at.lng, [-180, 180], true) });
   };
+
+  useKeyActions('map', LAYER.screen, {
+    // Esc first stops placing photos, then goes back
+    'map.back': () => (placing ? setPlacing(false) : setCurrentView('library')),
+    'map.placePhotos': { run: () => setPlacing(!placing), enabled: () => selectedPhotos.length > 0 },
+    'map.removeLocation': { run: () => setConfirmRemove(true), enabled: () => geotaggedSelection.length > 0 },
+    'map.zoomIn': { run: () => mapRef.current?.zoomIn(), enabled: () => mapRef.current !== null },
+    'map.zoomOut': { run: () => mapRef.current?.zoomOut(), enabled: () => mapRef.current !== null },
+  });
 
   return (
     <div

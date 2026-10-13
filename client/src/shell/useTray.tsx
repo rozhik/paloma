@@ -15,6 +15,7 @@ import { usePlaceLabel } from '../components/placeLabel.js';
 import type { TrayHandlers } from '../appearance/skins/types.js';
 import { allows, useLevel } from '../levels/controls.js';
 import type { Level } from '../levels/levels.js';
+import { LAYER, useKeyActions, type KeyHandler } from '../keys/dispatcher.js';
 
 /** Data type of a photo id dragged from the tray, e.g. onto the map. */
 export const PHOTO_DRAG_TYPE = 'application/x-paloma-photo';
@@ -80,6 +81,7 @@ export interface Tray {
 export function useTray(handlers: TrayHandlers): Tray {
   const {
     selectedPhotos, clearTray, removePhotoFromTray, setCurrentView, selectedAlbumToken, selectedTag, bumpLibrary, refreshSelectedPhotos,
+    currentView,
   } = usePalomaStore();
   const { t } = useTranslation();
   const [showPicker, setShowPicker] = useState(false);
@@ -138,10 +140,44 @@ export function useTray(handlers: TrayHandlers): Tray {
     { id: 'movie', label: t('tray.movie'), icon: Film, variant: 'warning', run: handlers.onOpenMovie },
   ];
 
+  const offered = all.filter((action) => applies[action.id] && shown.includes(action.id));
+
+  /** Stars every selected photo, or unstars them all when all are starred; the photos stay selected. */
+  const star = async () => {
+    const isStarred = selectedPhotos.some((photo) => !photo.isStarred);
+    try {
+      refreshSelectedPhotos(await Promise.all(selectedPhotos.map((photo) =>
+        apiRequest<Photo>('PATCH', `/api/photos/${photo.id}/star`, { isStarred }))));
+      bumpLibrary();
+    } catch (err) {
+      setError(err);
+    }
+  };
+
+  // Selection keys work while the photo grid is shown and photos are selected; each runs what its tray button does
+  const viaTray = (id: TrayActionId): KeyHandler => ({
+    run: () => offered.find((action) => action.id === id)?.run(),
+    enabled: () => selectedPhotos.length > 0 && offered.some((action) => action.id === id),
+  });
+  useKeyActions('selection', LAYER.screen, {
+    'selection.clear': viaTray('clear'),
+    'selection.star': { run: star, enabled: () => selectedPhotos.length > 0 },
+    'selection.addToAlbum': viaTray('addToAlbum'),
+    'selection.addTags': viaTray('addTags'),
+    'selection.removeTag': viaTray('removeTag'),
+    'selection.removeFromAlbum': viaTray('removeFromAlbum'),
+    'selection.makeCover': viaTray('makeCover'),
+    'selection.removeLocation': viaTray('removeLocation'),
+    'selection.export': viaTray('export'),
+    'selection.print': viaTray('print'),
+    'selection.collage': viaTray('collage'),
+    'selection.movie': viaTray('movie'),
+  }, currentView === 'library');
+
   return {
     photos: selectedPhotos,
     singlePlace: selectedPhotos.length === 1 ? placeLabel(selectedPhotos[0]) : null,
-    actions: all.filter((action) => applies[action.id] && shown.includes(action.id)),
+    actions: offered,
     removePhoto: removePhotoFromTray,
     error,
     clearError: () => setError(null),

@@ -65,3 +65,31 @@ describe('starting a slideshow', () => {
     expect(usePalomaStore.getState().slideshow).toBeNull();
   });
 });
+
+describe('slideshow keys', () => {
+  const press = async (chord: string, basedOn: 'windows' | 'tvBox' = 'windows', rtl = false) => {
+    const { pickAction, LAYER } = await import('../../keys/dispatcher.js');
+    const { resolveKeymap } = await import('../../../../shared/keymaps.js');
+    const handlers = { 'slideshow.playPause': () => {}, 'slideshow.previous': () => {}, 'slideshow.next': () => {}, 'slideshow.exit': () => {} };
+    return pickAction({
+      chord, typing: false, activates: false, dialog: false, handled: false, rtl, allows: () => true,
+      registrations: [{ section: 'slideshow', layer: LAYER.slideshow, handlers }], keymap: resolveKeymap({ basedOn, bindings: {} }),
+    })?.id;
+  };
+
+  it('plays and pauses with Space, moves with the arrows and exits with Esc', async () => {
+    expect(await press('Space')).toBe('slideshow.playPause');
+    expect(await press('ArrowRight')).toBe('slideshow.next');
+    expect(await press('ArrowLeft')).toBe('slideshow.previous');
+    expect(await press('Escape')).toBe('slideshow.exit');
+  });
+
+  it('swaps the arrows in a right-to-left language', async () => {
+    expect(await press('ArrowLeft', 'windows', true)).toBe('slideshow.next');
+  });
+
+  it('plays and pauses with the remote\'s play/pause button', async () => {
+    expect(await press('MediaPlayPause', 'tvBox')).toBe('slideshow.playPause');
+    expect(await press('GoBack', 'tvBox')).toBe('slideshow.exit');
+  });
+});

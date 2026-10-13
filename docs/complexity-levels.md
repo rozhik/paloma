@@ -14,14 +14,16 @@ Levels are ordered. A control or plugin filter tagged with a level is shown at t
 
 ## What each level shows
 
+The keys of every [keymap](keybindings.md) work at every level, but each key only for what the level shows.
+
 The levels of the controls are kept in one table, `CONTROL_LEVELS` in [`client/src/levels/controls.ts`](../client/src/levels/controls.ts). It reads as follows.
 
 | Lowest level | Controls |
 | :--- | :--- |
 | Child | Library view; the Albums list in the sidebar; opening a photo in the viewer, with its previous/next and zoom; the slideshow; the menu of a sidebar entry, with its Slideshow; the Settings view (behind the PIN); the user menu, offering only Log out (when users are on) |
 | Easy | The Account view of the user menu (profile, password, logged-in devices); the Tasks view of the user menu and the task indicator over the library, with pausing, resuming, cancelling and moving your tasks; the shortcuts, Memories, Tags, People and Folders lists in the sidebar; opening a memory; choosing a person to see their photos; search; selecting photos; starring; the Information item of an entry's menu, with links to folders, albums and people; the tray's Add to album, Add tags, Remove tag (only while a tag is open), Remove from album, Make cover, Clear, Export and Print; the viewer's edit bar; the viewer's Info button and panel, with editing the description and tags and the list of people on the photo; the viewer's Faces toggle with the face frames |
-| Normal | The People, Map and Collage views; the Admin view (when users are on) and the Server settings view, with its Plugins section, from the user menu; the API tokens of the Account view; the tray's Remove location, Collage and Movie; album properties and Delete, in the album's header and its menu; the Map and Find faces items of an entry's menu; placing photos on the map and removing their location; adding, editing and deleting people; adding, assigning and removing people on a photo, in the Info panel and on face frames; Find faces; Similar faces; the Unrecognized entry of the People list and naming the faces there; the AI menu in grid headers and entry menus, the Objects toggle of the viewer and the AI section of the Info panel |
-| Professional | The EXIF section of the Info panel |
+| Normal | The People, Map and Collage views; the Admin view (when users are on) and the Server settings view, with its Plugins section, from the user menu; the API tokens of the Account view; the tray's Remove location, Collage and Movie; album properties and Delete, in the album's header and its menu; the Map and Find faces items of an entry's menu; placing photos on the map and removing their location; adding, editing and deleting people; adding, assigning and removing people on a photo, in the Info panel and on face frames; Find faces; Similar faces; the Unrecognized entry of the People list and naming the faces there; the AI menu in grid headers and entry menus, the Objects toggle of the viewer and the AI section of the Info panel; the Keyboard section of Settings with choosing a preset keymap, and the Keybindings page with editing keys |
+| Professional | The EXIF section of the Info panel; downloading and uploading the keymap as JSON on the Keybindings page |
 | Developer | The JSON section of the Info panel |
 
 At Child the library shows only the photos of the chosen album, and asks for an album until one is chosen. Photo cards only open the viewer. Switching to Child clears the selection, the search, the folder, the tag, the person and the shortcut; an open album stays.
@@ -52,7 +54,7 @@ Every control that can change something must have a level:
 
 1. Add its id to `ControlId` and its lowest level to `CONTROL_LEVELS` in `client/src/levels/controls.ts`. TypeScript refuses an id without a level.
 2. Show it only when `useAllows('<id>')` is true. A navigation item, tray action or sidebar list only needs the table entry: `useNavigationItems()`, `useTray()` and `useSidebarSections()` already filter by level, so every skin follows.
-3. Hide it, don't disable it, and make sure no keyboard shortcut reaches it below its level.
+3. Hide it, don't disable it. If it is the only one of its kind on its screen or acts on the selection, give it a [keyboard action](keybindings.md) in `shared/keymaps.ts` tied to its control id; the key then reaches it only at its level.
 4. Never give `child` to a control that changes photos, albums, edits, locations, plugins or files.
 5. If it changes anything, add the permission it needs to `CONTROL_PERMISSIONS`. `controls.test.ts` fails for a control that is neither there nor listed as read-only.
 

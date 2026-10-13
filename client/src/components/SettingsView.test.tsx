@@ -36,3 +36,25 @@ describe('Settings view', () => {
     expect(markup.indexOf(i18n.t('settings.level'))).toBeLessThan(markup.indexOf(i18n.t('settings.appearance')));
   });
 });
+
+describe('Keyboard section', () => {
+  it('comes after the viewer bars from Normal, and is not at Easy', () => {
+    const normal = render('normal');
+    expect(normal.indexOf(i18n.t('settings.editBar'))).toBeLessThan(normal.indexOf(i18n.t('keys.settingsTitle')));
+    expect(normal).toContain(i18n.t('keys.edit'));
+    expect(render('easy')).not.toContain(i18n.t('keys.settingsTitle'));
+  });
+
+  it('offers the three presets and marks the one the keymap is based on', async () => {
+    const { useKeymapStore } = await import('../keys/keymapStore.js');
+    const tv = { stored: { name: 'TV box', basedOn: 'tvBox' as const, bindings: {} } };
+    useKeymapStore.setState(tv);
+    Object.assign(useKeymapStore.getInitialState(), tv);
+    const markup = render('normal');
+    for (const preset of ['mac', 'windows', 'tvBox'] as const) expect(markup).toContain(i18n.t(`keys.presets.${preset}.description`));
+    expect(markup).toMatch(/aria-pressed="true"[^>]*aria-describedby="keymap-tvBox-description"/);
+    expect(markup).toContain(i18n.t('keys.current', { name: 'TV box' }));
+    Object.assign(useKeymapStore.getInitialState(), { stored: null });
+    useKeymapStore.setState({ stored: null });
+  });
+});

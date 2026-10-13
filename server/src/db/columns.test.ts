@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import Database from 'better-sqlite3';
-import { addMissingPhotoColumns, createAiTables, createAuthTables, createPeopleTables, createTaskTables, createTextTables, dropMvpEdits, migrateAlbumTables } from './columns.js';
+import { addMissingPhotoColumns, createAiTables, createAuthTables, createPeopleTables, createTaskTables, createTextTables, createKeymapTables, dropMvpEdits, migrateAlbumTables } from './columns.js';
 
 describe('addMissingPhotoColumns', () => {
   it('adds caption, keywords and is_hidden to an old photos table and keeps its rows', () => {
@@ -240,5 +240,15 @@ describe('createTaskTables', () => {
     addMissingPhotoColumns(sqlite);
     const columns = (sqlite.pragma('table_info(photos)') as Array<{ name: string }>).map((c) => c.name);
     expect(columns).toContain('file_mtime');
+  });
+});
+
+describe('createKeymapTables', () => {
+  it('creates the keymaps table, and again on an existing database without losing rows', () => {
+    const sqlite = new Database(':memory:');
+    createKeymapTables(sqlite);
+    sqlite.prepare(`INSERT INTO keymaps (owner, name, based_on, bindings, updated_at) VALUES ('u1', 'Mine', 'mac', '{}', '2026-01-01')`).run();
+    createKeymapTables(sqlite);
+    expect(sqlite.prepare('SELECT owner, name, based_on FROM keymaps').all()).toEqual([{ owner: 'u1', name: 'Mine', based_on: 'mac' }]);
   });
 });

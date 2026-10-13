@@ -1,10 +1,13 @@
-import React, { forwardRef, useMemo } from 'react';
+import React, { forwardRef, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeGrid as Grid, type GridChildComponentProps } from 'react-window';
 import type { Photo } from '../../../shared/types.js';
 import { usePalomaStore } from '../store/usePalomaStore.js';
 import { useNeedsAlbum } from './useLibraryPhotos.js';
+import { LAYER, useKeyActions } from '../keys/dispatcher.js';
+import { enterFullscreen } from '../components/slideshow/Slideshow.js';
+import { slideshowStart } from '../components/slideshow/slideshowStart.js';
 
 /** Draws one photo card; `open` opens the viewer on it. */
 export type RenderCard = (photo: Photo, open: () => void) => React.ReactNode;
@@ -25,7 +28,7 @@ const Cell: React.FC<GridChildComponentProps<CellData>> = ({ columnIndex, rowInd
   const index = rowIndex * data.columnCount + columnIndex;
   if (index >= data.photos.length) return null;
   return (
-    <div style={{ ...style, padding: data.gap / 2 }}>
+    <div style={{ ...style, padding: data.gap / 2 }} data-photo-index={index}>
       {data.renderCard(data.photos[index], () => data.onOpen(index))}
     </div>
   );
@@ -44,6 +47,12 @@ interface VirtualGridProps {
   insetTop?: number;
   insetBottom?: number;
   className?: string;
+}
+
+/** The card a move by `delta` reaches from `from` (-1: no card focused, so the first), or null past either end. */
+export function nextCardIndex(from: number, delta: number, count: number): number | null {
+  const to = from < 0 ? 0 : from + delta;
+  return to >= 0 && to < count ? to : null;
 }
 
 /** A virtualized photo grid, the same in every skin; each skin gives its own card and cell size. */
@@ -113,8 +122,44 @@ const SizedGrid: React.FC<SizedGridProps> = ({
     () => (insetTop || insetBottom ? insetInner(insetTop, insetBottom) : undefined),
     [insetTop, insetBottom],
   );
+  const grid = useRef<Grid>(null);
+  const outer = useRef<HTMLDivElement>(null);
+  const { toggleSelectPhoto, selectPhotos, startSlideshow } = usePalomaStore.getState();
+  /** The index of the card with keyboard focus, or -1 */
+  const focused = (): number => {
+    const cell = document.activeElement?.closest<HTMLElement>('[data-photo-index]');
+    return cell && outer.current?.contains(cell) ? Number(cell.dataset.photoIndex) : -1;
+  };
+  const focus = (index: number) => {
+    grid.current?.scrollToItem({ rowIndex: Math.floor(index / columnCount), columnIndex: index % columnCount });
+    // The cell exists once the grid has scrolled to it
+    requestAnimationFrame(() => outer.current?.querySelector<HTMLElement>(`[data-photo-index="${index}"] .photo-card`)?.focus());
+  };
+  /** Moves the focus by `delta` cards; without a focused card, to the first. A move past either end stays. */
+  const move = (delta: number) => () => {
+    const to = nextCardIndex(focused(), delta, photos.length);
+    if (to !== null) focus(to);
+  };
+  const onFocused = (run: (index: number) => void) => ({ run: () => run(focused()), enabled: () => focused() >= 0 });
+  // In a right-to-left grid the next card is on the left; the arrows were mirrored for the keymap already
+  useKeyActions('library', LAYER.screen, {
+    'library.open': onFocused(onOpen),
+    'library.toggleSelect': onFocused((index) => toggleSelectPhoto(photos[index])),
+    'library.focusPrevious': move(-1),
+    'library.focusNext': move(1),
+    'library.focusUp': move(-columnCount),
+    'library.focusDown': move(columnCount),
+    'library.selectAll': () => selectPhotos(photos),
+    'library.slideshow': () => {
+      // Full screen is allowed only while handling the key press
+      enterFullscreen();
+      startSlideshow(photos, slideshowStart(photos, usePalomaStore.getState().selectedPhotos));
+    },
+  });
   return (
     <Grid
+      ref={grid}
+      outerRef={outer}
       direction={direction}
       columnCount={columnCount}
       columnWidth={cellWidth}

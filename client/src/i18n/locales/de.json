@@ -295,7 +295,8 @@
     "object_not_found": "Nicht gefunden.",
     "origin_not_allowed": "Anfragen von dieser Webseite sind nicht erlaubt.",
     "task_not_found": "Diese Aufgabe gibt es nicht mehr.",
-    "task_state": "Die Aufgabe kann das in ihrem jetzigen Zustand nicht."
+    "task_state": "Die Aufgabe kann das in ihrem jetzigen Zustand nicht.",
+    "invalid_keymap": "Das ist keine gültige Tastenbelegung."
   },
   "geo": {
     "coordinates": "{{lat}}; {{lon}}",
@@ -936,5 +937,166 @@
     "remove": "{{task}} aus der Liste entfernen",
     "moveUp": "{{task}} nach oben verschieben",
     "moveDown": "{{task}} nach unten verschieben"
+  },
+  "keys": {
+    "settingsTitle": "Tastatur",
+    "settingsHint": "Welche Tasten welche Aktionen ausführen. Deine Tastenbelegung wird auf dem Server gespeichert und ist daher in jedem Browser gleich.",
+    "current": "Deine Tastenbelegung: {{name}}",
+    "basedOn": "Basiert auf {{preset}}",
+    "presetsLabel": "Vorlage verwenden",
+    "presets": {
+      "mac": {
+        "name": "Mac",
+        "description": "Eine Mac-Tastatur: Kurzbefehle mit ⌘."
+      },
+      "windows": {
+        "name": "Windows",
+        "description": "Windows- und Linux-Tastaturen: Kurzbefehle mit Strg."
+      },
+      "tvBox": {
+        "name": "TV-Box",
+        "description": "Eine TV-Box-Fernbedienung: Pfeile, OK, Zurück, Wiedergabe/Pause und die Farbtasten."
+      }
+    },
+    "replaceTitle": "Tasten ersetzen?",
+    "replaceBody": "Deine Tastenbelegung hat eigene Tasten. {{preset}} ersetzt sie alle.",
+    "replace": "Ersetzen",
+    "edit": "Tasten bearbeiten",
+    "title": "Tastenbelegung",
+    "intro": "Füge eine Taste hinzu, indem du sie drückst. Jede Änderung wird sofort gespeichert.",
+    "back": "Zurück zu den Einstellungen",
+    "name": "Name",
+    "filter": "Nach Aktion oder Taste filtern",
+    "noMatches": "Keine Aktion passt zum Filter.",
+    "noKey": "Keine Taste",
+    "addKey": "Taste hinzufügen",
+    "addKeyTo": "Taste für {{action}} hinzufügen",
+    "removeKey": "{{key}} entfernen",
+    "pressKey": "Drücke eine Taste…",
+    "cancel": "Abbrechen",
+    "resetAction": "Zurücksetzen",
+    "resetActionLabel": "{{action}} auf die Tasten der Vorlage zurücksetzen",
+    "resetAll": "Alle Tasten zurücksetzen",
+    "resetAllTitle": "Alle Tasten zurücksetzen?",
+    "resetAllBody": "Jede Aktion bekommt wieder die Tasten von {{preset}}.",
+    "conflict": "{{key}} ist bereits die Taste von {{actions}}.",
+    "moveHere": "Hierher verschieben",
+    "reserved": "Der Browser behält {{key}} eventuell für sich, sodass die Taste Paloma nicht erreicht.",
+    "download": "Herunterladen",
+    "upload": "Hochladen",
+    "uploadTitle": "Tastenbelegung ersetzen?",
+    "uploadBody": "Die Tastenbelegung „{{name}}“ aus der Datei ersetzt deine.",
+    "uploaded": "Die Tastenbelegung wurde hochgeladen.",
+    "dropped": "Diese Aktionen sind hier unbekannt und wurden ausgelassen: {{ids}}",
+    "problems": {
+      "not_keymap": "Diese Datei ist keine Tastenbelegung.",
+      "version": "Diese Tastenbelegung stammt aus einer neueren Paloma-Version.",
+      "preset": "Diese Tastenbelegung nennt eine unbekannte Vorlage.",
+      "name": "Der Name muss 1 bis 64 Zeichen lang sein.",
+      "key": "Das ist keine Taste: {{key}}",
+      "conflict": "{{key}} ist die Taste von {{actions}} zugleich.",
+      "too_large": "Die Datei ist größer als 256 KB."
+    },
+    "sections": {
+      "global": "Global",
+      "library": "Bibliothek",
+      "selection": "Auswahl",
+      "viewer": "Betrachter",
+      "edit": "Bearbeiten",
+      "slideshow": "Diashow",
+      "people": "Personen",
+      "map": "Karte",
+      "collage": "Collage"
+    },
+    "actions": {
+      "global": {
+        "library": "Bibliothek öffnen",
+        "people": "Personen öffnen",
+        "map": "Karte öffnen",
+        "collage": "Collage öffnen",
+        "tasks": "Aufgaben öffnen",
+        "settings": "Einstellungen öffnen",
+        "search": "Suchen"
+      },
+      "library": {
+        "open": "Foto öffnen",
+        "toggleSelect": "Foto aus- oder abwählen",
+        "focusPrevious": "Vorheriges Foto",
+        "focusNext": "Nächstes Foto",
+        "focusUp": "Foto darüber",
+        "focusDown": "Foto darunter",
+        "selectAll": "Alle Fotos auswählen",
+        "slideshow": "Diashow starten"
+      },
+      "selection": {
+        "clear": "Auswahl aufheben",
+        "star": "Markieren",
+        "addToAlbum": "Zum Album hinzufügen",
+        "addTags": "Tags hinzufügen",
+        "removeTag": "Tag entfernen",
+        "removeFromAlbum": "Aus dem Album entfernen",
+        "makeCover": "Als Albumcover festlegen",
+        "removeLocation": "Ort entfernen",
+        "export": "Exportieren",
+        "print": "Drucken",
+        "collage": "Collage",
+        "movie": "Film"
+      },
+      "viewer": {
+        "close": "Betrachter schließen",
+        "previous": "Vorheriges Foto",
+        "next": "Nächstes Foto",
+        "info": "Infobereich",
+        "faces": "Gesichtsrahmen",
+        "objects": "Objektrahmen",
+        "star": "Markieren",
+        "zoomIn": "Vergrößern",
+        "zoomOut": "Verkleinern",
+        "zoomReset": "An den Bildschirm anpassen",
+        "panLeft": "Foto nach links verschieben",
+        "panRight": "Foto nach rechts verschieben",
+        "panUp": "Foto nach oben verschieben",
+        "panDown": "Foto nach unten verschieben"
+      },
+      "edit": {
+        "undo": "Rückgängig",
+        "showOriginal": "Original zeigen",
+        "basic-transforms": {
+          "crop64": "Zuschneiden",
+          "rotate": "Drehen",
+          "flip": "Spiegeln",
+          "straighten": "Begradigen"
+        },
+        "basic-effects": {
+          "brightness": "Helligkeit",
+          "contrast": "Kontrast",
+          "bw": "Schwarzweiß",
+          "sepia": "Sepia"
+        }
+      },
+      "slideshow": {
+        "playPause": "Abspielen oder anhalten",
+        "previous": "Vorheriges Foto",
+        "next": "Nächstes Foto",
+        "exit": "Diashow beenden"
+      },
+      "people": {
+        "back": "Zurück zur Bibliothek",
+        "add": "Person hinzufügen"
+      },
+      "map": {
+        "back": "Zurück zur Bibliothek",
+        "placePhotos": "Fotos auf der Karte platzieren",
+        "removeLocation": "Ort entfernen",
+        "zoomIn": "Vergrößern",
+        "zoomOut": "Verkleinern"
+      },
+      "collage": {
+        "back": "Zurück zur Bibliothek",
+        "pile": "Als Stapel anordnen",
+        "grid": "Als Raster anordnen",
+        "download": "Collage herunterladen"
+      }
+    }
   }
 }

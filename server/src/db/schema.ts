@@ -338,3 +338,13 @@ export const tasks = sqliteTable('tasks', {
 }, (table) => ({
   byState: index('tasks_state').on(table.state),
 }));
+
+// Each user's keymap, only in this database; `owner` is the user id, or `~single` while users are off
+export const keymaps = sqliteTable('keymaps', {
+  owner: text('owner').primaryKey(),
+  name: text('name').notNull(),
+  basedOn: text('based_on', { enum: ['mac', 'windows', 'tvBox'] }).notNull(),
+  // JSON: action id -> keys, only the actions whose keys differ from the preset
+  bindings: text('bindings').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});

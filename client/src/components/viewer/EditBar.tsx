@@ -83,7 +83,8 @@ export const EditBar: React.FC<EditBarProps> = (props) => {
           <ViewerButton label={t('editor.rotateLeft')} tip={tip} onClick={() => props.onRotate(-90)} disabled={locked}>
             <RotateCcw size={26} />
           </ViewerButton>
-          <ViewerButton label={t('editor.rotateRight')} tip={tip} onClick={() => props.onRotate(90)} disabled={locked}>
+          {/* `data-filter`: the Edit actions of the keymap press these buttons */}
+          <ViewerButton label={t('editor.rotateRight')} tip={tip} onClick={() => props.onRotate(90)} disabled={locked} data-filter={ROTATE}>
             <RotateCw size={26} />
           </ViewerButton>
         </>
@@ -103,6 +104,7 @@ export const EditBar: React.FC<EditBarProps> = (props) => {
                   active={active}
                   aria-expanded={filter.params.length > 0 ? active : undefined}
                   disabled={locked && !active}
+                  data-filter={filter.name}
                   onClick={(event) => props.onFilter(filter, anchorOf(event))}
                 >
                   <FilterIcon url={filter.iconUrl} />

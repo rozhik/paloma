@@ -49,9 +49,11 @@ describe('route guards', () => {
     expect(requirement('POST', '/creation/movie')).toBe('export');
     expect(requirement('PATCH', '/plugins/:id')).toBe('plugins.manage');
     expect(requirement('POST', '/admin/users')).toBe('users.manage');
-    // Every write route needs a permission beyond viewing the library, except the user's own account
+    // Every write route needs a permission beyond viewing the library, except the user's own account and keymap
     // MCP checks the permission of each tool itself, and the task routes that of each task
-    const writes = routes.filter((r) => r.method !== 'GET' && !r.path.startsWith('/auth/') && r.path !== '/mcp' && !r.path.startsWith('/tasks/'));
+    const writes = routes.filter((r) => r.method !== 'GET' && !r.path.startsWith('/auth/') && r.path !== '/mcp' && !r.path.startsWith('/tasks/')
+      && r.path !== '/keymap');
+    expect(requirement('PUT', '/keymap')).toBe('authenticated');
     expect(writes.filter((r) => ['public', 'authenticated', 'library.view'].includes(r.guards[0].requirement)).map((r) => `${r.method} ${r.path}`))
       .toEqual([]);
   });

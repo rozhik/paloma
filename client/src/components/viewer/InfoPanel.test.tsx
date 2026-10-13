@@ -207,13 +207,24 @@ describe('Info keys', () => {
     expect(escapeTarget({ frame: false, panel: false, info: false })).toBe('viewer');
   });
 
-  it('toggles with i, but not while typing, with modifiers or when the level hides Info', async () => {
-    const { isInfoKey } = await import('./usePhotoViewer.js');
-    const key = { key: 'i', ctrlKey: false, metaKey: false, altKey: false };
-    expect(isInfoKey(key, false, true)).toBe(true);
-    expect(isInfoKey({ ...key, key: 'I' }, false, true)).toBe(true);
-    expect(isInfoKey(key, true, true)).toBe(false);
-    expect(isInfoKey({ ...key, metaKey: true }, false, true)).toBe(false);
-    expect(isInfoKey(key, false, false)).toBe(false);
+  it('toggles Info with i and face frames with f through the keymap, not while typing, with modifiers or when the level hides them', async () => {
+    const { pickAction, LAYER } = await import('../../keys/dispatcher.js');
+    const { resolveKeymap } = await import('../../../../shared/keymaps.js');
+    const { CONTROL_LEVELS } = await import('../../levels/controls.js');
+    const { atLeast } = await import('../../levels/levels.js');
+    const viewer = { section: 'viewer' as const, layer: LAYER.viewer, handlers: { 'viewer.info': () => {}, 'viewer.faces': () => {}, 'viewer.close': () => {} } };
+    const press = (chord: string, typing = false, level: 'child' | 'easy' = 'easy') => pickAction({
+      chord, typing, activates: false, dialog: false, handled: false, rtl: false, registrations: [viewer],
+      keymap: resolveKeymap({ basedOn: 'windows', bindings: {} }),
+      allows: (control) => atLeast(level, CONTROL_LEVELS[control as keyof typeof CONTROL_LEVELS]),
+    })?.id;
+    expect(press('I')).toBe('viewer.info');
+    expect(press('F')).toBe('viewer.faces');
+    expect(press('I', true)).toBeUndefined();
+    expect(press('F', true)).toBeUndefined();
+    expect(press('Meta+I')).toBeUndefined();
+    expect(press('I', false, 'child')).toBeUndefined();
+    // Esc with an open panel runs Close, which closes the panel first (escapeTarget above)
+    expect(press('Escape')).toBe('viewer.close');
   });
 });
