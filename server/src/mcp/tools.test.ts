@@ -29,6 +29,7 @@ let viewer: Client;
 let editor: Client;
 let lim: Client;
 let limAi: Client;
+let anna: TestClient;
 let queueModule: typeof import('../tasks/queue.js');
 const queue = () => queueModule;
 let runner: typeof import('../ai/runner.js');
@@ -53,16 +54,25 @@ beforeAll(async () => {
   runner.timing.sleep = async () => {};
   lib = await buildLibrary(path.join(tmpDir, 'photos'), {
     trip: {
-      photos: { sunrise: { dateTaken: '2024-05-09T06:00:00', width: 1000, height: 750 }, birds: { dateTaken: '2024-05-08T06:00:00' } },
+      photos: {
+        sunrise: { dateTaken: '2024-05-09T06:00:00', width: 1000, height: 750 }, birds: { dateTaken: '2024-05-08T06:00:00' },
+        // Hidden, with a real image that must never be served
+        secret: { dateTaken: '2024-05-07T06:00:00', isHidden: true },
+        // An empty file that cannot be decoded
+        broken: { dateTaken: '2024-05-06T06:00:00' },
+      },
       sidecar: {
         albums: { [BIRDS]: { name: 'Birds' } },
         people: { [ROY]: { name: 'Roy Avery', email: null, googleId: null } },
-        photos: { 'sunrise.jpg': { caption: 'Sunrise over hills', albums: [BIRDS] }, 'birds.jpg': { albums: [BIRDS], faces: [{ person: ROY }] } },
+        photos: {
+          'sunrise.jpg': { caption: 'Sunrise over hills', albums: [BIRDS] }, 'birds.jpg': { albums: [BIRDS], faces: [{ person: ROY }] },
+          'secret.jpg': { hidden: true },
+        },
       },
     },
     home: { photos: { cat: { dateTaken: '2023-01-01T10:00:00' } } },
   });
-  for (const [folder, stem, width, height] of [['trip', 'sunrise', 1000, 750], ['trip', 'birds', 400, 300], ['home', 'cat', 400, 300]] as const) {
+  for (const [folder, stem, width, height] of [['trip', 'sunrise', 1000, 750], ['trip', 'birds', 400, 300], ['trip', 'secret', 400, 300], ['home', 'cat', 400, 300]] as const) {
     await sharp({ create: { width, height, channels: 3, background: '#468' } }).jpeg().toFile(path.join(lib.dir[folder], `${stem}.jpg`));
   }
 
@@ -74,7 +84,7 @@ beforeAll(async () => {
     expect((await c.post('/auth/login/password', { username, password: 'correct horse battery' })).status).toBe(200);
     return c;
   };
-  const anna = await session('anna');
+  anna = await session('anna');
   const token = async (client: TestClient, permissions: string[]) => (await client.post('/auth/tokens', { name: permissions.join(','), permissions })).body.value as string;
   viewer = await connectMcp(app.base, await token(anna, ['library.view']));
   editor = await connectMcp(app.base, await token(anna, ['library.view', 'photos.edit', 'albums.manage', 'people.manage', 'ai.run', 'export']));
@@ -174,6 +184,155 @@ describe('view_photo', () => {
     expect([invalid.isError, json(invalid).code]).toEqual([true, 'edits_invalid']);
     const unseen = await call(lim, 'view_photo', { id: lib.id.sunrise });
     expect([unseen.isError, json(unseen).code]).toEqual([true, 'object_not_found']);
+  });
+});
+
+describe('hidden photos', () => {
+  it('lists a hidden photo as not found unless asked for, and then without images', async () => {
+    const body = json(await call(viewer, 'get_objects', { type: 'photo', ids: [lib.id.sunrise, lib.id.secret] }));
+    expect([body.items.map((item: { id: number }) => item.id), body.notFound]).toEqual([[lib.id.sunrise], [lib.id.secret]]);
+    const asked = json(await call(viewer, 'get_objects', { type: 'photo', ids: [lib.id.secret], includeHidden: true }));
+    expect(asked.items).toEqual([expect.objectContaining({ id: lib.id.secret, hidden: true })]);
+    expect(asked.items[0].images).toBeUndefined();
+  });
+
+  it('gives no images for hidden photos found by a search with includeHidden', async () => {
+    const body = json(await call(viewer, 'search_photos', { includeHidden: true, limit: 200 }));
+    const secret = body.items.find((item: { id: number }) => item.id === lib.id.secret);
+    expect(secret).toMatchObject({ hidden: true });
+    expect(secret.images).toBeUndefined();
+    expect(body.items.find((item: { id: number }) => item.id === lib.id.sunrise).images.thumbnail.url).toEqual(expect.any(String));
+  });
+
+  it('does not render a hidden photo, whatever is asked', async () => {
+    for (const args of [{ id: lib.id.secret }, { id: lib.id.secret, edits: [] }]) {
+      const result = await call(editor, 'view_photo', args);
+      expect([result.isError, json(result).code]).toEqual([true, 'object_not_found']);
+      expect(result.content.some((item) => item.type === 'image')).toBe(false);
+    }
+  });
+});
+
+describe('server paths', () => {
+  it('keeps them out of documents', async () => {
+    const results = [
+      await call(viewer, 'search_photos', { limit: 200 }),
+      await call(viewer, 'list_objects', { type: 'folder' }),
+      await call(viewer, 'get_objects', { type: 'photo', ids: [lib.id.sunrise] }),
+      await call(viewer, 'view_photo', { id: lib.id.sunrise, maxSize: 64 }),
+    ];
+    for (const result of results) {
+      const text = result.content.filter((item) => item.type === 'text').map((item) => item.text).join('\n');
+      expect(text).not.toContain(lib.dir.trip);
+      expect(text).not.toContain(tmpDir);
+    }
+    const doc = json(results[2]).items[0];
+    expect(doc.folder).toEqual({ id: lib.folderId.trip, name: 'trip' });
+  });
+
+  it('reports a photo that cannot be decoded without its path', async () => {
+    const result = await call(viewer, 'view_photo', { id: lib.id.broken });
+    expect([result.isError, json(result).code]).toEqual([true, 'render_failed']);
+    expect(result.content[0].text).not.toMatch(/(^|[\s'"])\/\w/);
+    expect(result.content[0].text).not.toContain(tmpDir);
+  });
+
+  it('redacts POSIX and Windows paths in results, but not ratios or URLs', async () => {
+    const { jsonResult, errorResult } = await import('./tools.js');
+    const result = jsonResult({ a: 'open /srv/photos/a.jpg', b: ['C:\\Users\\anna\\x.jpg'], c: 'crop 1/2', d: 'http://localhost:3001/api/mcp/media/x' });
+    expect(result.structuredContent).toEqual({ a: 'open <path>', b: ['<path>'], c: 'crop 1/2', d: 'http://localhost:3001/api/mcp/media/x' });
+    expect((result as ToolResult).content[0].text).not.toContain('/srv/photos');
+    expect((errorResult({ code: 'internal', error: "ENOENT '/srv/x/y.jpg'" }) as ToolResult).content[0].text).toContain("ENOENT '<path>'");
+  });
+});
+
+describe('argument limits', () => {
+  it('refuses a value over its limit as invalid_field naming the field, before running', async () => {
+    const query = await call(viewer, 'search_photos', { query: 'q'.repeat(501) });
+    expect([query.isError, json(query)]).toMatchObject([true, { code: 'invalid_field', params: { field: 'query' } }]);
+    const edits = await call(viewer, 'view_photo', { id: lib.id.sunrise, edits: Array.from({ length: 101 }, () => ({ filter: 'sepia' })) });
+    expect([edits.isError, json(edits)]).toMatchObject([true, { code: 'invalid_field', params: { field: 'edits' } }]);
+    expect(edits.content.some((item) => item.type === 'image')).toBe(false);
+    const big = await call(editor, 'apply_changes', { changes: [{ op: 'update', type: 'photo', id: lib.id.cat, set: { caption: 'x'.repeat(70 * 1024) } }] });
+    expect(json(big)).toMatchObject({ code: 'invalid_field', params: { field: 'changes' } });
+    const dir = await call(editor, 'export_photos', { photoIds: [lib.id.cat], outputDir: 'd'.repeat(201) });
+    expect(json(dir)).toMatchObject({ code: 'invalid_field', params: { field: 'outputDir' } });
+  });
+
+  it('accepts each limit at its exact value', async () => {
+    const { TOOLS, parseArgs } = await import('./tools.js');
+    const tool = (name: string) => TOOLS.find((candidate) => candidate.name === name)!;
+    const ok = (name: string, args: Record<string, unknown>) => expect('args' in parseArgs(tool(name), args), name).toBe(true);
+    ok('search_photos', { query: 'q'.repeat(500), tag: 't'.repeat(100), album: 'a'.repeat(100), person: 'p'.repeat(100) });
+    ok('view_photo', { id: 1, edits: Array.from({ length: 100 }, () => ({ filter: 'sepia' })) });
+    ok('get_objects', { type: 'photo', ids: Array.from({ length: 200 }, (_, i) => i + 1) });
+    ok('start_ai_run', { taskId: 't'.repeat(100), photoIds: Array.from({ length: 1000 }, (_, i) => i + 1) });
+    ok('export_photos', { photoIds: [1], outputDir: 'd'.repeat(200) });
+    ok('apply_changes', { changes: Array.from({ length: 1000 }, () => ({ op: 'update' })) });
+    expect('error' in parseArgs(tool('get_objects'), { type: 'photo', ids: Array.from({ length: 201 }, (_, i) => i + 1) })).toBe(true);
+    expect('error' in parseArgs(tool('start_ai_run'), { taskId: 'tags', photoIds: Array.from({ length: 1001 }, (_, i) => i + 1) })).toBe(true);
+  });
+
+  it('publishes the limits in the tool schemas', async () => {
+    const search = (await viewer.listTools()).tools.find((tool) => tool.name === 'search_photos')!;
+    expect((search.inputSchema.properties as Record<string, { maxLength?: number }>).query.maxLength).toBe(500);
+  });
+});
+
+describe('image links', () => {
+  type Images = { thumbnail: { url: string }; preview: { url: string } };
+
+  it('come with search results and work without a token, privately and without caching', async () => {
+    const body = json(await call(viewer, 'search_photos', { query: 'sunrise' }));
+    expect(body.uri_valid_time_sec).toBe(300);
+    const images = body.items[0].images as Images;
+    expect(images.thumbnail.url).toMatch(new RegExp(`^${app.base}/mcp/media/[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]{43}$`));
+    for (const url of [images.thumbnail.url, images.preview.url]) {
+      expect(url).not.toMatch(/sunrise|trip|hash-/);
+      const res = await fetch(url);
+      expect(res.status).toBe(200);
+      expect(res.headers.get('cache-control')).toBe('private, no-store');
+      expect((await sharp(Buffer.from(await res.arrayBuffer())).metadata()).format).toEqual(expect.any(String));
+    }
+  });
+
+  it('come with view_photo for the same image, but not for unsaved edits', async () => {
+    const result = await call(viewer, 'view_photo', { id: lib.id.sunrise, maxSize: 200 });
+    const body = json(result);
+    expect(body.uri_valid_time_sec).toBe(300);
+    const res = await fetch(body.image.url);
+    expect([res.status, res.headers.get('content-type')]).toEqual([200, 'image/jpeg']);
+    const meta = await sharp(Buffer.from(await res.arrayBuffer())).metadata();
+    expect([meta.width, meta.height]).toEqual([200, 150]);
+
+    const edited = json(await call(viewer, 'view_photo', { id: lib.id.sunrise, maxSize: 200, edits: [{ filter: 'crop64', rect: { left: 0, top: 0, right: 0.5, bottom: 1 } }] }));
+    expect(edited.image).toBeNull();
+    expect(edited.imageNote).toEqual(expect.any(String));
+  });
+
+  it('stop working for a tampered link, a photo hidden afterwards and a revoked token', async () => {
+    const created = (await anna.post('/auth/tokens', { name: 'links', permissions: ['library.view'] })).body as { id: string; value: string };
+    const client = await connectMcp(app.base, created.value);
+    const urlOf = async (id: number) => (json(await call(client, 'get_objects', { type: 'photo', ids: [id] })).items[0].images as Images).thumbnail.url;
+
+    const url = await urlOf(lib.id.birds);
+    expect((await fetch(url)).status).toBe(200);
+    const [payload, signature] = url.slice(url.lastIndexOf('/') + 1).split('.');
+    const forged = Buffer.from(JSON.stringify({ ...JSON.parse(Buffer.from(payload, 'base64url').toString()), p: lib.id.secret })).toString('base64url');
+    const tampered = await fetch(url.replace(payload, forged));
+    expect(tampered.status).toBe(404);
+    expect(await tampered.text()).not.toContain(tmpDir);
+    expect((await fetch(url.replace(signature, 'A'.repeat(43)))).status).toBe(404);
+
+    const hideBirds = (hidden: boolean) => call(editor, 'apply_changes', { changes: [{ op: 'update', type: 'photo', id: lib.id.birds, set: { hidden } }] });
+    await hideBirds(true);
+    expect((await fetch(url)).status).toBe(404);
+    await hideBirds(false);
+    expect((await fetch(url)).status).toBe(200);
+
+    expect((await anna.delete(`/auth/tokens/${created.id}`)).status).toBeLessThan(300);
+    expect((await fetch(url)).status).toBe(404);
+    await client.close().catch(() => {});
   });
 });
 

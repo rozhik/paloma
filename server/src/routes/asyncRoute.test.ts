@@ -32,7 +32,8 @@ describe('asyncRoute', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const res = await fetch(`${base}/fails`);
     expect(res.status).toBe(500);
-    expect(await res.json()).toEqual({ error: 'Internal server error', code: 'internal', params: { message: 'lost connection' } });
+    // The message stays in the server log: such messages often name server paths
+    expect(await res.json()).toEqual({ error: 'Internal server error', code: 'internal' });
     vi.restoreAllMocks();
   });
 

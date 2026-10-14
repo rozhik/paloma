@@ -23,7 +23,7 @@ backups see.
 
 Every object is one JSON document with \`type\` and \`id\`. The JSON Schema (\`paloma://schema\`,
 \`GET /api/schema\`) describes every attribute; attributes marked \`readOnly\` cannot be set. Photo ids are
-valid in this library; \`folder.path\` + \`fileName\` name the file.
+valid in this library; \`folder.id\` + \`fileName\` name the file. Server paths are never shown.
 
 ## Finding photos
 

@@ -52,8 +52,9 @@ export async function renderPreview(photoId: number, body: unknown, format: 'web
       fullSize: { width: rendered.fullWidth, height: rendered.fullHeight },
     };
   } catch (err) {
+    // The error names the file; it stays in the server log
     console.error(`Failed to render a preview of ${found.photo.filePath}:`, err);
-    return { status: 500, body: apiError('render_failed', 'Could not render the photo', { message: (err as Error).message }) };
+    return { status: 500, body: apiError('render_failed', 'Could not render the photo') };
   }
 }
 
@@ -66,6 +67,6 @@ export async function photoImage(photoId: number, size: ImageSize): Promise<Imag
     return { status: 200, kind: 'file', file };
   } catch (err) {
     console.error(`Failed to render the ${size} of ${found.photo.filePath}:`, err);
-    return { status: 500, body: apiError('render_failed', 'Could not render the photo', { message: (err as Error).message }) };
+    return { status: 500, body: apiError('render_failed', 'Could not render the photo') };
   }
 }

@@ -233,12 +233,16 @@ router.post('/creation/movie', need('export'), asyncRoute(async (req, res) => {
           return;
         }
         res.json({ success: true, moviePath: outputMoviePath });
-      })().catch((err) => res.status(500).json(apiError('internal', (err as Error).message, { message: (err as Error).message })));
+      })().catch((err) => {
+        // The error names server paths; it stays in the server log
+        console.error('Failed to finish a movie:', err);
+        res.status(500).json(apiError('internal', 'Could not make the movie'));
+      });
     })
     .on('error', (err) => {
       void removeFrames();
       console.error('Failed to make a movie:', err);
-      res.status(500).json(apiError('internal', err.message, { message: err.message }));
+      res.status(500).json(apiError('internal', 'Could not make the movie'));
     })
     .run(); // ffmpeg, not a query
 }));

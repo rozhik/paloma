@@ -1015,7 +1015,8 @@ export type ChangeableType = 'photo' | 'album' | 'person';
 export interface PhotoDocument {
   type: 'photo';
   id: number;
-  folder: { id: number; path: string };
+  /** The folder by id and name (last path segment); documents never carry server paths */
+  folder: { id: number; name: string };
   fileName: string;
   width: number;
   height: number;
@@ -1069,11 +1070,11 @@ export interface PersonDocument {
   photoCount: number;
 }
 
-/** A library folder as one JSON document; read-only. */
+/** A library folder as one JSON document; read-only. It has no path: documents never carry server paths. */
 export interface FolderDocument {
   type: 'folder';
   id: number;
-  path: string;
+  /** Last segment of the folder's path */
   name: string;
   photoCount: number;
 }

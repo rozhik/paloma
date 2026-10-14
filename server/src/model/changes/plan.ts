@@ -2,7 +2,7 @@ import { db } from '../../db/index.js';
 import { all, BATCH_SIZE, chunked } from '../../db/query.js';
 import { photoPeople } from '../../db/schema.js';
 import { inArray } from 'drizzle-orm';
-import { photoDocumentsById } from '../documents.js';
+import { photoDocumentsById, photoFolderPaths } from '../documents.js';
 import { listAlbums, loadMembers, albumFolders } from '../../services/albumApi.js';
 import { findPerson, onPhotosOutsideAccess, personVisible } from '../../services/peopleApi.js';
 import { parsePersonInput } from '../../services/personValidation.js';
@@ -128,9 +128,9 @@ function facesWithout(faces: readonly Face[], person: string): Face[] | undefine
 }
 
 /** Photo document → the state a changeset works on. */
-function photoState(doc: PhotoDocument, file: PhotoFileFacts): PhotoState {
+function photoState(doc: PhotoDocument, folderPath: string, file: PhotoFileFacts): PhotoState {
   return {
-    id: doc.id, folderPath: doc.folder.path, fileName: doc.fileName, file, detected: doc.detectedFaces,
+    id: doc.id, folderPath, fileName: doc.fileName, file, detected: doc.detectedFaces,
     star: doc.star, hidden: doc.hidden, caption: doc.caption, tags: doc.tags, location: doc.location,
     albums: doc.albums.map((album) => album.id),
     people: doc.people.map((face) => (face.rect ? { person: face.id, rect: face.rect } : { person: face.id })),
@@ -183,7 +183,8 @@ class Planner {
     }
     const docs = await photoDocumentsById([...photoIds]);
     const files = await photoFileFacts(docs.map((doc) => doc.id));
-    for (const doc of docs) this.photos.set(doc.id, photoState(doc, files.get(doc.id)!));
+    const folderPaths = await photoFolderPaths(docs.map((doc) => doc.id));
+    for (const doc of docs) this.photos.set(doc.id, photoState(doc, folderPaths.get(doc.id)!, files.get(doc.id)!));
 
     if (albumIds.size > 0) {
       const members = await loadMembers([...albumIds]);
@@ -541,7 +542,7 @@ export async function foldersOf(plan: Plan): Promise<string[]> {
   const dirs = new Set<string>();
   const photoFolders = async (ids: number[]) => {
     const real = ids.filter((id) => Number.isInteger(id));
-    for (const doc of await photoDocumentsById(real)) dirs.add(doc.folder.path);
+    for (const dir of (await photoFolderPaths(real)).values()) dirs.add(dir);
   };
   for (const step of plan.steps) {
     switch (step.kind) {

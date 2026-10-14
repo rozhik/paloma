@@ -112,15 +112,32 @@ export const MCP_PATH = '/api/mcp';
 export interface McpConfig {
   /** Whether `/api/mcp` is offered */
   enabled: boolean;
+  /** Seconds a temporary image URL returned by MCP stays valid (`uri_valid_time_sec`) */
+  uriValidSec: number;
 }
 
-/** MCP settings from the environment: on unless `PALOMA_MCP=off`; throws for any other value. */
+export const DEFAULT_MCP_URI_VALID_SEC = 300;
+export const MIN_MCP_URI_VALID_SEC = 10;
+export const MAX_MCP_URI_VALID_SEC = 3600;
+
+/**
+ * MCP settings from the environment: on unless `PALOMA_MCP=off`, temporary image URLs valid for
+ * `PALOMA_MCP_URI_VALID_SEC` seconds (10 to 3600, default 300); throws for any other value.
+ */
 export function mcpConfig(env: NodeJS.ProcessEnv): McpConfig {
   const value = (env.PALOMA_MCP ?? '').trim().toLowerCase() || 'on';
   if (value !== 'off' && value !== 'on') {
     throw new Error(`PALOMA_MCP must be "on" or "off", got ${JSON.stringify(env.PALOMA_MCP)}`);
   }
-  return { enabled: value === 'on' };
+  const seconds = (env.PALOMA_MCP_URI_VALID_SEC ?? '').trim();
+  let uriValidSec = DEFAULT_MCP_URI_VALID_SEC;
+  if (seconds !== '') {
+    uriValidSec = /^\d+$/.test(seconds) ? Number(seconds) : NaN;
+    if (!(uriValidSec >= MIN_MCP_URI_VALID_SEC && uriValidSec <= MAX_MCP_URI_VALID_SEC)) {
+      throw new Error(`PALOMA_MCP_URI_VALID_SEC must be a whole number of seconds from ${MIN_MCP_URI_VALID_SEC} to ${MAX_MCP_URI_VALID_SEC}, got ${JSON.stringify(env.PALOMA_MCP_URI_VALID_SEC)}`);
+    }
+  }
+  return { enabled: value === 'on', uriValidSec };
 }
 
 const dataDir = resolveDir(

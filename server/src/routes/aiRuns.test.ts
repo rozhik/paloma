@@ -198,6 +198,15 @@ describe('cancel, failures and retries', () => {
     expect(sidecar('a').photos['a100.jpg'].caption).toBe('A grey square');
   });
 
+  it('lists a failure without the server path it names', async () => {
+    fake.__aiFake = (request) => {
+      if (request.image.width === 120) throw new Error('Input file is missing: /srv/photos/a/a120.jpg');
+      return { text: 'A grey square' };
+    };
+    const { last } = await runToEnd(eddie, { taskId: 'description', photoIds: folderIds('a') });
+    expect(last).toMatchObject({ failed: 1, failures: [{ photoId: id.a120, message: 'Input file is missing: <path>' }] });
+  });
+
   it('stops after five photos in a row refuse the credentials', async () => {
     await anna.patch('/ai/tasks/tags', { options: { parallel: 1 } });
     fake.__aiFake = () => { throw Object.assign(new Error('Incorrect API key provided'), { kind: 'auth' }); };

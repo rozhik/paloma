@@ -14,11 +14,11 @@ Paloma SHALL describe its library as documents of five types: `photo`, `album`, 
 - **THEN** their documents have `"type"` `photo`, `album`, `person`, `folder` and `tag`, and `"id"` `42`, `"c9ea9fa67022f38a3c771894d2a8a468"`, `"b8e4117cf1d6615b"`, `3` and `"dawn"`
 
 ### Requirement: Photo document
-A photo document SHALL have: `folder` (`id`, `path`), `fileName`, `width`, `height`, `fileSize`, `takenAt` (or null), `star`, `hidden`, `caption` (or null), `tags`, `location` (`lat`, `lon`, or null), `locationSource`, `place` (or null), `albums` (`id`, `name`), `people` (`id`, `name`, `rect` or null), `detectedFaces` (`id`, `rect`), `edits` (steps as in photo-edits, `[]` without edits) and `modified`.
+A photo document SHALL have: `folder` (`id`, `name`: the last segment of the folder's path), `fileName`, `width`, `height`, `fileSize`, `takenAt` (or null), `star`, `hidden`, `caption` (or null), `tags`, `location` (`lat`, `lon`, or null), `locationSource`, `place` (or null), `albums` (`id`, `name`), `people` (`id`, `name`, `rect` or null), `detectedFaces` (`id`, `rect`), `edits` (steps as in photo-edits, `[]` without edits) and `modified`. A document SHALL NOT carry an absolute path of the server.
 
 #### Scenario: Edited and tagged photo
 - **WHEN** photo 42 in `/photos/trip` is starred, has the caption `Sunrise`, the tags `dawn` and `hills`, a user location 48.160833, 24.500278, is in album `Birds`, shows `Roy Avery` without a frame and has a sepia step
-- **THEN** its document has `"star": true`, `"caption": "Sunrise"`, `"tags": ["dawn", "hills"]`, `"location": {"lat": 48.160833, "lon": 24.500278}`, `"locationSource": "user"`, `albums` with `Birds`, `people` with `Roy Avery` and `"rect": null`, `"edits": [{"filter": "sepia"}]` and `"modified": true`
+- **THEN** its document has `"star": true`, `"caption": "Sunrise"`, `"tags": ["dawn", "hills"]`, `"location": {"lat": 48.160833, "lon": 24.500278}`, `"locationSource": "user"`, `albums` with `Birds`, `people` with `Roy Avery` and `"rect": null`, `"edits": [{"filter": "sepia"}]`, `"modified": true` and `"folder": {"id": <folder id>, "name": "trip"}`, with no `path` in the document
 
 #### Scenario: Untouched photo
 - **WHEN** photo 7 has no sidecar entry and no embedded text
@@ -39,11 +39,15 @@ A person document SHALL have `name` (or null for an unknown person), `alias`, `c
 - **THEN** the document has `"name": null`, `"links": []` and null profile fields
 
 ### Requirement: Folder and tag documents
-A folder document SHALL have `path`, `name` (its last path segment) and `photoCount`. A tag document SHALL have `name` and `photoCount` as in the tag list. Every attribute of folders and tags SHALL be read-only.
+A folder document SHALL have `id`, `name` (its last path segment) and `photoCount`, and SHALL NOT have the path of the folder. A tag document SHALL have `name` and `photoCount` as in the tag list. Every attribute of folders and tags SHALL be read-only.
 
 #### Scenario: Tag spelled two ways
 - **WHEN** two photos have the tag `Dawn` and one has `dawn`
 - **THEN** there is one tag document with `"id": "Dawn"`, `"name": "Dawn"` and `"photoCount": 3`
+
+#### Scenario: Folder document
+- **WHEN** a client reads folder 4 whose path is `/photos/trip`
+- **THEN** the document has `"id": 4`, `"name": "trip"` and its `photoCount`, and no `path`
 
 ### Requirement: Read one document
 `GET /api/objects/:type/:id` SHALL respond with that object's document. An unknown type SHALL respond 400; an unknown id, or an object the user cannot see, SHALL respond 404. It SHALL need `library.view` and SHALL change no file.

@@ -87,6 +87,17 @@ export async function revokeToken(id: string, userId: string | null): Promise<vo
 }
 
 /**
+ * The owner and permissions of the token with this id while it exists (not revoked) and has not expired; null
+ * otherwise. Does not record a use. Whether the owner is enabled is checked by the caller.
+ */
+export async function tokenById(id: string, now = new Date()): Promise<{ userId: string; permissions: Permission[] } | null> {
+  const row = await get(db.select().from(apiTokens).where(eq(apiTokens.id, id)));
+  if (!row) return null;
+  if (row.expiresAt !== null && Date.parse(row.expiresAt) <= now.getTime()) return null;
+  return { userId: row.userId, permissions: knownPermissions(JSON.parse(row.permissions) as unknown[]) };
+}
+
+/**
  * The owner, id and permissions of a valid token value, recording the use; null for an unknown, revoked or
  * expired one. Whether the owner is enabled is checked by the caller.
  */

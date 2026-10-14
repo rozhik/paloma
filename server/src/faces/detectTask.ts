@@ -10,6 +10,7 @@ import { fail } from '../services/apiError.js';
 import { pendingPhotos, saveDetectedFaces } from '../services/faceDetectionApi.js';
 import { renderFaceSource } from '../services/faceImages.js';
 import { parsePhotoIds } from '../services/folderChanges.js';
+import { redactPaths } from '../services/redact.js';
 import { TaskFailed, taskQueue, type TaskRecord, type TaskRun } from '../tasks/queue.js';
 import { DETECTOR, faceDetector, type FaceDetector } from './detector.js';
 
@@ -84,7 +85,7 @@ async function runFacesTask(context: TaskRun<FacesParams, FacesTaskDetails>): Pr
       if (faces.length > 0) details.photos += 1;
     } catch (err) {
       task.failed += 1;
-      if (details.failures.length < MAX_FAILURES_LISTED) details.failures.push({ photoId: id, message: err instanceof Error ? err.message : String(err) });
+      if (details.failures.length < MAX_FAILURES_LISTED) details.failures.push({ photoId: id, message: redactPaths(err instanceof Error ? err.message : String(err)) });
     }
     task.done += 1;
     details.photoIds.push(id);

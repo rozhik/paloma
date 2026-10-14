@@ -47,7 +47,7 @@ describe('photo documents', () => {
   it('shows every attribute of an edited and tagged photo', async () => {
     const doc = await docs.getDocument('photo', String(lib.id.a));
     expect(doc).toMatchObject({
-      type: 'photo', id: lib.id.a, folder: { id: lib.folderId.trip, path: lib.dir.trip }, fileName: 'a.jpg', width: 400, height: 300,
+      type: 'photo', id: lib.id.a, folder: { id: lib.folderId.trip, name: 'trip' }, fileName: 'a.jpg', width: 400, height: 300,
       takenAt: '2024-05-09T12:00:00', star: true, hidden: false, caption: 'Sunrise', tags: ['dawn', 'hills'],
       location: { lat: 48.160833, lon: 24.500278 }, locationSource: 'user',
       albums: [{ id: BIRDS, name: 'Birds' }], people: [{ id: ROY, name: 'Roy Avery', rect: null }], detectedFaces: [],
@@ -85,6 +85,18 @@ describe('photo documents', () => {
     expect(await docs.getDocument('photo', '999999')).toBeUndefined();
     expect(await docs.getDocument('photo', 'x')).toBeUndefined();
   });
+
+  it('carries no server path', async () => {
+    const doc = await docs.getDocument('photo', String(lib.id.a));
+    expect(doc).toMatchObject({ folder: { id: lib.folderId.trip, name: 'trip' } });
+    expect((doc as { folder: Record<string, unknown> }).folder).not.toHaveProperty('path');
+    expect(JSON.stringify(doc)).not.toContain(lib.dir.trip);
+  });
+
+  it('lists a hidden photo as not found unless hidden photos are asked for', async () => {
+    expect(await docs.getDocuments('photo', [lib.id.a, lib.id.h])).toMatchObject({ items: [{ id: lib.id.a }], notFound: [lib.id.h] });
+    expect(await docs.getDocuments('photo', [lib.id.h], { includeHidden: true })).toMatchObject({ items: [{ id: lib.id.h, hidden: true }], notFound: [] });
+  });
 });
 
 describe('other documents', () => {
@@ -108,7 +120,8 @@ describe('other documents', () => {
 
   it('shows folders and a tag spelled two ways once', async () => {
     const folders = await docs.listDocuments('folder', {}, { limit: 10, offset: 0 });
-    expect(folders.items).toContainEqual({ type: 'folder', id: lib.folderId.home, path: lib.dir.home, name: 'home', photoCount: 1 });
+    expect(folders.items).toContainEqual({ type: 'folder', id: lib.folderId.home, name: 'home', photoCount: 1 });
+    expect(JSON.stringify(folders.items)).not.toContain(lib.dir.home);
     const tags = await docs.listDocuments('tag', {}, { limit: 10, offset: 0 });
     // One photo each: the spelling that sorts first by code points is shown
     expect(tags.items).toContainEqual({ type: 'tag', id: 'Dawn', name: 'Dawn', photoCount: 2 });

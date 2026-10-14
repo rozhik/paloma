@@ -71,7 +71,7 @@ export async function photoDocuments(list: readonly Photo[]): Promise<PhotoDocum
     return {
       type: 'photo',
       id: photo.id,
-      folder: { id: photo.folderId, path: photo.folderPath! },
+      folder: { id: photo.folderId, name: path.basename(photo.folderPath!) },
       fileName: photo.filename,
       width: photo.width,
       height: photo.height,
@@ -93,12 +93,27 @@ export async function photoDocuments(list: readonly Photo[]): Promise<PhotoDocum
   });
 }
 
-/** Photo documents of the given ids that the current request may see, in the order of the ids. */
-export async function photoDocumentsById(ids: readonly number[]): Promise<PhotoDocument[]> {
+/** API photos of the given ids that the current request may see (hidden ones only with `includeHidden`), in the order of the ids. */
+async function photosById(ids: readonly number[], includeHidden: boolean): Promise<Photo[]> {
   if (ids.length === 0) return [];
-  const rows = await chunked(ids, BATCH_SIZE, (chunk) => listPhotos({ ids: chunk.join(','), includeHidden: 'true', lang: PLACE_LANG, limit: String(chunk.length) }));
+  const rows = await chunked(ids, BATCH_SIZE, (chunk) => listPhotos({
+    ids: chunk.join(','), ...(includeHidden ? { includeHidden: 'true' } : {}), lang: PLACE_LANG, limit: String(chunk.length),
+  }));
   const byId = new Map(rows.map((photo) => [photo.id, photo]));
-  return photoDocuments(ids.map((id) => byId.get(id)).filter((photo): photo is Photo => photo !== undefined));
+  return ids.map((id) => byId.get(id)).filter((photo): photo is Photo => photo !== undefined);
+}
+
+/**
+ * Photo documents of the given ids that the current request may see, in the order of the ids. Hidden photos are
+ * included unless `includeHidden` is false.
+ */
+export async function photoDocumentsById(ids: readonly number[], options: { includeHidden?: boolean } = {}): Promise<PhotoDocument[]> {
+  return photoDocuments(await photosById(ids, options.includeHidden ?? true));
+}
+
+/** The server folder of each given photo the current request may see, hidden ones included. Never put in a document. */
+export async function photoFolderPaths(ids: readonly number[]): Promise<Map<number, string>> {
+  return new Map((await photosById(ids, true)).map((photo) => [photo.id, photo.folderPath!]));
 }
 
 export function albumDocument(album: Album): AlbumDocument {
@@ -157,7 +172,7 @@ async function personDocuments(): Promise<PersonDocument[]> {
 
 async function folderDocuments(): Promise<FolderDocument[]> {
   return (await listFolders()).map((folder) => ({
-    type: 'folder', id: folder.id, path: folder.path, name: path.basename(folder.path), photoCount: folder.photoCount,
+    type: 'folder', id: folder.id, name: path.basename(folder.path), photoCount: folder.photoCount,
   }));
 }
 
@@ -231,11 +246,16 @@ export async function getDocument(type: ObjectType, id: string): Promise<ObjectD
   }
 }
 
-/** Documents of several objects of one type, and the ids that were not found. */
-export async function getDocuments(type: ObjectType, ids: readonly (string | number)[]): Promise<{ items: ObjectDocument[]; notFound: (string | number)[] }> {
+/**
+ * Documents of several objects of one type, and the ids that were not found. Hidden photos count as not found
+ * unless `includeHidden` is true.
+ */
+export async function getDocuments(
+  type: ObjectType, ids: readonly (string | number)[], options: { includeHidden?: boolean } = {},
+): Promise<{ items: ObjectDocument[]; notFound: (string | number)[] }> {
   if (type === 'photo') {
     const numeric = ids.map((id) => Number(id)).filter((id) => Number.isSafeInteger(id) && id > 0);
-    const items = await photoDocumentsById(numeric);
+    const items = await photoDocumentsById(numeric, { includeHidden: options.includeHidden ?? false });
     const found = new Set(items.map((item) => item.id));
     return { items, notFound: ids.filter((id) => !found.has(Number(id))) };
   }

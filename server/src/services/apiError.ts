@@ -21,7 +21,7 @@ export function fail(status: number, code: ApiErrorCode, error: string, params?:
 
 /**
  * Express error handler: an `HttpError` is sent as it is, malformed JSON is a 400 `invalid_body`, anything else
- * a 500 `internal`.
+ * a 500 `internal`. The message of an unexpected error stays in the server log: it often names a server path.
  */
 export const apiErrorHandler: ErrorRequestHandler = (err, _req, res, next) => {
   if (res.headersSent) return next(err);
@@ -33,6 +33,5 @@ export const apiErrorHandler: ErrorRequestHandler = (err, _req, res, next) => {
     return res.status(400).json(apiError('invalid_body', 'Body must be valid JSON'));
   }
   console.error('Unhandled API error:', err);
-  const message = err instanceof Error ? err.message : String(err);
-  res.status(500).json(apiError('internal', 'Internal server error', { message }));
+  res.status(500).json(apiError('internal', 'Internal server error'));
 };
