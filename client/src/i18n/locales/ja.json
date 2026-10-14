@@ -287,7 +287,9 @@
     "origin_not_allowed": "この Web ページからのリクエストは許可されていません。",
     "task_not_found": "このタスクはもうありません。",
     "task_state": "現在の状態のタスクではその操作はできません。",
-    "invalid_keymap": "有効なキー割り当てではありません。"
+    "invalid_keymap": "有効なキー割り当てではありません。",
+    "ai_provider_in_use": "This AI provider is used by an AI task. Choose another provider for the task first.",
+    "ai_model_not_found": "The model was not found in this provider's list."
   },
   "geo": {
     "coordinates": "{{lat}}、{{lon}}",
@@ -760,7 +762,8 @@
       "no_provider": "このタスクのプロバイダーを選んでください。",
       "provider_unavailable": "プロバイダーを利用できません。「プラグイン」でそのプラグインをオンにしてください。",
       "provider_not_configured": "プロバイダーがまだ設定されていません。",
-      "no_model": "このタスクのモデルを選んでください。"
+      "no_model": "このタスクのモデルを選んでください。",
+      "model_disabled": "Its model is disabled. Enable it in the provider's models, or choose another model."
     },
     "providers": {
       "title": "プロバイダー",
@@ -779,7 +782,20 @@
       "save": "保存",
       "saved": "設定を保存しました。",
       "test": "接続をテスト",
-      "testOk": "接続できました。"
+      "testOk": "接続できました。",
+      "typePlugin": "{{type}} · plugin {{plugin}}",
+      "typeOnly": "Type: {{type}}",
+      "unavailable": "Not available",
+      "pluginOff": "The plugin of this provider is off. Its settings and models are kept; switch the plugin on in the Plugins section to use it.",
+      "name": "Name",
+      "namePlaceholder": "For example, Local Ollama",
+      "type": "Type",
+      "addTitle": "Add a provider",
+      "add": "Add provider",
+      "rename": "Rename",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "deleteBody": "Delete {{name}} with its settings and models? Its usage records stay. A provider that a task uses cannot be deleted."
     },
     "tasks": {
       "title": "タスク",
@@ -853,7 +869,8 @@
       "tagsAdded_other": "{{count, number}} 個のタグを追加しました。",
       "descriptionsSet_other": "{{count, number}} 件の説明を書きました。",
       "failed_other": "{{count, number}} 枚の写真を処理できませんでした。",
-      "tokens": "使用トークン：送信 {{input, number}}、受信 {{output, number}}。"
+      "tokens": "使用トークン：送信 {{input, number}}、受信 {{output, number}}。",
+      "credits": "Credits used: {{credits, number(maximumFractionDigits: 6)}}."
     },
     "info": {
       "title": "AI",
@@ -863,6 +880,50 @@
       "byModel": "{{model}}、{{date}}",
       "noObjects": "物体は見つかりませんでした。",
       "noTags": "タグは見つかりませんでした。"
+    },
+    "models": {
+      "title": "Models",
+      "intro": "Only enabled models can be chosen for a task. Models found by Refresh start disabled. Prices are credits per 1,000,000 tokens.",
+      "refresh": "Refresh from the service",
+      "addById": "Model id",
+      "add": "Add model",
+      "empty": "No models yet. Refresh the list or add a model by its id.",
+      "notListed": "No longer listed by the service",
+      "enabled": "Enabled",
+      "description": "Description",
+      "noDescription": "No description.",
+      "price": {
+        "prompt_tokens": "Price of prompt tokens",
+        "completion_tokens": "Price of completion tokens"
+      },
+      "priceHelp": "Credits per 1,000,000 tokens",
+      "perMillion": "{{credits, number(maximumFractionDigits: 6)}} per 1,000,000",
+      "capabilities": "Capabilities (0–100)",
+      "capabilityName": "Capability",
+      "grade": "Grade",
+      "addCapability": "Add capability",
+      "removeCapability": "Remove capability",
+      "noCapabilities": "No capabilities graded.",
+      "info": "Information from the provider",
+      "noInfo": "The provider reports nothing about this model.",
+      "save": "Save model",
+      "noneEnabled": "No model is enabled yet.",
+      "openDialog": "Models, prices and usage",
+      "dialogTitle": "AI models and usage"
+    },
+    "usage": {
+      "title": "Usage",
+      "totals": "{{calls, number}} calls, {{prompt, number}} prompt and {{completion, number}} completion tokens, {{credits}} credits.",
+      "empty": "No AI calls yet.",
+      "time": "Time",
+      "task": "Task",
+      "model": "Model",
+      "tokens": "Tokens",
+      "credits": "Credits",
+      "tokenPair": "{{prompt, number}} + {{completion, number}}",
+      "unknownTokens": "unknown",
+      "failed": "failed",
+      "showing": "Showing {{shown, number}} of {{total, number}} calls."
     }
   },
   "tasks": {

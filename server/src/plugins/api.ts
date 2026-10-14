@@ -210,7 +210,11 @@ export interface AiAnswer {
   /** Rectangles as fractions 0..1 of the image sent */
   objects?: { label: string; rect: RelativeRect; confidence?: number }[];
   text?: string;
-  usage?: { inputTokens?: number; outputTokens?: number };
+  /**
+   * Tokens the call used by kind (`prompt_tokens`, `completion_tokens`, …). The older `inputTokens` and
+   * `outputTokens` still count as `prompt_tokens` and `completion_tokens`. Leave out when the service reports none.
+   */
+  usage?: { tokens?: Record<string, number>; inputTokens?: number; outputTokens?: number };
 }
 
 /**
@@ -240,7 +244,9 @@ export interface AiProviderDefinition {
   /** Whether a setting without a saved value is given by the environment (shown in Server settings) */
   settingFromEnv?(name: string, ctx: Pick<AiContext, 'env'>): boolean;
   modelOptions?: AiModelOptionDefinition[];
-  listModels(ctx: AiContext): Promise<{ id: string; label?: string }[]>;
+  listModels(ctx: AiContext): Promise<{ id: string; label?: string; info?: Record<string, unknown> }[]>;
+  /** What the service reports about one model (e.g. `GET /v1/models/{model}`); without it the entry from `listModels` is the information */
+  getModel?(id: string, ctx: AiContext): Promise<Record<string, unknown>>;
   /** Throws with a message for the user when the service cannot be used; without it, listModels() is the test */
   test?(ctx: AiContext): Promise<void>;
   run(request: AiRequest, ctx: AiContext): Promise<AiAnswer>;

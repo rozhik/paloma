@@ -446,6 +446,8 @@ export type ApiErrorCode =
   | 'rate_limited'
   | 'ai_provider_not_found'
   | 'ai_provider_failed'
+  | 'ai_provider_in_use'
+  | 'ai_model_not_found'
   | 'ai_task_not_found'
   | 'ai_task_builtin'
   | 'ai_task_not_builtin'
@@ -724,11 +726,20 @@ export interface AiSettingInfo {
 /** A model option of a provider: like a filter parameter, without rectangles. */
 export type AiModelOptionInfo = Exclude<FilterParamInfo, { type: 'rect' }>;
 
-/** `GET /api/ai/providers`: an AI provider of an active plugin with its settings and status. */
+/**
+ * `GET /api/ai/providers`: a named AI provider, made from a plugin's provider type, with its settings and status.
+ * `available` is false while the plugin of its type is off; the settings and model list are then kept but unusable.
+ */
 export interface AiProviderInfo {
+  /** Generated, never changes; tasks refer to it */
   id: string;
+  name: string;
+  /** The id of the provider type a plugin contributes, e.g. `openai` */
+  type: string;
   pluginId: string;
+  /** The type's label */
   label: string;
+  available: boolean;
   settings: AiSettingInfo[];
   status: 'configured' | 'not_configured';
   /** Names of the settings that still need a value */
@@ -736,10 +747,69 @@ export interface AiProviderInfo {
   modelOptions: AiModelOptionInfo[];
 }
 
-/** `GET /api/ai/providers/:id/models`: one model of a provider. */
+/** `GET /api/ai/providers/:id/models`: one model a provider lists right now. */
 export interface AiModelInfo {
   id: string;
   label: string;
+}
+
+/** The kinds of tokens a model call is priced by. More kinds may follow. */
+export type AiTokenKind = 'prompt_tokens' | 'completion_tokens';
+
+/** Credits per 1,000,000 tokens of each kind; a missing kind costs 0. */
+export type AiPrices = Partial<Record<AiTokenKind, number>>;
+
+/** What a model can do, graded 0 to 100. */
+export interface AiCapability {
+  name: string;
+  grade: number;
+}
+
+/** `GET /api/ai/models`: one model of a provider in the catalogue. */
+export interface AiCatalogModel {
+  providerId: string;
+  providerName: string;
+  id: string;
+  enabled: boolean;
+  /** False when the provider no longer lists the model */
+  listed: boolean;
+  description: string;
+  /** What the provider reports about the model (`/v1/models`, `/v1/models/{model}`) */
+  info: Record<string, unknown>;
+  prices: AiPrices;
+  capabilities: AiCapability[];
+}
+
+/** `PATCH /api/ai/providers/:id/models/:model`: the fields to set. */
+export interface AiCatalogModelInput {
+  enabled?: boolean;
+  description?: string;
+  prices?: AiPrices;
+  capabilities?: AiCapability[];
+}
+
+/** `GET /api/ai/usage`: one model call. `tokens` is null when the provider reported no usage. */
+export interface AiUsageRecord {
+  id: number;
+  createdAt: string;
+  queueTaskId: string | null;
+  aiTaskId: string;
+  userId: string | null;
+  providerId: string;
+  providerName: string;
+  model: string;
+  tokens: Partial<Record<string, number>> | null;
+  prices: AiPrices;
+  credits: number;
+  ok: boolean;
+  error: string | null;
+}
+
+/** `GET /api/ai/usage`: records, newest first, with the totals of all that match. */
+export interface AiUsageList {
+  records: AiUsageRecord[];
+  total: number;
+  totals: { calls: number; tokens: Record<string, number>; credits: number };
 }
 
 /** Where the text of a `text` task goes. */
@@ -763,7 +833,7 @@ export interface AiTaskOptions {
 }
 
 /** Why a task cannot run. */
-export type AiTaskProblem = 'no_provider' | 'provider_unavailable' | 'provider_not_configured' | 'no_model';
+export type AiTaskProblem = 'no_provider' | 'provider_unavailable' | 'provider_not_configured' | 'no_model' | 'model_disabled';
 
 /** `GET /api/ai/tasks`: one AI task. */
 export interface AiTask {
@@ -846,6 +916,8 @@ export interface AiTaskDetails {
   descriptionsSet: number;
   inputTokens: number;
   outputTokens: number;
+  /** Credits the calls of the run cost */
+  credits: number;
   /** The first failures */
   failures: TaskFailure[];
   /** Photos processed, so views showing them can reload */

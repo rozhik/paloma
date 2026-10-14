@@ -127,12 +127,12 @@ export function connection(/** @type {Pick<AiContext, 'settings' | 'env'>} */ { 
 }
 
 /**
- * Sends a request to the server and returns its JSON; failures become provider errors with a kind.
+ * Sends a request and returns the response when the server accepts it; failures become provider errors with a kind.
  * @param {AiContext} ctx
  * @param {string} path
  * @param {Record<string, unknown>} [body]
  */
-async function call(ctx, path, body) {
+async function send(ctx, path, body) {
   const { baseUrl, apiKey } = connection(ctx);
   const seconds = typeof ctx.settings.timeoutSeconds === 'number' ? ctx.settings.timeoutSeconds : 60;
   /** @type {Response} */
@@ -145,9 +145,9 @@ async function call(ctx, path, body) {
       signal: AbortSignal.any([ctx.signal, AbortSignal.timeout(seconds * 1000)]),
     });
   } catch (err) {
-    const reason = err instanceof Error && err.name === 'TimeoutError' ? `no answer within ${seconds} seconds` : String(err instanceof Error ? err.message : err);
-    throw providerError('unreachable', `${baseUrl} cannot be reached: ${reason}`);
+    throw unreachable(baseUrl, seconds, err);
   }
+  if (response.ok) return response;
   const text = await response.text();
   /** @type {any} */
   let json = null;
@@ -156,7 +156,6 @@ async function call(ctx, path, body) {
   } catch {
     json = null;
   }
-  if (response.ok) return json;
   const message = (json && typeof json.error?.message === 'string' && json.error.message) || `${baseUrl} answered ${response.status} ${response.statusText}`.trim();
   const code = json?.error?.code;
   if (response.status === 401 || response.status === 403 || code === 'insufficient_quota') throw providerError('auth', message);
@@ -166,6 +165,83 @@ async function call(ctx, path, body) {
   }
   if (response.status >= 500) throw providerError('unreachable', message);
   throw Object.assign(providerError('other', message), { status: response.status });
+}
+
+/** A provider error for a request that got no (complete) answer. */
+function unreachable(/** @type {string} */ baseUrl, /** @type {number} */ seconds, /** @type {unknown} */ err) {
+  const reason = err instanceof Error && err.name === 'TimeoutError' ? `no answer within ${seconds} seconds` : String(err instanceof Error ? err.message : err);
+  return providerError('unreachable', `${baseUrl} cannot be reached: ${reason}`);
+}
+
+/**
+ * Sends a request to the server and returns its JSON.
+ * @param {AiContext} ctx
+ * @param {string} path
+ * @param {Record<string, unknown>} [body]
+ */
+async function call(ctx, path, body) {
+  const response = await send(ctx, path, body);
+  const text = await response.text();
+  try {
+    return text ? JSON.parse(text) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** The text, refusal and token usage of a completion that arrived as one JSON body. */
+function fromCompletion(/** @type {any} */ json) {
+  const message = json?.choices?.[0]?.message;
+  return { content: message?.content, refusal: message?.refusal, usage: json?.usage };
+}
+
+/**
+ * Sends a streamed Chat Completions request and collects the reply and its usage chunk. A server that ignores
+ * `stream` and answers with one JSON body is read as such.
+ * @param {AiContext} ctx
+ * @param {Record<string, unknown>} body
+ */
+async function stream(ctx, body) {
+  const response = await send(ctx, '/chat/completions', body);
+  const { baseUrl } = connection(ctx);
+  const seconds = typeof ctx.settings.timeoutSeconds === 'number' ? ctx.settings.timeoutSeconds : 60;
+  try {
+    if (!(response.headers.get('content-type') ?? '').includes('text/event-stream')) {
+      return fromCompletion(JSON.parse(await response.text()));
+    }
+    let content = '';
+    let refusal = '';
+    /** @type {any} */
+    let usage = null;
+    let buffer = '';
+    const decoder = new TextDecoder();
+    const handle = (/** @type {string} */ line) => {
+      if (!line.startsWith('data:')) return;
+      const data = line.slice(5).trim();
+      if (data === '' || data === '[DONE]') return;
+      /** @type {any} */
+      const chunk = JSON.parse(data);
+      if (chunk?.error) throw providerError('other', typeof chunk.error.message === 'string' ? chunk.error.message : 'The server reported an error');
+      const delta = chunk?.choices?.[0]?.delta;
+      if (typeof delta?.content === 'string') content += delta.content;
+      if (typeof delta?.refusal === 'string') refusal += delta.refusal;
+      if (chunk?.usage) usage = chunk.usage;
+    };
+    for await (const part of /** @type {any} */ (response.body)) {
+      buffer += decoder.decode(part, { stream: true });
+      let end;
+      while ((end = buffer.indexOf('\n')) >= 0) {
+        handle(buffer.slice(0, end).trim());
+        buffer = buffer.slice(end + 1);
+      }
+    }
+    handle(buffer.trim());
+    return { content, refusal, usage };
+  } catch (err) {
+    if (err instanceof Error && /** @type {{ kind?: string }} */ (err).kind) throw err;
+    if (err instanceof SyntaxError) throw providerError('bad-answer', 'The server sent an answer that is not valid JSON');
+    throw unreachable(baseUrl, seconds, err);
+  }
 }
 
 /** The first JSON object in a reply, also when a model wraps it in text or a code block. */
@@ -202,7 +278,18 @@ export function toAnswer(output, reply) {
 }
 
 /** Request parameters a server may refuse; each one the server names in a 400 is dropped and the request is sent again. */
-const OPTIONAL_PARAMS = ['response_format', 'temperature', 'max_completion_tokens'];
+// `stream_options` comes before `stream`: a message naming the first also names the second
+const OPTIONAL_PARAMS = ['response_format', 'temperature', 'max_completion_tokens', 'stream_options', 'stream'];
+
+/** The token counts of a Chat Completions `usage` object by kind, or null when the server reported none. */
+function usageTokens(/** @type {any} */ usage) {
+  /** @type {Record<string, number>} */
+  const tokens = {};
+  for (const kind of ['prompt_tokens', 'completion_tokens']) {
+    if (typeof usage?.[kind] === 'number' && Number.isFinite(usage[kind]) && usage[kind] >= 0) tokens[kind] = usage[kind];
+  }
+  return Object.keys(tokens).length > 0 ? tokens : null;
+}
 
 /** @returns {PluginContributions} */
 export function activate() {
@@ -236,7 +323,17 @@ export function activate() {
       async listModels(ctx) {
         const json = await call(ctx, '/models');
         const data = Array.isArray(json?.data) ? json.data : [];
-        return data.filter((/** @type {any} */ m) => typeof m?.id === 'string').map((/** @type {any} */ m) => ({ id: m.id }));
+        return data.filter((/** @type {any} */ m) => typeof m?.id === 'string').map((/** @type {any} */ m) => {
+          const { id, ...info } = m;
+          return { id, info };
+        });
+      },
+
+      async getModel(id, ctx) {
+        const json = await call(ctx, `/models/${encodeURIComponent(id)}`);
+        if (typeof json !== 'object' || json === null || Array.isArray(json)) throw providerError('bad-answer', `The server gave no details for the model ${id}`);
+        const { id: _id, ...info } = json;
+        return info;
       },
 
       async run(request, ctx) {
@@ -257,32 +354,42 @@ export function activate() {
           temperature: request.options.temperature,
           max_completion_tokens: request.options.maxOutputTokens,
           response_format: { type: 'json_schema', json_schema: { name: `paloma_${request.output}`, strict: true, schema: SCHEMAS[request.output] } },
+          // Streamed, because that is how servers report the tokens a call used
+          stream: true,
+          stream_options: { include_usage: true },
         };
-        /** @type {any} */
-        let json;
+        /** @type {{ content?: unknown, refusal?: unknown, usage?: any }} */
+        let reply;
         for (;;) {
           try {
-            json = await call(ctx, '/chat/completions', body);
+            reply = await stream(ctx, body);
             break;
           } catch (err) {
             const message = err instanceof Error ? err.message : '';
             const refused = /** @type {{ status?: number }} */ (err).status === 400 && OPTIONAL_PARAMS.find((p) => p in body && message.includes(p));
             if (!refused) throw err;
             delete body[refused];
+            if (refused === 'stream') delete body.stream_options;
             if (refused === 'response_format') {
               const user = /** @type {any} */ (body.messages)[1];
               user.content[0].text = `${request.prompt}\n\nAnswer only with JSON like ${SHAPES[request.output]}`;
             }
           }
         }
-        const content = json?.choices?.[0]?.message?.content;
-        if (typeof content !== 'string' || content.trim() === '') {
-          const refusal = json?.choices?.[0]?.message?.refusal;
-          throw providerError('bad-answer', typeof refusal === 'string' && refusal ? `The model refused: ${refusal}` : 'The model gave an empty answer');
+        const { content, refusal, usage } = reply;
+        const tokens = usageTokens(usage);
+        /** @type {AiAnswer} */
+        let answer;
+        try {
+          if (typeof content !== 'string' || content.trim() === '') {
+            throw providerError('bad-answer', typeof refusal === 'string' && refusal ? `The model refused: ${refusal}` : 'The model gave an empty answer');
+          }
+          answer = toAnswer(request.output, parseReply(content));
+        } catch (err) {
+          // The call was paid for even though its answer is no use
+          throw tokens && err instanceof Error ? Object.assign(err, { usage: { tokens } }) : err;
         }
-        const answer = toAnswer(request.output, parseReply(content));
-        const usage = json?.usage;
-        if (usage) answer.usage = { inputTokens: usage.prompt_tokens, outputTokens: usage.completion_tokens };
+        if (tokens) answer.usage = { tokens };
         return answer;
       },
     }],

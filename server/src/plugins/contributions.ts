@@ -167,7 +167,7 @@ function aiProviderProblem(provider: unknown): string | null {
   if (!isLocalizedText(provider.label)) return `AI provider "${id}" has no valid label`;
   if (typeof provider.listModels !== 'function') return `AI provider "${id}" has no listModels function`;
   if (typeof provider.run !== 'function') return `AI provider "${id}" has no run function`;
-  for (const key of ['test', 'missingSettings', 'settingFromEnv']) {
+  for (const key of ['test', 'getModel', 'missingSettings', 'settingFromEnv']) {
     if (provider[key] !== undefined && typeof provider[key] !== 'function') return `AI provider "${id}" has a ${key} that is not a function`;
   }
   if (provider.settings !== undefined && !Array.isArray(provider.settings)) return `AI provider "${id}" has settings that are not a list`;

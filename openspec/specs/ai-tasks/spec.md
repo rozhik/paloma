@@ -40,15 +40,23 @@ An administrator SHALL be able to add a task with a name, an output kind, a prov
 - **THEN** `a.jpg` still has the tag `Eiffel Tower` and the Info panel of `a.jpg` shows no `Landmarks` result
 
 ### Requirement: Provider and model selector
-Each task SHALL choose an available AI provider and one of its models. The selector SHALL list the providers, then the models the chosen provider lists, and SHALL accept a typed model id. A task SHALL be ready when its provider is available and configured and it has a model; a task that is not ready SHALL say why.
+Each task SHALL choose an available AI provider by name and one of its enabled models. The selector SHALL list the providers, then the enabled models of the chosen provider, and SHALL accept a typed model id, which adds that model to the provider as enabled. A task SHALL be ready when its provider is available and configured and it has a model that is enabled; a task that is not ready SHALL say why.
 
 #### Scenario: Choose a model
-- **WHEN** an administrator chooses the provider `openai` for Objects and then a model from the list
+- **WHEN** an administrator chooses the provider `OpenAI` for Objects and then an enabled model from the list
 - **THEN** Objects uses that provider and model and is ready
 
 #### Scenario: Plugin switched off
-- **WHEN** Tags uses `openai` and `ai-openai` is switched off
+- **WHEN** Tags uses a provider of type `openai` and `ai-openai` is switched off
 - **THEN** Tags is not ready, says that its provider is not available, and keeps its model
+
+#### Scenario: Disabled model
+- **WHEN** the model of Tags is disabled
+- **THEN** Tags is not ready, says that its model is disabled, and keeps its model
+
+#### Scenario: Disabled models are not offered
+- **WHEN** a provider has the enabled model `llava` and the disabled model `bakllava`
+- **THEN** the selector lists `llava` and not `bakllava`
 
 ### Requirement: Prompt placeholders
 A prompt SHALL be able to contain these placeholders, replaced for each photo before it is sent: `{language}` (the English name of the task's language), `{maxTags}`, `{photoTags}` (the photo's current tags, comma-separated), `{description}` (the photo's current description) and `{libraryTags}` (the 300 tags used by the most photos, comma-separated). Other text in braces SHALL be sent unchanged.

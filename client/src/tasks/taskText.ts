@@ -40,6 +40,7 @@ export function taskMessage(task: TaskInfo, t: Translate): string {
     if (details.descriptionsSet > 0) parts.push(t('ai.run.descriptionsSet', { count: details.descriptionsSet }));
     if (task.failed > 0) parts.push(t('ai.run.failed', { count: task.failed }));
     if (details.inputTokens + details.outputTokens > 0) parts.push(t('ai.run.tokens', { input: details.inputTokens, output: details.outputTokens }));
+    if ((details.credits ?? 0) > 0) parts.push(t('ai.run.credits', { credits: details.credits }));
   } else if (details?.kind === 'faces') {
     if (task.total === 0) return t('faces.nothingToDo');
     parts.push(t('faces.found', { faces: details.faces, photos: details.photos }));

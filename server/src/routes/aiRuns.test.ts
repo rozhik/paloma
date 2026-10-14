@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import sharp from 'sharp';
 import { openTestDatabase, startTestApp, TestClient } from '../auth/testing.js';
-import { writeTestPlugin } from '../plugins/testing.js';
+import { seedAiProviders, writeTestPlugin } from '../plugins/testing.js';
 import type { AiAnswer, AiRequest } from '../plugins/api.js';
 
 /**
@@ -65,6 +65,7 @@ async function runToEnd(client: TestClient, body: Record<string, unknown>) {
 beforeAll(async () => {
   ({ cleanup, tmpDir } = await openTestDatabase('paloma_ai_runs_test_', { PALOMA_AUTH: 'on', OPENAI_API_KEY: '', OPENAI_BASE_URL: '' }));
   writeTestPlugin(path.join(tmpDir, 'plugins'), 'fake-vision', { module: FAKE_PROVIDER });
+  seedAiProviders(path.join(tmpDir, 'data'), [{ id: 'fake', name: 'Fake vision', type: 'fake' }]);
   vi.spyOn(console, 'log').mockImplementation(() => {});
   vi.spyOn(console, 'warn').mockImplementation(() => {});
   vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -136,7 +137,7 @@ describe('starting runs', () => {
     expect(last.photoIds.sort()).toEqual(folderIds('a').sort());
     expect(sidecar('a').photos['a120.jpg'].keywords).toEqual(['w120', 'gray']);
     const results = await eddie.get(`/photos/${id.a120}/ai`);
-    expect(results.body).toEqual([expect.objectContaining({ taskId: 'tags', provider: 'fake', model: 'm', tags: [{ name: 'w120', confidence: 0.9 }, { name: 'gray', confidence: 0.8 }] })]);
+    expect(results.body).toEqual([expect.objectContaining({ taskId: 'tags', provider: 'Fake vision', model: 'm', tags: [{ name: 'w120', confidence: 0.9 }, { name: 'gray', confidence: 0.8 }] })]);
   });
 
   it('sends the prompt in the language of the user, with the photo upright and resized', async () => {
@@ -249,5 +250,93 @@ describe('library access', () => {
     expect(last.photoIds.sort()).toEqual(folderIds('a').sort());
     expect((await lim.get(`/photos/${id.b160}/ai`)).status).toBe(404);
     expect((await lim.get(`/photos/${id.a100}/ai`)).status).toBe(200);
+  });
+});
+
+describe('usage log', () => {
+  const meOf = async (client: TestClient) => (await client.get('/auth/me')).body.user.id as string;
+
+  it('stores a record per call with task, user, tokens and credits at the prices of the call', async () => {
+    expect((await anna.patch('/ai/providers/fake/models/m', { prices: { prompt_tokens: 2, completion_tokens: 10 } })).status).toBe(200);
+    await anna.patch('/ai/tasks/tags', { options: { parallel: 1 } });
+    fake.__aiFake = () => ({ tags: [{ name: 'x' }], usage: { tokens: { prompt_tokens: 1_000_000, completion_tokens: 500_000 } } });
+    const { started, last } = await runToEnd(eddie, { taskId: 'tags', photoIds: ids('a100'), again: true });
+    expect(last).toMatchObject({ state: 'finished', credits: 7 });
+    const usage = (await eddie.get(`/ai/usage?taskId=tags`)).body;
+    const mine = usage.records.filter((r: { queueTaskId: string }) => r.queueTaskId === started.body.id);
+    expect(mine).toEqual([expect.objectContaining({
+      aiTaskId: 'tags', userId: await meOf(eddie), providerId: 'fake', providerName: 'Fake vision', model: 'm', ok: true,
+      tokens: { prompt_tokens: 1_000_000, completion_tokens: 500_000 }, prices: { prompt_tokens: 2, completion_tokens: 10 }, credits: 7,
+    })]);
+    // A later price change leaves the record as it was
+    await anna.patch('/ai/providers/fake/models/m', { prices: { prompt_tokens: 100 } });
+    const again = (await eddie.get(`/ai/usage?taskId=tags`)).body.records.find((r: { queueTaskId: string }) => r.queueTaskId === started.body.id);
+    expect(again.credits).toBe(7);
+    expect(JSON.stringify(usage)).not.toContain('prompt":');
+  });
+
+  it('records a failed call without tokens, and each retry as a call of its own', async () => {
+    let calls = 0;
+    fake.__aiFake = () => {
+      calls += 1;
+      if (calls === 1) throw Object.assign(new Error('Rate limit reached'), { kind: 'rate-limit', retryAfterMs: 1 });
+      if (calls === 2) throw Object.assign(new Error('Incorrect API key provided'), { kind: 'auth' });
+      return { tags: [] };
+    };
+    const { started } = await runToEnd(eddie, { taskId: 'tags', photoIds: ids('b160'), again: true });
+    const records = (await eddie.get('/ai/usage')).body.records.filter((r: { queueTaskId: string }) => r.queueTaskId === started.body.id);
+    expect(records.map((r: { ok: boolean; error: string | null; tokens: unknown; credits: number }) => [r.ok, r.error, r.tokens, r.credits])).toEqual([
+      [false, 'Incorrect API key provided', null, 0],
+      [false, 'Rate limit reached', null, 0],
+    ]);
+  });
+
+  it('records a call whose provider reports no usage with unknown tokens and no credits, and still saves the result', async () => {
+    fake.__aiFake = () => ({ tags: [{ name: 'quiet' }] });
+    const { started, last } = await runToEnd(eddie, { taskId: 'tags', photoIds: ids('b180'), again: true });
+    expect(last).toMatchObject({ state: 'finished', failed: 0, credits: 0 });
+    const record = (await eddie.get('/ai/usage')).body.records.find((r: { queueTaskId: string }) => r.queueTaskId === started.body.id);
+    expect(record).toMatchObject({ ok: true, tokens: null, credits: 0 });
+    expect((await eddie.get(`/photos/${id.b180}/ai`)).body[0].tags).toEqual([{ name: 'quiet', confidence: null }]);
+  });
+
+  it('keeps the tokens of a paid call whose answer is unusable', async () => {
+    fake.__aiFake = () => { throw Object.assign(new Error('The model gave an empty answer'), { kind: 'bad-answer', usage: { tokens: { prompt_tokens: 40 } } }); };
+    const { started } = await runToEnd(eddie, { taskId: 'tags', photoIds: ids('b160'), again: true });
+    const record = (await eddie.get('/ai/usage')).body.records.find((r: { queueTaskId: string }) => r.queueTaskId === started.body.id);
+    expect(record).toMatchObject({ ok: false, tokens: { prompt_tokens: 40 }, credits: 40 * 100 / 1_000_000 });
+  });
+
+  it('shows users their own records and users.manage everyone’s, with totals and filters', async () => {
+    const eddieId = await meOf(eddie);
+    const own = (await eddie.get('/ai/usage')).body;
+    expect(own.records.every((r: { userId: string }) => r.userId === eddieId)).toBe(true);
+    expect(own.totals.calls).toBe(own.total);
+    // Asking for someone else's records does not work for an editor
+    const annaId = await meOf(anna);
+    expect((await eddie.get(`/ai/usage?userId=${annaId}`)).body.records.every((r: { userId: string }) => r.userId === eddieId)).toBe(true);
+    fake.__aiFake = () => ({ tags: [], usage: { tokens: { prompt_tokens: 3, completion_tokens: 1 } } });
+    const limBefore = (await anna.get(`/ai/usage?userId=${await meOf(lim)}`)).body.totals;
+    await runToEnd(lim, { taskId: 'tags', photoIds: ids('a100'), again: true });
+    const all = (await anna.get('/ai/usage')).body;
+    expect(new Set(all.records.map((r: { userId: string }) => r.userId)).size).toBeGreaterThan(1);
+    const limOnly = (await anna.get(`/ai/usage?userId=${await meOf(lim)}`)).body;
+    expect(limOnly.totals.calls).toBe(limBefore.calls + 1);
+    expect(limOnly.totals.tokens.prompt_tokens).toBe((limBefore.tokens.prompt_tokens ?? 0) + 3);
+    expect(limOnly.records[0]).toMatchObject({ tokens: { prompt_tokens: 3, completion_tokens: 1 } });
+    expect((await anna.get('/ai/usage?model=nope')).body).toMatchObject({ records: [], total: 0, totals: { calls: 0, credits: 0 } });
+    expect((await anna.get('/ai/usage?from=not-a-date')).status).toBe(400);
+    expect((await anna.get('/ai/usage?limit=1')).body.records.length).toBe(1);
+  });
+
+  it('keeps the records when the provider is deleted', async () => {
+    // The tasks that use the provider block its deletion; the tests above leave them on it, so move them away first
+    for (const task of ['tags', 'objects', 'description']) await anna.patch(`/ai/tasks/${task}`, { provider: 'openai', model: null });
+    const before = (await anna.get('/ai/usage?limit=500')).body.total;
+    expect((await anna.delete('/ai/providers/fake')).status).toBe(200);
+    const after = (await anna.get('/ai/usage?limit=500')).body;
+    expect(after.total).toBe(before);
+    expect(after.records[0].providerName).toBe('Fake vision');
+    expect((await anna.get('/ai/models')).body.filter((m: { providerId: string }) => m.providerId === 'fake')).toEqual([]);
   });
 });

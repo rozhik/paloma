@@ -1,5 +1,5 @@
 import type {
-  AiModelInfo, AiProviderInfo, AiRunRequest, AiTask, AiTaskInput, PhotoAiResult, TaskInfo,
+  AiCatalogModel, AiCatalogModelInput, AiModelInfo, AiProviderInfo, AiRunRequest, AiTask, AiTaskInput, AiUsageList, PhotoAiResult, TaskInfo,
 } from '../../../shared/types.js';
 import { apiRequest } from './http.js';
 
@@ -13,6 +13,35 @@ export const fetchAiProviders = (lang: string): Promise<AiProviderInfo[]> => api
  */
 export const saveAiProviderSettings = (id: string, values: Record<string, string | number | boolean | null>, lang: string): Promise<AiProviderInfo> =>
   apiRequest('PUT', withLang(`/api/ai/providers/${encodeURIComponent(id)}/settings`, lang), values);
+
+/** Adds a named provider of a type a plugin contributes; its settings are empty until saved. */
+export const createAiProvider = (type: string, name: string, lang: string): Promise<AiProviderInfo> =>
+  apiRequest('POST', withLang('/api/ai/providers', lang), { type, name });
+
+export const renameAiProvider = (id: string, name: string, lang: string): Promise<AiProviderInfo> =>
+  apiRequest('PATCH', withLang(`/api/ai/providers/${encodeURIComponent(id)}`, lang), { name });
+
+/** Deletes a provider no task uses, with its settings and models. */
+export const deleteAiProvider = (id: string): Promise<{ success: true }> => apiRequest('DELETE', `/api/ai/providers/${encodeURIComponent(id)}`);
+
+/** The model catalogue: enabled models, and disabled ones too for whoever manages plugins. */
+export const fetchCatalogModels = (): Promise<AiCatalogModel[]> => apiRequest('GET', '/api/ai/models');
+
+/** Asks the provider for its models and merges them into its catalogue; responds with the provider's catalogue. */
+export const refreshAiModels = (providerId: string): Promise<AiCatalogModel[]> =>
+  apiRequest('POST', `/api/ai/providers/${encodeURIComponent(providerId)}/models/refresh`, {});
+
+export const addAiModel = (providerId: string, id: string): Promise<AiCatalogModel> =>
+  apiRequest('POST', `/api/ai/providers/${encodeURIComponent(providerId)}/models`, { id });
+
+export const updateAiModel = (providerId: string, modelId: string, input: AiCatalogModelInput): Promise<AiCatalogModel> =>
+  apiRequest('PATCH', `/api/ai/providers/${encodeURIComponent(providerId)}/models/${encodeURIComponent(modelId)}`, input);
+
+/** The model calls of the user (everyone's for users.manage), newest first, with totals. */
+export const fetchAiUsage = (params: { limit?: number; offset?: number } = {}): Promise<AiUsageList> => {
+  const query = new URLSearchParams(Object.entries(params).map(([k, v]) => [k, String(v)]));
+  return apiRequest('GET', `/api/ai/usage${query.size > 0 ? `?${query}` : ''}`);
+};
 
 export const fetchAiModels = (id: string): Promise<AiModelInfo[]> => apiRequest('GET', `/api/ai/providers/${encodeURIComponent(id)}/models`);
 

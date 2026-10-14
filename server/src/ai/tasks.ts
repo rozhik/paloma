@@ -84,17 +84,19 @@ export interface ProviderState {
   configured: boolean;
 }
 
-export function taskProblem(task: StoredTask, provider: ProviderState | undefined): AiTaskProblem | null {
+/** Why a task cannot run; `modelEnabled` is false when the provider's catalogue has the task's model disabled. */
+export function taskProblem(task: StoredTask, provider: ProviderState | undefined, modelEnabled = true): AiTaskProblem | null {
   if (!task.provider) return 'no_provider';
   if (!provider?.available) return 'provider_unavailable';
   if (!provider.configured) return 'provider_not_configured';
   if (!task.model) return 'no_model';
+  if (!modelEnabled) return 'model_disabled';
   return null;
 }
 
 /** A task as the API shows it. */
-export function taskInfo(task: StoredTask, provider: ProviderState | undefined): AiTask {
-  const problem = taskProblem(task, provider);
+export function taskInfo(task: StoredTask, provider: ProviderState | undefined, modelEnabled = true): AiTask {
+  const problem = taskProblem(task, provider, modelEnabled);
   return { ...structuredClone(task), ready: problem === null, problem };
 }
 

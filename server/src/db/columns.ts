@@ -303,6 +303,45 @@ export function createAiTables(sqlite: Database.Database): void {
       rect TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS ai_objects_photo ON ai_objects(photo_id);
+
+    CREATE TABLE IF NOT EXISTS ai_models (
+      provider_id TEXT NOT NULL,
+      model_id TEXT NOT NULL,
+      enabled INTEGER NOT NULL DEFAULT 0,
+      listed INTEGER NOT NULL DEFAULT 1,
+      description TEXT NOT NULL DEFAULT '',
+      info TEXT NOT NULL DEFAULT '{}',
+      prices TEXT NOT NULL DEFAULT '{}',
+      updated_at TEXT NOT NULL,
+      PRIMARY KEY (provider_id, model_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS ai_model_capabilities (
+      provider_id TEXT NOT NULL,
+      model_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      grade INTEGER NOT NULL CHECK (grade BETWEEN 0 AND 100),
+      PRIMARY KEY (provider_id, model_id, name),
+      FOREIGN KEY (provider_id, model_id) REFERENCES ai_models(provider_id, model_id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS ai_usage_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      created_at TEXT NOT NULL,
+      queue_task_id TEXT,
+      ai_task_id TEXT NOT NULL,
+      user_id TEXT,
+      provider_id TEXT NOT NULL,
+      provider_name TEXT NOT NULL,
+      model TEXT NOT NULL,
+      tokens TEXT,
+      prices TEXT NOT NULL,
+      credits REAL NOT NULL,
+      ok INTEGER NOT NULL,
+      error TEXT
+    );
+    CREATE INDEX IF NOT EXISTS ai_usage_log_user ON ai_usage_log(user_id, created_at);
+    CREATE INDEX IF NOT EXISTS ai_usage_log_task ON ai_usage_log(ai_task_id);
   `);
 }
 

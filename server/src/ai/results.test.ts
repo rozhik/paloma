@@ -7,7 +7,7 @@ let cleanup: () => void;
 let results: typeof import('./results.js');
 let setHash: (id: number, hash: string) => Promise<void>;
 
-const answer = (part: Partial<CheckedAnswer>): CheckedAnswer => ({ tags: [], objects: [], text: null, inputTokens: null, outputTokens: null, ...part });
+const answer = (part: Partial<CheckedAnswer>): CheckedAnswer => ({ tags: [], objects: [], text: null, inputTokens: null, outputTokens: null, tokens: null, ...part });
 const TASKS = [{ id: 'tags', name: null }, { id: 'objects', name: null }, { id: 'description', name: 'Caption' }];
 
 beforeAll(async () => {

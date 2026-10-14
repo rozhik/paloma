@@ -45,3 +45,10 @@ export async function lookupOfPlugin(module: { activate: PluginModule['activate'
 
 /** sharp for tests outside the server package, which cannot resolve it themselves */
 export { sharp };
+
+/** Test helper: writes `ai.json` in a data directory with the OpenAI provider and these named providers, before the server starts. */
+export function seedAiProviders(dataDir: string, providers: { id: string; name: string; type: string; settings?: Record<string, string | number | boolean> }[]): void {
+  fs.mkdirSync(dataDir, { recursive: true });
+  const all = [{ id: 'openai', name: 'OpenAI', type: 'openai', settings: {} }, ...providers.map((p) => ({ settings: {}, ...p }))];
+  fs.writeFileSync(path.join(dataDir, 'ai.json'), JSON.stringify({ providers: all, tasks: [] }));
+}

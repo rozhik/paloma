@@ -12,6 +12,8 @@ export interface CheckedAnswer {
   text: string | null;
   inputTokens: number | null;
   outputTokens: number | null;
+  /** All tokens the call used by kind; null when the provider reported none */
+  tokens: Record<string, number> | null;
 }
 
 /** A failed provider call, with how it failed (see `AiProviderError` in the plugin API). */
@@ -46,6 +48,27 @@ function confidenceOf(value: unknown): number | null {
 
 function tokens(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? Math.round(value) : null;
+}
+
+/**
+ * The tokens a provider reported by kind, or null when it reported none. `usage.tokens` gives kinds directly;
+ * `inputTokens` and `outputTokens` of older providers count as `prompt_tokens` and `completion_tokens`.
+ */
+export function usageTokens(usage: unknown): Record<string, number> | null {
+  if (!isObject(usage)) return null;
+  const found: Record<string, number> = {};
+  const legacy: [string, unknown][] = [['prompt_tokens', usage.inputTokens], ['completion_tokens', usage.outputTokens]];
+  for (const [kind, value] of legacy) {
+    const n = tokens(value);
+    if (n !== null) found[kind] = n;
+  }
+  if (isObject(usage.tokens)) {
+    for (const [kind, value] of Object.entries(usage.tokens)) {
+      const n = tokens(value);
+      if (n !== null && kind !== '') found[kind] = n;
+    }
+  }
+  return Object.keys(found).length > 0 ? found : null;
 }
 
 function checkTags(value: unknown): AiTag[] {
@@ -88,9 +111,9 @@ function checkObjects(value: unknown): AiObject[] {
  */
 export function checkAnswer(output: AiOutputKind, answer: unknown): CheckedAnswer {
   if (!isObject(answer)) throw new AiCallError('bad-answer', 'The answer is not an object');
-  const usage = isObject(answer.usage) ? answer.usage : {};
+  const used = usageTokens(answer.usage);
   const checked: CheckedAnswer = {
-    tags: [], objects: [], text: null, inputTokens: tokens(usage.inputTokens), outputTokens: tokens(usage.outputTokens),
+    tags: [], objects: [], text: null, inputTokens: used?.prompt_tokens ?? null, outputTokens: used?.completion_tokens ?? null, tokens: used,
   };
   if (output === 'tags') checked.tags = checkTags(answer.tags);
   else if (output === 'objects') checked.objects = checkObjects(answer.objects);

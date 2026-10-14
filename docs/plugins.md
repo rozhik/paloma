@@ -175,7 +175,7 @@ A plugin returns its providers in `authProviders`:
 
 | Field | Meaning |
 | :--- | :--- |
-| `id` | Unique across plugins: lowercase letters, digits and hyphens. A taken id is not available, and your plugin shows a warning. A bundled provider wins, then the external plugin whose id sorts first. |
+| `id` | The type's id, unique across plugins: lowercase letters, digits and hyphens. A taken id is not available, and your plugin shows a warning. A bundled provider wins, then the external plugin whose id sorts first. |
 | `label` | Shown on the login page and in **Admin → Authentication**; a string or an object by language. |
 | `kind` | `credentials`: a login form; a successful login starts a browser session. `bearer`: a credential the client sends with each request as `Authorization: Bearer <credential>`. Any other kind is not available, and your plugin shows a warning. Redirect-based logins such as OAuth are planned for a later API version. |
 | `fields` | `credentials` only: the form fields, each `{ name, label, type }` with type `text` or `password`. |
@@ -221,7 +221,7 @@ export function activate() {
 
 ## AI providers
 
-**AI providers** look at one photo at a time and answer with tags, objects with boxes, or a text. How administrators set them up and run tasks is described in [AI tasks](ai.md). Administrators enter their settings in **Server settings → AI** and choose a provider and a model for each **AI task** (Tags, Objects, Description, and tasks they add). Paloma builds the prompt, prepares the image, runs the tasks as a background job, stores the results and applies tags and descriptions. A provider only talks to its service. The bundled `ai-openai` plugin is the best example to read.
+**AI providers** look at one photo at a time and answer with tags, objects with boxes, or a text. How administrators set them up and run tasks is described in [AI tasks](ai.md). What your plugin contributes is a provider **type**. In **Server settings → AI** administrators create any number of named providers from it (each with its own settings, e.g. one for OpenAI and one for a local server), curate their models and prices, and choose a provider and a model for each **AI task** (Tags, Objects, Description, and tasks they add). Paloma builds the prompt, prepares the image, runs the tasks as a background job, stores the results and applies tags and descriptions. A provider only talks to its service. The bundled `ai-openai` plugin is the best example to read.
 
 A plugin returns its providers in `aiProviders`:
 
@@ -233,7 +233,8 @@ A plugin returns its providers in `aiProviders`:
 | `missingSettings({ settings, env })` | Optional: names of settings that still need a value for the current values, beyond those marked `required`. `ai-openai` needs an API key only for OpenAI's own address. |
 | `settingFromEnv(name, { env })` | Optional: whether a setting without a saved value comes from the server's environment, so Server settings can say so. |
 | `modelOptions` | Optional: options of the model that each task sets, declared like filter parameters (`number`, `boolean` or `choice`; no `rect`). |
-| `listModels(ctx)` | The models for the saved settings, each `{ id, label? }`. Throw an `Error` with a message for the administrator when the service fails. |
+| `listModels(ctx)` | The models for the saved settings, each `{ id, label?, info? }`; `info` is an object of what the service reports about the model, shown to users. Throw an `Error` with a message for the administrator when the service fails. |
+| `getModel(id, ctx)` | Optional: what the service reports about one model, as an object (for OpenAI-compatible servers `GET /models/{model}`). Paloma calls it for models whose information it does not have yet; a failure is only logged. |
 | `test(ctx)` | Optional: throws with a message when the service cannot be used. Without it, the connection test calls `listModels`. |
 | `run(request, ctx)` | Answers about one photo (below). |
 
@@ -249,9 +250,11 @@ A plugin returns its providers in `aiProviders`:
 - `maxTags`: for `tags`, the most tags to return.
 - `options`: the task's model options, defaults filled in.
 
-Return `{ tags: [{ name, confidence? }] }`, `{ objects: [{ label, rect: { left, top, right, bottom }, confidence? }] }` or `{ text }`, and optionally `usage: { inputTokens, outputTokens }`. Rectangles are fractions 0..1 of the image you got, and confidences are 0..1. Paloma clips rectangles to the image and drops empty tags and labels, so you need not.
+Return `{ tags: [{ name, confidence? }] }`, `{ objects: [{ label, rect: { left, top, right, bottom }, confidence? }] }` or `{ text }`, and, when the service reports it, `usage: { tokens: { prompt_tokens, completion_tokens } }`: the tokens the call used by kind (`inputTokens` and `outputTokens` still count as these two). Paloma prices them with the model's prices and stores a [usage record](ai.md#usage-and-credits) for every call. Leave `usage` out when the service reports none; the record then says the tokens are unknown. Servers speaking the OpenAI API report usage on streamed requests that send `"stream_options": {"include_usage": true}`, as `ai-openai` does. Rectangles are fractions 0..1 of the image you got, and confidences are 0..1. Paloma clips rectangles to the image and drops empty tags and labels, so you need not.
 
-When a call fails, throw an `Error` with a `kind`, so Paloma can react: `auth` (credentials refused), `unreachable` (no answer), `rate-limit` (Paloma waits `retryAfterMs` or a few seconds and retries up to three times), `bad-answer` or `other`. A run stops after five photos in a row fail with `auth` or `unreachable`. Any other error counts as a failed photo.
+When a call fails, throw an `Error` with a `kind`, so Paloma can react: `auth` (credentials refused), `unreachable` (no answer), `rate-limit` (Paloma waits `retryAfterMs` or a few seconds and retries up to three times), `bad-answer` or `other`. A run stops after five photos in a row fail with `auth` or `unreachable`. Any other error counts as a failed photo. A paid call whose answer is no use can still report its tokens: put `usage` on the error.
+
+Providers made from your type do not see the server's environment, except the one named `OpenAI` that exists from the start; `ctx.env` is empty for the others. Read connection details from `ctx.settings` first.
 
 > **Photos leave the computer.** Whatever your provider sends goes to its service. Say in your plugin's description where photos are sent.
 

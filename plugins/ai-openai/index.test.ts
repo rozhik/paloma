@@ -27,8 +27,22 @@ const request = (output: AiRequest['output']): AiRequest => ({
   options: { temperature: 0.2, detail: 'high', maxOutputTokens: 1024 },
 });
 
-const reply = (content: string, usage = { prompt_tokens: 812, completion_tokens: 40 }) =>
-  new Response(JSON.stringify({ choices: [{ message: { content } }], usage }), { status: 200 });
+/** A streamed answer: the content in pieces, then a chunk with the usage, as servers send it for `include_usage`. */
+const reply = (content: string, usage: object | null = { prompt_tokens: 812, completion_tokens: 40 }) => {
+  const half = Math.floor(content.length / 2);
+  const chunks = [
+    { choices: [{ delta: { role: 'assistant', content: content.slice(0, half) } }] },
+    { choices: [{ delta: { content: content.slice(half) } }] },
+    { choices: [{ delta: {}, finish_reason: 'stop' }] },
+    ...(usage ? [{ choices: [], usage }] : []),
+  ];
+  const text = `${chunks.map((c) => `data: ${JSON.stringify(c)}\n\n`).join('')}data: [DONE]\n\n`;
+  return new Response(text, { status: 200, headers: { 'content-type': 'text/event-stream' } });
+};
+
+/** A server that ignores `stream` and answers with one JSON body. */
+const plainReply = (content: string, usage?: object) =>
+  new Response(JSON.stringify({ choices: [{ message: { content } }], ...(usage ? { usage } : {}) }), { status: 200, headers: { 'content-type': 'application/json' } });
 
 const errorReply = (status: number, message: string, headers: Record<string, string> = {}, code?: string) =>
   new Response(JSON.stringify({ error: { message, ...(code ? { code } : {}) } }), { status, headers });
@@ -91,7 +105,7 @@ describe('settings', () => {
 describe('listModels', () => {
   it('lists the models of the server', async () => {
     const fn = mockFetch(new Response(JSON.stringify({ data: [{ id: 'gpt-b' }, { id: 'gpt-a' }, { nope: 1 }] })));
-    expect(await provider.listModels(ctx({ apiKey: 'sk-1' }))).toEqual([{ id: 'gpt-b' }, { id: 'gpt-a' }]);
+    expect(await provider.listModels(ctx({ apiKey: 'sk-1' }))).toEqual([{ id: 'gpt-b', info: {} }, { id: 'gpt-a', info: {} }]);
     expect(sentUrl(fn)).toBe('https://api.openai.com/v1/models');
     expect(sentHeaders(fn).Authorization).toBe('Bearer sk-1');
   });
@@ -104,20 +118,78 @@ describe('listModels', () => {
   });
 });
 
+describe('model information', () => {
+  it('keeps what the server reports about each listed model, without its id', async () => {
+    mockFetch(new Response(JSON.stringify({ data: [{ id: 'gpt-a', object: 'model', created: 1700000000, owned_by: 'openai' }] })));
+    expect(await provider.listModels(ctx({ apiKey: 'sk-1' }))).toEqual([{ id: 'gpt-a', info: { object: 'model', created: 1700000000, owned_by: 'openai' } }]);
+  });
+
+  it('reads one model from /models/{model}, with the id encoded', async () => {
+    const fn = mockFetch(new Response(JSON.stringify({ id: 'library/llava:7b', object: 'model', owned_by: 'library' })));
+    expect(await provider.getModel!('library/llava:7b', ctx({ baseUrl: 'http://localhost:11434/v1' }))).toEqual({ object: 'model', owned_by: 'library' });
+    expect(sentUrl(fn)).toBe('http://localhost:11434/v1/models/library%2Fllava%3A7b');
+  });
+
+  it('fails when the server gives no details', async () => {
+    mockFetch(errorReply(404, 'model not found'));
+    await expect(provider.getModel!('nope', ctx({ apiKey: 'sk-1' }))).rejects.toMatchObject({ message: 'model not found' });
+  });
+});
+
 describe('run', () => {
   it('sends the prompt, image and options with a schema for the output kind', async () => {
     const fn = mockFetch(reply('{"tags":[{"name":"пляж","confidence":0.9}]}'));
     const answer = await provider.run(request('tags'), ctx({ apiKey: 'sk-1' }));
-    expect(answer).toEqual({ tags: [{ name: 'пляж', confidence: 0.9 }], usage: { inputTokens: 812, outputTokens: 40 } });
+    expect(answer).toEqual({ tags: [{ name: 'пляж', confidence: 0.9 }], usage: { tokens: { prompt_tokens: 812, completion_tokens: 40 } } });
     expect(sentUrl(fn)).toBe('https://api.openai.com/v1/chat/completions');
     const body = sentBody(fn);
-    expect(body).toMatchObject({ model: 'gpt-test', temperature: 0.2, max_completion_tokens: 1024 });
+    expect(body).toMatchObject({ model: 'gpt-test', temperature: 0.2, max_completion_tokens: 1024, stream: true, stream_options: { include_usage: true } });
     expect(body.messages[1].content[0]).toEqual({ type: 'text', text: 'Tag this photo in Ukrainian' });
     expect(body.messages[1].content[1]).toEqual({
       type: 'image_url', image_url: { url: `data:image/jpeg;base64,${Buffer.from('jpeg-bytes').toString('base64')}`, detail: 'high' },
     });
     expect(body.response_format.json_schema.name).toBe('paloma_tags');
     expect(body.response_format.json_schema.schema.required).toEqual(['tags']);
+  });
+
+  it('asks for usage with stream_options and reports it by token kind', async () => {
+    const fn = mockFetch(reply('{"text":"x"}', { prompt_tokens: 10, completion_tokens: 3, total_tokens: 13 }));
+    const answer = await provider.run(request('text'), ctx({ apiKey: 'sk-1' }));
+    expect(sentBody(fn).stream_options).toEqual({ include_usage: true });
+    expect(answer.usage).toEqual({ tokens: { prompt_tokens: 10, completion_tokens: 3 } });
+  });
+
+  it('retries without stream_options when the server refuses it, and then reports no usage', async () => {
+    const fn = mockFetch(errorReply(400, "Unknown parameter: 'stream_options'"), reply('{"text":"x"}', null));
+    const answer = await provider.run(request('text'), ctx({ apiKey: 'sk-1' }));
+    expect(fn).toHaveBeenCalledTimes(2);
+    expect(sentBody(fn, 1).stream).toBe(true);
+    expect(sentBody(fn, 1).stream_options).toBeUndefined();
+    expect(answer).toEqual({ text: 'x' });
+  });
+
+  it('falls back to a plain call when the server refuses streaming', async () => {
+    const fn = mockFetch(errorReply(400, "'stream' is not supported by this model"), plainReply('{"text":"x"}', { prompt_tokens: 7, completion_tokens: 1 }));
+    const answer = await provider.run(request('text'), ctx({ apiKey: 'sk-1' }));
+    expect(fn).toHaveBeenCalledTimes(2);
+    expect(sentBody(fn, 1).stream).toBeUndefined();
+    expect(sentBody(fn, 1).stream_options).toBeUndefined();
+    expect(answer.usage).toEqual({ tokens: { prompt_tokens: 7, completion_tokens: 1 } });
+  });
+
+  it('reads a plain JSON body from a server that ignores stream', async () => {
+    mockFetch(plainReply('{"tags":[{"name":"sea"}]}', { prompt_tokens: 5, completion_tokens: 2 }));
+    expect(await provider.run(request('tags'), ctx({ apiKey: 'sk-1' }))).toEqual({ tags: [{ name: 'sea' }], usage: { tokens: { prompt_tokens: 5, completion_tokens: 2 } } });
+  });
+
+  it('reports no usage when the server sends none', async () => {
+    mockFetch(reply('{"tags":[]}', null));
+    expect((await provider.run(request('tags'), ctx({ apiKey: 'sk-1' }))).usage).toBeUndefined();
+  });
+
+  it('keeps the tokens of a paid call whose answer is no use', async () => {
+    mockFetch(reply('I cannot see the photo', { prompt_tokens: 20, completion_tokens: 6 }));
+    await expect(provider.run(request('tags'), ctx({ apiKey: 'sk-1' }))).rejects.toMatchObject({ kind: 'bad-answer', usage: { tokens: { prompt_tokens: 20, completion_tokens: 6 } } });
   });
 
   it('turns boxes into rectangles Paloma accepts', async () => {

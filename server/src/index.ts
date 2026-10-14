@@ -4,6 +4,7 @@ import { FolderScannerService } from './services/FolderScannerService.js';
 import { placeResolver } from './services/geocoding.js';
 import { pluginRegistry } from './plugins/index.js';
 import { openDatabase } from './db/index.js';
+import { currentTasks } from './ai/config.js';
 import { prepareSetup } from './auth/setup.js';
 import { pruneSessions } from './auth/sessions.js';
 import { taskQueue } from './tasks/queue.js';
@@ -42,6 +43,9 @@ function listen(): void {
       .catch((err) => console.error('Failed to load plugins:', err))
       .then(startAuth)
       .catch((err) => console.error('Failed to start users and logins:', err))
+      // Models that AI tasks name join their provider's list, so tasks stay ready after an upgrade
+      .then(() => currentTasks())
+      .catch((err) => console.error('Failed to list the models of AI tasks:', err))
       .then(() => FolderScannerService.startConfiguredFolders(undefined, { wait: false }))
       .catch((err) => {
         console.error('Failed to scan photos folders:', err);

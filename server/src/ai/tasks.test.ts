@@ -57,6 +57,8 @@ describe('readiness', () => {
     expect(taskInfo({ ...tags, model: 'gpt-x' }, { available: true, configured: false }).problem).toBe('provider_not_configured');
     expect(taskInfo(tags, { available: true, configured: true }).problem).toBe('no_model');
     expect(taskInfo({ ...tags, provider: null }, undefined).problem).toBe('no_provider');
+    expect(taskInfo({ ...tags, model: 'gpt-x' }, { available: true, configured: true }, false)).toMatchObject({ ready: false, problem: 'model_disabled' });
+    expect(taskInfo({ ...tags, model: 'gpt-x' }, { available: true, configured: false }, false).problem).toBe('provider_not_configured');
   });
 });
 

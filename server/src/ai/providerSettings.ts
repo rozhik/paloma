@@ -2,11 +2,17 @@ import type { AiModelOptionInfo, AiProviderInfo, AiSettingInfo } from '../../../
 import type { AiContext, AiSettingDefinition, PluginLog } from '../plugins/api.js';
 import { localize } from '../plugins/manifest.js';
 import { paramInfo, type RegisteredAiProvider } from '../plugins/registry.js';
-import type { SettingValue } from './store.js';
+import type { SettingValue, StoredProvider } from './store.js';
 
 export type ProviderDefinition = RegisteredAiProvider['definition'];
 export type Env = Record<string, string | undefined>;
 type Saved = Record<string, SettingValue>;
+
+/** The id of the provider that may take values from the server environment (`OPENAI_API_KEY`, `OPENAI_BASE_URL`). */
+export const ENV_PROVIDER_ID = 'openai';
+
+/** The environment a provider sees: the server's for the provider `openai`, nothing for the others. */
+export const envFor = (providerId: string, env: Env): Env => (providerId === ENV_PROVIDER_ID ? env : {});
 
 const hasValue = (value: SettingValue | undefined): value is SettingValue => value !== undefined && value !== '';
 
@@ -70,17 +76,29 @@ function settingInfo(definition: ProviderDefinition, setting: AiSettingDefinitio
 }
 
 /** A provider as `GET /api/ai/providers` lists it: secrets only as set or not set. */
-export function providerInfo(provider: RegisteredAiProvider, saved: Saved = {}, env: Env = {}, lang = 'en'): AiProviderInfo {
+export function providerInfo(provider: RegisteredAiProvider, stored: StoredProvider, env: Env = {}, lang = 'en'): AiProviderInfo {
   const { definition } = provider;
-  const missing = missingSettings(definition, saved, env);
+  const providerEnv = envFor(stored.id, env);
+  const missing = missingSettings(definition, stored.settings, providerEnv);
   return {
-    id: definition.id,
+    id: stored.id,
+    name: stored.name,
+    type: definition.id,
     pluginId: provider.pluginId,
     label: localize(definition.label, lang),
-    settings: definition.settings.map((setting) => settingInfo(definition, setting, saved, env, lang)),
+    available: true,
+    settings: definition.settings.map((setting) => settingInfo(definition, setting, stored.settings, providerEnv, lang)),
     status: missing.length === 0 ? 'configured' : 'not_configured',
     missing,
     modelOptions: definition.modelOptions.map((option) => paramInfo(option, lang) as AiModelOptionInfo),
+  };
+}
+
+/** A provider whose type no active plugin contributes: it keeps its settings and models but cannot be used. */
+export function unavailableProviderInfo(stored: StoredProvider): AiProviderInfo {
+  return {
+    id: stored.id, name: stored.name, type: stored.type, pluginId: '', label: stored.type, available: false, settings: [],
+    status: 'not_configured', missing: [], modelOptions: [],
   };
 }
 
@@ -135,7 +153,7 @@ export function parseSettingsUpdate(definition: ProviderDefinition, body: unknow
 }
 
 /** What a provider call gets: settings with defaults, the environment, an abort signal and a log. */
-export function aiContext(provider: RegisteredAiProvider, saved: Saved, env: Env, signal: AbortSignal): AiContext {
+export function aiContext(provider: RegisteredAiProvider, stored: StoredProvider, env: Env, signal: AbortSignal): AiContext {
   const log: PluginLog = provider.host.log;
-  return { settings: effectiveSettings(provider.definition, saved), env, signal, log };
+  return { settings: effectiveSettings(provider.definition, stored.settings), env: envFor(stored.id, env), signal, log };
 }

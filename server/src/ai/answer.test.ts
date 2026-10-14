@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { AiCallError, checkAnswer, toCallError } from './answer.js';
+import { AiCallError, checkAnswer, toCallError, usageTokens } from './answer.js';
 
 describe('checkAnswer', () => {
   it('clips a box outside the image', () => {
@@ -27,6 +27,19 @@ describe('checkAnswer', () => {
   it('trims the text and keeps token usage', () => {
     const checked = checkAnswer('text', { text: '  Two children on a sandy beach \n', usage: { inputTokens: 812, outputTokens: 9.4 } });
     expect(checked).toMatchObject({ text: 'Two children on a sandy beach', inputTokens: 812, outputTokens: 9 });
+  });
+
+  it('keeps tokens by kind, and reads the older fields as prompt and completion tokens', () => {
+    expect(checkAnswer('text', { text: 'x', usage: { tokens: { prompt_tokens: 10, completion_tokens: 2, reasoning_tokens: 7 } } }))
+      .toMatchObject({ inputTokens: 10, outputTokens: 2, tokens: { prompt_tokens: 10, completion_tokens: 2, reasoning_tokens: 7 } });
+    expect(usageTokens({ inputTokens: 5, outputTokens: 1 })).toEqual({ prompt_tokens: 5, completion_tokens: 1 });
+    expect(usageTokens({ tokens: { prompt_tokens: 9 }, inputTokens: 5 })).toEqual({ prompt_tokens: 9 });
+  });
+
+  it('reports unknown tokens as null', () => {
+    expect(checkAnswer('text', { text: 'x' })).toMatchObject({ inputTokens: null, outputTokens: null, tokens: null });
+    expect(usageTokens({ tokens: { prompt_tokens: -1, x: 'a' } })).toBeNull();
+    expect(usageTokens(undefined)).toBeNull();
   });
 
   it('refuses an answer without the part the task asks for', () => {
