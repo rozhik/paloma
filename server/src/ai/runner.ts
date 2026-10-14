@@ -12,14 +12,16 @@ import type { AiAnswer, AiRequest } from '../plugins/api.js';
 import { fail } from '../services/apiError.js';
 import { parsePhotoIds } from '../services/folderChanges.js';
 import { parseKeywords } from '../services/libraryText.js';
-import { checkAnswer, toCallError, type AiCallError } from './answer.js';
+import { checkAnswer, toCallError, usageTokens, type AiCallError } from './answer.js';
 import { applyResult } from './apply.js';
-import { aiStore, currentTasks, serverEnv } from './config.js';
+import { currentTasks, serverEnv } from './config.js';
+import { modelPrices } from './models.js';
+import { recordCall } from './usage.js';
 import { prepareImage } from './image.js';
 import { expandPrompt, languageName, topLibraryTags } from './prompt.js';
 import { aiContext } from './providerSettings.js';
 import { processedPhotos, saveResult } from './results.js';
-import type { StoredTask } from './store.js';
+import type { StoredProvider, StoredTask } from './store.js';
 import { effectiveModelOptions, runLanguage, taskFingerprint } from './tasks.js';
 
 /** Failures in a row that stop a run when the provider refuses the credentials or cannot be reached. */
@@ -56,6 +58,7 @@ interface AiParams {
 interface Run {
   context: TaskRun<AiParams, AiTaskDetails>;
   task: StoredTask;
+  stored: StoredProvider;
   provider: RegisteredAiProvider;
   ctx: ReturnType<typeof aiContext>;
   fingerprint: string;
@@ -88,15 +91,16 @@ async function visiblePhotos(ids: number[]): Promise<RunPhoto[]> {
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
-/** The AI task and its provider, or why it cannot run. */
-async function readyTask(taskId: string): Promise<{ task: StoredTask; provider: RegisteredAiProvider } | { problem: string }> {
-  const { tasks, infos } = await currentTasks();
+/** The AI task and its provider (the named one and the type of its plugin), or why it cannot run. */
+async function readyTask(taskId: string): Promise<{ task: StoredTask; stored: StoredProvider; provider: RegisteredAiProvider } | { problem: string }> {
+  const { tasks, infos, content } = await currentTasks();
   const task = tasks.find((t) => t.id === taskId);
   if (!task) return { problem: 'task_not_found' };
   const problem = infos.find((t) => t.id === taskId)!.problem;
   if (problem) return { problem };
   await pluginRegistry.init();
-  return { task, provider: pluginRegistry.getAiProvider(task.provider!)! };
+  const stored = content.providers.find((p) => p.id === task.provider)!;
+  return { task, stored, provider: pluginRegistry.getAiProvider(stored.type)! };
 }
 
 /**
@@ -132,7 +136,7 @@ export async function startAiRun(body: unknown, userLanguage: string, principal:
     params: { taskId: task.id, photoIds: list, again, userLanguage, next: 0 },
     access: currentAccess(),
     details: {
-      kind: 'ai', output: task.output, again, tagsAdded: 0, descriptionsSet: 0, inputTokens: 0, outputTokens: 0, failures: [], photoIds: [],
+      kind: 'ai', output: task.output, again, tagsAdded: 0, descriptionsSet: 0, inputTokens: 0, outputTokens: 0, credits: 0, failures: [], photoIds: [],
     },
     total: list.length,
   });
@@ -149,7 +153,7 @@ async function runAiTask(context: TaskRun<AiParams, AiTaskDetails>): Promise<voi
   const { params } = record;
   const ready = await readyTask(params.taskId);
   if ('problem' in ready) throw new TaskFailed(ready.problem === 'task_not_found' ? `AI task ${params.taskId} no longer exists` : `AI task ${params.taskId} is not ready: ${ready.problem}`);
-  const { task, provider } = ready;
+  const { task, stored, provider } = ready;
   const language = runLanguage(task, params.userLanguage);
   const modelOptions = effectiveModelOptions(task, provider.definition.modelOptions);
   const fingerprint = taskFingerprint(task, modelOptions, language);
@@ -165,9 +169,8 @@ async function runAiTask(context: TaskRun<AiParams, AiTaskDetails>): Promise<voi
   record.total = record.done + list.length;
   context.progress();
 
-  const saved = (await aiStore()).read().providers[provider.definition.id] ?? {};
   const run: Run = {
-    context, task, provider, ctx: aiContext(provider, saved, serverEnv(), new AbortController().signal), fingerprint, language, modelOptions,
+    context, task, stored, provider, ctx: aiContext(provider, stored, serverEnv(), new AbortController().signal), fingerprint, language, modelOptions,
     libraryTags: task.prompt.includes('{libraryTags}') ? await topLibraryTags() : [], fatalInARow: 0, stopped: null,
   };
   console.log(`AI run of ${task.id} started on ${list.length} photos`);
@@ -200,7 +203,7 @@ async function processPhoto(run: Run, photo: RunPhoto): Promise<void> {
   try {
     const answer = checkAnswer(task.output, await ask(run, photo));
     await saveResult({
-      photoId: photo.id, taskId: task.id, fingerprint: run.fingerprint, fileHash: photo.fileHash, provider: run.provider.definition.id,
+      photoId: photo.id, taskId: task.id, fingerprint: run.fingerprint, fileHash: photo.fileHash, provider: run.stored.id,
       model: task.model!, output: task.output, answer,
     });
     details.inputTokens += answer.inputTokens ?? 0;
@@ -222,6 +225,23 @@ async function processPhoto(run: Run, photo: RunPhoto): Promise<void> {
   }
 }
 
+/**
+ * Stores the record of one provider call, with the model's prices as they are now, and adds its credits to the
+ * run's. A record that cannot be written is logged and does not fail the photo.
+ */
+async function logCall(run: Run, tokens: Record<string, number> | null, ok: boolean, error?: string): Promise<void> {
+  const { task: record } = run.context;
+  try {
+    const credits = await recordCall({
+      queueTaskId: record.id, aiTaskId: run.task.id, userId: record.ownerId, providerId: run.stored.id, providerName: run.stored.name,
+      model: run.task.model!, tokens, prices: await modelPrices(run.stored.id, run.task.model!), ok, error,
+    });
+    record.details.credits = Math.round(((record.details.credits ?? 0) + credits) * 1e10) / 1e10;
+  } catch (err) {
+    console.error(`Cannot store the usage record of an AI call: ${(err as Error).message}`);
+  }
+}
+
 /** Sends one photo to the provider, retrying when the service asks to slow down. */
 async function ask(run: Run, photo: RunPhoto): Promise<AiAnswer> {
   const { task } = run;
@@ -236,9 +256,12 @@ async function ask(run: Run, photo: RunPhoto): Promise<AiAnswer> {
   };
   for (let attempt = 0; ; attempt++) {
     try {
-      return await run.provider.definition.run(request, run.ctx);
+      const answer = await run.provider.definition.run(request, run.ctx);
+      await logCall(run, usageTokens((answer as { usage?: unknown } | null)?.usage), true);
+      return answer;
     } catch (err) {
       const error: AiCallError = toCallError(err);
+      await logCall(run, usageTokens((err as { usage?: unknown } | null)?.usage), false, error.message);
       if (error.kind !== 'rate-limit' || attempt >= RATE_LIMIT_RETRIES) throw error;
       await timing.sleep(error.retryAfterMs ?? 2000 * 2 ** attempt);
     }

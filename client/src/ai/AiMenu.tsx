@@ -1,13 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Dropdown } from 'react-bootstrap';
 import { useTranslation } from 'react-i18next';
-import { RotateCw, Settings2, Sparkles } from 'lucide-react';
+import { Coins, RotateCw, Settings2, Sparkles } from 'lucide-react';
 import type { AiTask, Photo } from '../../../shared/types.js';
 import { useAllows } from '../levels/controls.js';
 import { usePalomaStore } from '../store/usePalomaStore.js';
 import { taskName, taskUnavailable } from './aiText.js';
 import { useAiTasks, useMenuTasks } from './aiTasks.js';
 import { useAiRun } from './useAiRun.js';
+import { AiModelsModal } from './AiModelsModal.js';
 
 /** A menu item for a task: disabled, with the reason under its name, when it cannot start. */
 const TaskItem: React.FC<{ task: AiTask; again?: boolean; onRun: () => void }> = ({ task, again, onRun }) => {
@@ -28,7 +29,7 @@ const TaskItem: React.FC<{ task: AiTask; again?: boolean; onRun: () => void }> =
  * The items of an AI menu: each task, then Run again for each, then a link to the AI settings when allowed. A run
  * started while another exists waits in the task queue.
  */
-export const AiMenuItems: React.FC<{ tasks: AiTask[]; onRun: (task: AiTask, again: boolean) => void }> = ({ tasks, onRun }) => {
+export const AiMenuItems: React.FC<{ tasks: AiTask[]; onRun: (task: AiTask, again: boolean) => void; onModels?: () => void }> = ({ tasks, onRun, onModels }) => {
   const { t } = useTranslation();
   const canConfigure = useAllows('view.server');
   const setCurrentView = usePalomaStore((state) => state.setCurrentView);
@@ -42,6 +43,15 @@ export const AiMenuItems: React.FC<{ tasks: AiTask[]; onRun: (task: AiTask, agai
           <Dropdown.Divider />
           <Dropdown.Header>{t('ai.menu.runAgain')}</Dropdown.Header>
           {tasks.map((task) => <TaskItem key={task.id} task={task} again onRun={() => onRun(task, true)} />)}
+        </>
+      )}
+      {onModels && (
+        <>
+          <Dropdown.Divider />
+          <Dropdown.Item as="button" type="button" onClick={onModels} className="d-flex align-items-center gap-2">
+            <Coins size={16} aria-hidden="true" />
+            <span>{t('ai.models.openDialog')}</span>
+          </Dropdown.Item>
         </>
       )}
       {canConfigure && (
@@ -65,16 +75,20 @@ export const AiMenu: React.FC<{ photos: Photo[] }> = ({ photos }) => {
   const { t } = useTranslation();
   const allowed = useAllows('ai.run');
   const tasks = useMenuTasks(allowed);
+  const [showModels, setShowModels] = useState(false);
   if (!allowed || photos.length === 0) return null;
   return (
+    <>
     <Dropdown onToggle={(open) => { if (open) void useAiTasks.getState().load(true); }}>
       <Dropdown.Toggle variant="outline-primary" className="btn-lg-custom d-inline-flex align-items-center gap-2" aria-label={t('ai.menu.label')}>
         <Sparkles size={20} aria-hidden="true" />
         <span>{t('ai.menu.button')}</span>
       </Dropdown.Toggle>
       <Dropdown.Menu className="shadow" style={{ maxWidth: '22rem' }}>
-        <AiMenuItems tasks={tasks} onRun={(task, again) => { void useAiRun.getState().run(task.id, photos, again); }} />
+        <AiMenuItems tasks={tasks} onRun={(task, again) => { void useAiRun.getState().run(task.id, photos, again); }} onModels={() => setShowModels(true)} />
       </Dropdown.Menu>
     </Dropdown>
+    <AiModelsModal show={showModels} onHide={() => setShowModels(false)} />
+    </>
   );
 };

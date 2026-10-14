@@ -7,7 +7,7 @@ import type { TaskRecord } from './queue.js';
 
 const task = (over: Partial<TaskRecord>): TaskRecord => ({
   id: 't', kind: 'ai', ownerId: 'u1', ownerName: 'Ann', system: false, state: 'waiting', position: 1, subject: { aiTaskId: 'tags', aiTaskName: null, photoCount: 3 },
-  params: {}, access: null, details: { kind: 'ai', output: 'tags', again: false, tagsAdded: 0, descriptionsSet: 0, inputTokens: 0, outputTokens: 0, failures: [], photoIds: [1] },
+  params: {}, access: null, details: { kind: 'ai', output: 'tags', again: false, tagsAdded: 0, descriptionsSet: 0, inputTokens: 0, outputTokens: 0, credits: 0, failures: [], photoIds: [1] },
   total: 3, done: 0, failed: 0, error: 'boom', createdAt: '', startedAt: null, endedAt: null, ...over,
 });
 

@@ -1,16 +1,18 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import type { AiProviderInfo, AiTask } from '../../../shared/types.js';
+import type { AiCatalogModel, AiProviderInfo, AiTask } from '../../../shared/types.js';
 import { i18n, initI18n } from '../i18n/index.js';
 import { ServerSettingsView } from '../components/ServerSettingsView.js';
-import { ProviderCard, ProvidersPanel, changedValues } from './ProvidersPanel.js';
+import { ProviderCard, ProvidersPanel, changedValues, providerTypes } from './ProvidersPanel.js';
+import { ModelView } from './ModelsPanel.js';
+import { draftOfModel, isChanged, modelInput } from './modelDraft.js';
 import { TasksList } from './AiSection.js';
 import { draftOf, optionsForOutput, taskInput } from './TaskEditor.js';
 import { providerAddress, taskName } from './aiText.js';
 
 const openai: AiProviderInfo = {
-  id: 'openai', pluginId: 'ai-openai', label: 'OpenAI', status: 'configured', missing: [],
+  id: 'openai', name: 'OpenAI', type: 'openai', pluginId: 'ai-openai', label: 'OpenAI', available: true, status: 'configured', missing: [],
   settings: [
     { name: 'apiKey', label: 'API key', type: 'secret', required: false, value: null, set: true },
     { name: 'baseUrl', label: 'Server address', type: 'text', required: false, value: null, default: 'https://api.openai.com/v1' },
@@ -66,6 +68,69 @@ describe('Server settings AI section', () => {
   });
 });
 
+describe('named providers', () => {
+  it('shows a provider by its name, with its type and plugin, and Rename and Delete', () => {
+    const markup = html(<ProviderCard provider={{ ...openai, id: 'p-1', name: 'Local Ollama' }} onSaved={() => {}} />);
+    expect(markup).toContain('Local Ollama');
+    expect(markup).toContain(i18n.t('ai.providers.typePlugin', { type: 'OpenAI', plugin: 'ai-openai' }));
+    expect(markup).toContain(i18n.t('ai.providers.rename'));
+    expect(markup).toContain(i18n.t('ai.providers.delete'));
+    expect(markup).toContain(i18n.t('ai.providers.privacyAddress', { name: 'Local Ollama', address: 'https://api.openai.com/v1' }));
+  });
+
+  it('says a provider whose plugin is off is kept but not available, without a settings form', () => {
+    const off: AiProviderInfo = { ...openai, available: false, settings: [], pluginId: '', label: 'openai', status: 'not_configured' };
+    const markup = html(<ProviderCard provider={off} onSaved={() => {}} />);
+    expect(markup).toContain(i18n.t('ai.providers.pluginOff'));
+    expect(markup).toContain(i18n.t('ai.providers.unavailable'));
+    expect(markup).not.toContain(i18n.t('ai.providers.test'));
+  });
+
+  it('offers adding a provider of each type a plugin contributes, once', () => {
+    const types = providerTypes([{ id: 'openai', label: 'OpenAI' }, { id: 'openai', label: 'OpenAI' }, { id: 'other', label: 'Other' }]);
+    expect(types).toEqual([{ id: 'openai', label: 'OpenAI' }, { id: 'other', label: 'Other' }]);
+    const markup = html(<ProvidersPanel providers={[openai]} types={types} onSaved={() => {}} />);
+    expect(markup).toContain(i18n.t('ai.providers.addTitle'));
+    expect(markup).toContain('<option value="other">Other</option>');
+    expect(markup).not.toContain(i18n.t('ai.providers.none'));
+  });
+});
+
+const model: AiCatalogModel = {
+  providerId: 'openai', providerName: 'OpenAI', id: 'gpt-x', enabled: true, listed: true, description: 'Fast, good at tags',
+  info: { owned_by: 'openai', created: 1700000000 }, prices: { prompt_tokens: 0.15, completion_tokens: 0.6 },
+  capabilities: [{ name: 'tags', grade: 80 }, { name: 'objects', grade: 35 }],
+};
+
+describe('models', () => {
+  it('shows a model read-only: description, prices per million tokens, graded capabilities and information', () => {
+    const markup = html(<ModelView model={model} />);
+    expect(markup).toContain('gpt-x');
+    expect(markup).toContain('Fast, good at tags');
+    expect(markup).toContain(i18n.t('ai.models.perMillion', { credits: 0.15 }));
+    expect(markup).toContain(i18n.t('ai.models.perMillion', { credits: 0.6 }));
+    expect(markup).toMatch(/aria-label="tags"[^>]*aria-valuenow="80"/);
+    expect(markup).toContain('owned_by');
+    expect(markup).not.toContain('<input');
+    expect(markup).not.toContain('<button');
+  });
+
+  it('turns an editor draft into numbers, an empty price into 0, and sees when nothing changed', () => {
+    const draft = draftOfModel(model);
+    expect(isChanged(draft, model)).toBe(false);
+    expect(modelInput(draft)).toEqual({
+      enabled: true, description: 'Fast, good at tags', prices: { prompt_tokens: 0.15, completion_tokens: 0.6 },
+      capabilities: [{ name: 'tags', grade: 80 }, { name: 'objects', grade: 35 }],
+    });
+    const edited = { ...draft, prices: { prompt_tokens: '', completion_tokens: '1.25' }, capabilities: [...draft.capabilities, { name: ' ocr ', grade: '' }] };
+    expect(isChanged(edited, model)).toBe(true);
+    const input = modelInput(edited);
+    expect(input.prices).toEqual({ prompt_tokens: 0, completion_tokens: 1.25 });
+    expect(input.capabilities?.[2]).toMatchObject({ name: 'ocr' });
+    expect(Number.isNaN(input.capabilities?.[2].grade)).toBe(true);
+  });
+});
+
 describe('tasks list', () => {
   const tasks = [
     task({}),
@@ -84,6 +149,11 @@ describe('tasks list', () => {
     const markup = list();
     expect(markup.split(i18n.t('ai.tasks.reset')).length - 1).toBe(1);
     expect(markup.split(`>${i18n.t('ai.tasks.delete')}<`).length - 1).toBe(1);
+  });
+
+  it('says a task whose model is disabled is not ready', () => {
+    const markup = html(<TasksList tasks={[task({ ready: false, problem: 'model_disabled' })]} providers={[openai]} onEdit={() => {}} onReset={() => {}} onDelete={() => {}} />);
+    expect(markup).toContain(i18n.t('ai.problem.model_disabled'));
   });
 
   it('says why a task is not ready', () => {

@@ -223,6 +223,30 @@ describe('createAiTables', () => {
   });
 });
 
+describe('AI catalogue and usage tables', () => {
+  it('keys models by provider and id, limits grades to 0..100 and removes capabilities with their model', () => {
+    const sqlite = new Database(':memory:');
+    createAiTables(sqlite);
+    sqlite.pragma('foreign_keys = ON');
+    sqlite.exec(`INSERT INTO ai_models (provider_id, model_id, updated_at) VALUES ('p1', 'm', '')`);
+    expect(() => sqlite.exec(`INSERT INTO ai_models (provider_id, model_id, updated_at) VALUES ('p1', 'm', '')`)).toThrow();
+    sqlite.exec(`INSERT INTO ai_model_capabilities VALUES ('p1', 'm', 'tags', 100)`);
+    expect(() => sqlite.exec(`INSERT INTO ai_model_capabilities VALUES ('p1', 'm', 'objects', 101)`)).toThrow();
+    expect(() => sqlite.exec(`INSERT INTO ai_model_capabilities VALUES ('p1', 'm', 'objects', -1)`)).toThrow();
+    expect(() => sqlite.exec(`INSERT INTO ai_model_capabilities VALUES ('p1', 'm', 'tags', 5)`)).toThrow();
+    sqlite.exec(`DELETE FROM ai_models`);
+    expect(sqlite.prepare('SELECT count(*) AS n FROM ai_model_capabilities').get()).toEqual({ n: 0 });
+  });
+
+  it('keeps usage rows without any reference to users, tasks or providers', () => {
+    const sqlite = new Database(':memory:');
+    createAiTables(sqlite);
+    sqlite.pragma('foreign_keys = ON');
+    sqlite.exec(`INSERT INTO ai_usage_log (created_at, ai_task_id, provider_id, provider_name, model, prices, credits, ok) VALUES ('', 'tags', 'gone', 'Gone', 'm', '{}', 0, 1)`);
+    expect(sqlite.prepare('SELECT count(*) AS n FROM ai_usage_log').get()).toEqual({ n: 1 });
+  });
+});
+
 describe('createTaskTables', () => {
   it('creates the task queue table, and again on an existing database without losing rows', () => {
     const sqlite = new Database(':memory:');

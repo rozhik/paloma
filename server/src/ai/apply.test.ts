@@ -12,7 +12,7 @@ let getApiPhoto: typeof import('../services/photoApi.js').getApiPhoto;
 const id: Record<string, number> = {};
 const dir: Record<string, string> = {};
 
-const answer = (part: Partial<CheckedAnswer>): CheckedAnswer => ({ tags: [], objects: [], text: null, inputTokens: null, outputTokens: null, ...part });
+const answer = (part: Partial<CheckedAnswer>): CheckedAnswer => ({ tags: [], objects: [], text: null, inputTokens: null, outputTokens: null, tokens: null, ...part });
 const sidecar = (folder: string) => JSON.parse(fs.readFileSync(path.join(dir[folder], '.paloma.json'), 'utf-8'));
 const tags = { ...builtInDefaults('tags'), model: 'm' };
 const objects = { ...builtInDefaults('objects'), model: 'm' };

@@ -53,12 +53,16 @@ describe('task texts', () => {
   it('sums up an ended AI run, export and face detection', () => {
     const ai = task({
       kind: 'ai', aiTaskId: 'tags', state: 'finished', total: 30, done: 30, failed: 2,
-      details: { kind: 'ai', output: 'tags', again: false, tagsAdded: 95, descriptionsSet: 0, inputTokens: 1000, outputTokens: 50, failures: [], photoIds: [] },
+      details: { kind: 'ai', output: 'tags', again: false, tagsAdded: 95, descriptionsSet: 0, inputTokens: 1000, outputTokens: 50, credits: 0.12, failures: [], photoIds: [] },
     });
     const message = taskMessage(ai, t);
     expect(message).toContain(i18n.t('ai.run.processed', { task: 'Tags', count: 28 }));
     expect(message).toContain(i18n.t('ai.run.tagsAdded', { count: 95 }));
     expect(message).toContain(i18n.t('ai.run.failed', { count: 2 }));
+    expect(message).toContain(i18n.t('ai.run.credits', { credits: 0.12 }));
+    expect(message).toContain('0.12');
+    const free = task({ ...ai, details: { ...ai.details!, credits: 0 } as never });
+    expect(taskMessage(free, t)).not.toContain(i18n.t('ai.run.credits', { credits: 0 }));
     expect(taskMessage(task({ state: 'finished', details: { kind: 'export', outputDir: 'trip', files: ['a', 'b'], quotaExceeded: false } }), t))
       .toBe(i18n.t('tasks.message.exported', { count: 2, folder: 'trip' }));
     expect(taskMessage(task({ state: 'finished', photoCount: 10, details: { kind: 'export', outputDir: 'trip', files: ['a'], quotaExceeded: true } }), t))

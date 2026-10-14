@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import sharp from 'sharp';
 import type { RegisteredAiProvider } from '../plugins/registry.js';
-import { aiContext, effectiveSettings, missingSettings, parseSettingsUpdate, providerInfo } from './providerSettings.js';
+import type { StoredProvider } from './store.js';
+import { aiContext, effectiveSettings, envFor, missingSettings, parseSettingsUpdate, providerInfo } from './providerSettings.js';
 
 const DEFAULT_URL = 'https://api.openai.com/v1';
 
@@ -26,19 +27,20 @@ const provider: RegisteredAiProvider = {
   },
 };
 const { definition } = provider;
+const stored = (settings: StoredProvider['settings'], id = 'openai'): StoredProvider => ({ id, name: 'OpenAI', type: 'openai', settings });
 
 describe('provider settings', () => {
   it('is not configured without a key, naming it', () => {
     expect(missingSettings(definition, { org: 'o' }, {})).toEqual(['apiKey']);
-    expect(providerInfo(provider, { org: 'o' }, {})).toMatchObject({ status: 'not_configured', missing: ['apiKey'] });
+    expect(providerInfo(provider, stored({ org: 'o' }), {})).toMatchObject({ status: 'not_configured', missing: ['apiKey'] });
   });
 
   it('is configured with a saved key', () => {
-    expect(providerInfo(provider, { org: 'o', apiKey: 'sk-1' }, {})).toMatchObject({ status: 'configured', missing: [] });
+    expect(providerInfo(provider, stored({ org: 'o', apiKey: 'sk-1' }), {})).toMatchObject({ status: 'configured', missing: [] });
   });
 
   it('takes the key from the environment and says so', () => {
-    const info = providerInfo(provider, { org: 'o' }, { OPENAI_API_KEY: 'sk-env' });
+    const info = providerInfo(provider, stored({ org: 'o' }), { OPENAI_API_KEY: 'sk-env' });
     expect(info.status).toBe('configured');
     expect(info.settings.find((s) => s.name === 'apiKey')).toMatchObject({ set: false, fromEnv: true, value: null });
   });
@@ -52,7 +54,7 @@ describe('provider settings', () => {
   });
 
   it('never lists a secret value', () => {
-    const info = providerInfo(provider, { org: 'o', apiKey: 'sk-secret' }, {}, 'uk');
+    const info = providerInfo(provider, stored({ org: 'o', apiKey: 'sk-secret' }), {}, 'uk');
     expect(JSON.stringify(info)).not.toContain('sk-secret');
     expect(info.settings[0]).toMatchObject({ name: 'apiKey', label: 'API-ключ', type: 'secret', set: true, value: null });
     expect(info.settings[1]).toMatchObject({ name: 'baseUrl', value: null, default: DEFAULT_URL });
@@ -61,9 +63,18 @@ describe('provider settings', () => {
 
   it('fills in defaults for the provider calls, without secrets', () => {
     expect(effectiveSettings(definition, { apiKey: 'k', org: 'o' })).toEqual({ apiKey: 'k', baseUrl: DEFAULT_URL, timeoutSeconds: 60, org: 'o' });
-    const ctx = aiContext(provider, { org: 'o' }, { X: '1' }, new AbortController().signal);
+    const ctx = aiContext(provider, stored({ org: 'o' }), { X: '1' }, new AbortController().signal);
     expect(ctx.settings).toEqual({ baseUrl: DEFAULT_URL, timeoutSeconds: 60, org: 'o' });
     expect(ctx.env).toEqual({ X: '1' });
+  });
+
+  it('gives the server environment only to the provider openai', () => {
+    const env = { OPENAI_API_KEY: 'sk-env' };
+    expect(envFor('openai', env)).toBe(env);
+    expect(envFor('p-2', env)).toEqual({});
+    expect(aiContext(provider, stored({ org: 'o' }, 'p-2'), env, new AbortController().signal).env).toEqual({});
+    expect(providerInfo(provider, stored({ org: 'o' }, 'p-2'), env)).toMatchObject({ status: 'not_configured', missing: ['apiKey'] });
+    expect(providerInfo(provider, stored({ org: 'o' }), env)).toMatchObject({ id: 'openai', name: 'OpenAI', type: 'openai', available: true, status: 'configured' });
   });
 });
 

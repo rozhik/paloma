@@ -293,7 +293,9 @@
     "origin_not_allowed": "Requests from this web page are not allowed.",
     "task_not_found": "This task no longer exists.",
     "task_state": "The task cannot do that in its current state.",
-    "invalid_keymap": "This is not a valid keymap."
+    "invalid_keymap": "This is not a valid keymap.",
+    "ai_provider_in_use": "This AI provider is used by an AI task. Choose another provider for the task first.",
+    "ai_model_not_found": "The model was not found in this provider's list."
   },
   "geo": {
     "coordinates": "{{lat}}, {{lon}}",
@@ -773,7 +775,8 @@
       "no_provider": "Choose a provider for this task.",
       "provider_unavailable": "Its provider is not available. Switch on its plugin in the Plugins section.",
       "provider_not_configured": "Its provider is not set up yet.",
-      "no_model": "Choose a model for this task."
+      "no_model": "Choose a model for this task.",
+      "model_disabled": "Its model is disabled. Enable it in the provider's models, or choose another model."
     },
     "providers": {
       "title": "Providers",
@@ -792,7 +795,20 @@
       "save": "Save",
       "saved": "The settings have been saved.",
       "test": "Test connection",
-      "testOk": "The connection works."
+      "testOk": "The connection works.",
+      "typePlugin": "{{type}} · plugin {{plugin}}",
+      "typeOnly": "Type: {{type}}",
+      "unavailable": "Not available",
+      "pluginOff": "The plugin of this provider is off. Its settings and models are kept; switch the plugin on in the Plugins section to use it.",
+      "name": "Name",
+      "namePlaceholder": "For example, Local Ollama",
+      "type": "Type",
+      "addTitle": "Add a provider",
+      "add": "Add provider",
+      "rename": "Rename",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "deleteBody": "Delete {{name}} with its settings and models? Its usage records stay. A provider that a task uses cannot be deleted."
     },
     "tasks": {
       "title": "Tasks",
@@ -871,7 +887,8 @@
       "descriptionsSet_other": "{{count, number}} descriptions written.",
       "failed_one": "{{count, number}} photo could not be processed.",
       "failed_other": "{{count, number}} photos could not be processed.",
-      "tokens": "Tokens used: {{input, number}} sent, {{output, number}} received."
+      "tokens": "Tokens used: {{input, number}} sent, {{output, number}} received.",
+      "credits": "Credits used: {{credits, number(maximumFractionDigits: 6)}}."
     },
     "info": {
       "title": "AI",
@@ -881,6 +898,50 @@
       "byModel": "{{model}}, {{date}}",
       "noObjects": "No objects found.",
       "noTags": "No tags found."
+    },
+    "models": {
+      "title": "Models",
+      "intro": "Only enabled models can be chosen for a task. Models found by Refresh start disabled. Prices are credits per 1,000,000 tokens.",
+      "refresh": "Refresh from the service",
+      "addById": "Model id",
+      "add": "Add model",
+      "empty": "No models yet. Refresh the list or add a model by its id.",
+      "notListed": "No longer listed by the service",
+      "enabled": "Enabled",
+      "description": "Description",
+      "noDescription": "No description.",
+      "price": {
+        "prompt_tokens": "Price of prompt tokens",
+        "completion_tokens": "Price of completion tokens"
+      },
+      "priceHelp": "Credits per 1,000,000 tokens",
+      "perMillion": "{{credits, number(maximumFractionDigits: 6)}} per 1,000,000",
+      "capabilities": "Capabilities (0–100)",
+      "capabilityName": "Capability",
+      "grade": "Grade",
+      "addCapability": "Add capability",
+      "removeCapability": "Remove capability",
+      "noCapabilities": "No capabilities graded.",
+      "info": "Information from the provider",
+      "noInfo": "The provider reports nothing about this model.",
+      "save": "Save model",
+      "noneEnabled": "No model is enabled yet.",
+      "openDialog": "Models, prices and usage",
+      "dialogTitle": "AI models and usage"
+    },
+    "usage": {
+      "title": "Usage",
+      "totals": "{{calls, number}} calls, {{prompt, number}} prompt and {{completion, number}} completion tokens, {{credits}} credits.",
+      "empty": "No AI calls yet.",
+      "time": "Time",
+      "task": "Task",
+      "model": "Model",
+      "tokens": "Tokens",
+      "credits": "Credits",
+      "tokenPair": "{{prompt, number}} + {{completion, number}}",
+      "unknownTokens": "unknown",
+      "failed": "failed",
+      "showing": "Showing {{shown, number}} of {{total, number}} calls."
     }
   },
   "tasks": {

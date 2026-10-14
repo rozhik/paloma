@@ -309,6 +309,52 @@ export const aiObjects = sqliteTable('ai_objects', {
   byPhoto: index('ai_objects_photo').on(table.photoId),
 }));
 
+// The model catalogue of each AI provider (a provider is an entry of `ai.json`, so `provider_id` has no foreign key).
+// `info` is JSON the provider reports; `prices` is JSON credits per 1,000,000 tokens by token kind
+export const aiModels = sqliteTable('ai_models', {
+  providerId: text('provider_id').notNull(),
+  modelId: text('model_id').notNull(),
+  enabled: integer('enabled', { mode: 'boolean' }).notNull().default(false),
+  listed: integer('listed', { mode: 'boolean' }).notNull().default(true),
+  description: text('description').notNull().default(''),
+  info: text('info').notNull().default('{}'),
+  prices: text('prices').notNull().default('{}'),
+  updatedAt: text('updated_at').notNull(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.providerId, table.modelId] }),
+}));
+
+// What a model can do, graded 0..100
+export const aiModelCapabilities = sqliteTable('ai_model_capabilities', {
+  providerId: text('provider_id').notNull(),
+  modelId: text('model_id').notNull(),
+  name: text('name').notNull(),
+  grade: integer('grade').notNull(),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.providerId, table.modelId, table.name] }),
+}));
+
+// One row per model call. No foreign keys: rows outlive users, tasks and providers (the provider's name is copied).
+// `tokens` is JSON by token kind, null when the provider reported none; `prices` are those used for `credits`
+export const aiUsageLog = sqliteTable('ai_usage_log', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  createdAt: text('created_at').notNull(),
+  queueTaskId: text('queue_task_id'),
+  aiTaskId: text('ai_task_id').notNull(),
+  userId: text('user_id'),
+  providerId: text('provider_id').notNull(),
+  providerName: text('provider_name').notNull(),
+  model: text('model').notNull(),
+  tokens: text('tokens'),
+  prices: text('prices').notNull(),
+  credits: real('credits').notNull(),
+  ok: integer('ok', { mode: 'boolean' }).notNull(),
+  error: text('error'),
+}, (table) => ({
+  byUser: index('ai_usage_log_user').on(table.userId, table.createdAt),
+  byTask: index('ai_usage_log_task').on(table.aiTaskId),
+}));
+
 // The task queue: waiting, running, paused and recently ended tasks. `owner_id` has no foreign key, so ended
 // tasks of a deleted user keep showing their name
 export const tasks = sqliteTable('tasks', {

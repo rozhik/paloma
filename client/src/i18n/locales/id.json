@@ -287,7 +287,9 @@
     "origin_not_allowed": "Permintaan dari halaman web ini tidak diizinkan.",
     "task_not_found": "Tugas ini sudah tidak ada.",
     "task_state": "Tugas tidak dapat melakukan itu dalam keadaannya sekarang.",
-    "invalid_keymap": "Ini bukan peta tombol yang valid."
+    "invalid_keymap": "Ini bukan peta tombol yang valid.",
+    "ai_provider_in_use": "This AI provider is used by an AI task. Choose another provider for the task first.",
+    "ai_model_not_found": "The model was not found in this provider's list."
   },
   "geo": {
     "coordinates": "{{lat}}; {{lon}}",
@@ -760,7 +762,8 @@
       "no_provider": "Pilih penyedia untuk tugas ini.",
       "provider_unavailable": "Penyedianya tidak tersedia. Aktifkan plugin-nya di bagian Plugin.",
       "provider_not_configured": "Penyedianya belum diatur.",
-      "no_model": "Pilih model untuk tugas ini."
+      "no_model": "Pilih model untuk tugas ini.",
+      "model_disabled": "Its model is disabled. Enable it in the provider's models, or choose another model."
     },
     "providers": {
       "title": "Penyedia",
@@ -779,7 +782,20 @@
       "save": "Simpan",
       "saved": "Pengaturan telah disimpan.",
       "test": "Uji koneksi",
-      "testOk": "Koneksi berfungsi."
+      "testOk": "Koneksi berfungsi.",
+      "typePlugin": "{{type}} · plugin {{plugin}}",
+      "typeOnly": "Type: {{type}}",
+      "unavailable": "Not available",
+      "pluginOff": "The plugin of this provider is off. Its settings and models are kept; switch the plugin on in the Plugins section to use it.",
+      "name": "Name",
+      "namePlaceholder": "For example, Local Ollama",
+      "type": "Type",
+      "addTitle": "Add a provider",
+      "add": "Add provider",
+      "rename": "Rename",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "deleteBody": "Delete {{name}} with its settings and models? Its usage records stay. A provider that a task uses cannot be deleted."
     },
     "tasks": {
       "title": "Tugas",
@@ -853,7 +869,8 @@
       "tagsAdded_other": "{{count, number}} tag ditambahkan.",
       "descriptionsSet_other": "{{count, number}} deskripsi ditulis.",
       "failed_other": "{{count, number}} foto tidak dapat diproses.",
-      "tokens": "Token terpakai: {{input, number}} dikirim, {{output, number}} diterima."
+      "tokens": "Token terpakai: {{input, number}} dikirim, {{output, number}} diterima.",
+      "credits": "Credits used: {{credits, number(maximumFractionDigits: 6)}}."
     },
     "info": {
       "title": "AI",
@@ -863,6 +880,50 @@
       "byModel": "{{model}}, {{date}}",
       "noObjects": "Tidak ada objek yang ditemukan.",
       "noTags": "Tidak ada tag yang ditemukan."
+    },
+    "models": {
+      "title": "Models",
+      "intro": "Only enabled models can be chosen for a task. Models found by Refresh start disabled. Prices are credits per 1,000,000 tokens.",
+      "refresh": "Refresh from the service",
+      "addById": "Model id",
+      "add": "Add model",
+      "empty": "No models yet. Refresh the list or add a model by its id.",
+      "notListed": "No longer listed by the service",
+      "enabled": "Enabled",
+      "description": "Description",
+      "noDescription": "No description.",
+      "price": {
+        "prompt_tokens": "Price of prompt tokens",
+        "completion_tokens": "Price of completion tokens"
+      },
+      "priceHelp": "Credits per 1,000,000 tokens",
+      "perMillion": "{{credits, number(maximumFractionDigits: 6)}} per 1,000,000",
+      "capabilities": "Capabilities (0–100)",
+      "capabilityName": "Capability",
+      "grade": "Grade",
+      "addCapability": "Add capability",
+      "removeCapability": "Remove capability",
+      "noCapabilities": "No capabilities graded.",
+      "info": "Information from the provider",
+      "noInfo": "The provider reports nothing about this model.",
+      "save": "Save model",
+      "noneEnabled": "No model is enabled yet.",
+      "openDialog": "Models, prices and usage",
+      "dialogTitle": "AI models and usage"
+    },
+    "usage": {
+      "title": "Usage",
+      "totals": "{{calls, number}} calls, {{prompt, number}} prompt and {{completion, number}} completion tokens, {{credits}} credits.",
+      "empty": "No AI calls yet.",
+      "time": "Time",
+      "task": "Task",
+      "model": "Model",
+      "tokens": "Tokens",
+      "credits": "Credits",
+      "tokenPair": "{{prompt, number}} + {{completion, number}}",
+      "unknownTokens": "unknown",
+      "failed": "failed",
+      "showing": "Showing {{shown, number}} of {{total, number}} calls."
     }
   },
   "tasks": {

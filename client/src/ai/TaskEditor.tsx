@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type {
   AiModelInfo, AiModelOptionInfo, AiOutputKind, AiProviderInfo, AiTask, AiTaskInput, AiTaskOptions, AiTextTarget,
 } from '../../../shared/types.js';
-import { createAiTask, fetchAiModels, updateAiTask } from '../api/ai.js';
+import { createAiTask, fetchCatalogModels, updateAiTask } from '../api/ai.js';
 import { describeError } from '../api/http.js';
 import { LANGUAGES } from '../i18n/languages.js';
 import { PROMPT_PLACEHOLDERS, outputLabel, taskName } from './aiText.js';
@@ -28,7 +28,7 @@ export const draftOf = (task: AiTask | null, providers: AiProviderInfo[]): TaskD
   name: task.name ?? '', output: task.output, inMenu: task.inMenu, provider: task.provider ?? '', model: task.model ?? '',
   prompt: task.prompt, modelOptions: { ...task.modelOptions }, options: { ...task.options },
 } : {
-  name: '', output: 'tags', inMenu: true, provider: providers[0]?.id ?? '', model: '', prompt: '', modelOptions: {},
+  name: '', output: 'tags', inMenu: true, provider: providers.find((p) => p.available)?.id ?? '', model: '', prompt: '', modelOptions: {},
   options: { imageSize: 1024, language: 'user', parallel: 2, maxTags: 10, minConfidence: 0.5 },
 });
 
@@ -118,8 +118,10 @@ export const TaskEditor: React.FC<{
     setModelsError(null);
     if (!show || !provider) return;
     let cancelled = false;
-    fetchAiModels(provider.id)
-      .then((list) => { if (!cancelled) setModels(list); })
+    fetchCatalogModels()
+      .then((list) => {
+        if (!cancelled) setModels(list.filter((m) => m.providerId === provider.id && m.enabled).map((m) => ({ id: m.id, label: m.id })));
+      })
       .catch((err) => { if (!cancelled) setModelsError(describeError(err, t)); });
     return () => { cancelled = true; };
   }, [show, provider?.id]);
@@ -180,8 +182,8 @@ export const TaskEditor: React.FC<{
               <Form.Label htmlFor="ai-task-provider" className="fw-semibold">{t('ai.editor.provider')}</Form.Label>
               <Form.Select id="ai-task-provider" value={draft.provider} onChange={(e) => set({ provider: e.target.value, modelOptions: {} })}>
                 <option value="">{t('ai.editor.noProvider')}</option>
-                {providers.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
-                {draft.provider !== '' && !provider && <option value={draft.provider}>{t('ai.editor.unavailable', { id: draft.provider })}</option>}
+                {providers.filter((p) => p.available).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                {draft.provider !== '' && !providers.some((p) => p.id === draft.provider && p.available) && <option value={draft.provider}>{t('ai.editor.unavailable', { id: provider?.name ?? draft.provider })}</option>}
               </Form.Select>
             </Form.Group>
             <Form.Group className="mb-3 col-sm-6">

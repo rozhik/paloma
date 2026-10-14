@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { Alert, Badge, Button, Spinner } from 'react-bootstrap';
 import { useTranslation } from 'react-i18next';
-import { ListChecks, Pencil, Plus, RotateCcw, Sparkles, Trash2 } from 'lucide-react';
-import type { AiProviderInfo, AiTask } from '../../../shared/types.js';
+import { Coins, ListChecks, Pencil, Plus, RotateCcw, Sparkles, Trash2 } from 'lucide-react';
+import type { AiProviderInfo, AiProviderSummary, AiTask } from '../../../shared/types.js';
 import { deleteAiTask, fetchAiProviders, fetchAiTasks, resetAiTask } from '../api/ai.js';
 import { describeError } from '../api/http.js';
+import { fetchPlugins } from '../api/plugins.js';
 import { currentLanguage } from '../i18n/index.js';
 import { usePalomaStore } from '../store/usePalomaStore.js';
 import { ConfirmModal } from '../components/ConfirmModal.js';
 import { outputLabel, problemLabel, taskName } from './aiText.js';
-import { ProvidersPanel } from './ProvidersPanel.js';
+import { AiModelsModal } from './AiModelsModal.js';
+import { ProvidersPanel, providerTypes } from './ProvidersPanel.js';
 import { TaskEditor } from './TaskEditor.js';
 import { useAiTasks } from './aiTasks.js';
 
@@ -22,7 +24,7 @@ export const TasksList: React.FC<{
   onDelete: (task: AiTask) => void;
 }> = ({ tasks, providers, onEdit, onReset, onDelete }) => {
   const { t } = useTranslation();
-  const providerLabel = (id: string | null) => (id === null ? t('ai.editor.noProvider') : providers.find((p) => p.id === id)?.label ?? id);
+  const providerLabel = (id: string | null) => (id === null ? t('ai.editor.noProvider') : providers.find((p) => p.id === id)?.name ?? id);
   return (
     <div className="d-flex flex-column gap-2">
       {tasks.map((task) => (
@@ -69,13 +71,20 @@ export const AiSection: React.FC = () => {
   // Switching a plugin in the Plugins section bumps this, and providers may come or go
   const libraryVersion = usePalomaStore((state) => state.libraryVersion);
   const [providers, setProviders] = useState<AiProviderInfo[] | null>(null);
+  const [types, setTypes] = useState<AiProviderSummary[]>([]);
   const [tasks, setTasks] = useState<AiTask[] | null>(null);
+  const [showUsage, setShowUsage] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<AiTask | 'new' | null>(null);
   const [confirm, setConfirm] = useState<{ task: AiTask; action: 'reset' | 'delete' } | null>(null);
 
-  const load = () => Promise.all([fetchAiProviders(currentLanguage()), fetchAiTasks()])
-    .then(([p, list]) => { setProviders(p); setTasks(list); useAiTasks.setState({ tasks: list }); })
+  const load = () => Promise.all([fetchAiProviders(currentLanguage()), fetchAiTasks(), fetchPlugins(currentLanguage())])
+    .then(([p, list, plugins]) => {
+      setProviders(p);
+      setTasks(list);
+      setTypes(providerTypes(plugins.flatMap((plugin) => plugin.aiProviders)));
+      useAiTasks.setState({ tasks: list });
+    })
     .catch((err) => setError(describeError(err, t)));
 
   useEffect(() => { void load(); }, [i18n.language, libraryVersion]);
@@ -106,8 +115,14 @@ export const AiSection: React.FC = () => {
         <div className="d-flex align-items-center gap-2 fs-5 text-secondary"><Spinner animation="border" size="sm" /><span>{t('ai.loading')}</span></div>
       )}
       {providers && (
-        <ProvidersPanel providers={providers} onSaved={() => { void load(); }} />
+        <ProvidersPanel providers={providers} types={types} onSaved={() => { void load(); }} onChanged={() => { void load(); }} />
       )}
+      <div className="mb-3">
+        <Button variant="outline-secondary" onClick={() => setShowUsage(true)} className="d-inline-flex align-items-center gap-2">
+          <Coins size={18} aria-hidden="true" /><span>{t('ai.models.openDialog')}</span>
+        </Button>
+      </div>
+      <AiModelsModal show={showUsage} onHide={() => setShowUsage(false)} />
       {providers && tasks && (
         <div>
           <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">

@@ -287,7 +287,9 @@
     "origin_not_allowed": "不允许来自此网页的请求。",
     "task_not_found": "此任务已不存在。",
     "task_state": "任务当前的状态不允许此操作。",
-    "invalid_keymap": "这不是有效的键位映射。"
+    "invalid_keymap": "这不是有效的键位映射。",
+    "ai_provider_in_use": "This AI provider is used by an AI task. Choose another provider for the task first.",
+    "ai_model_not_found": "The model was not found in this provider's list."
   },
   "geo": {
     "coordinates": "{{lat}}，{{lon}}",
@@ -760,7 +762,8 @@
       "no_provider": "请为此任务选择提供方。",
       "provider_unavailable": "它的提供方不可用。请在“插件”部分开启其插件。",
       "provider_not_configured": "它的提供方尚未设置。",
-      "no_model": "请为此任务选择模型。"
+      "no_model": "请为此任务选择模型。",
+      "model_disabled": "Its model is disabled. Enable it in the provider's models, or choose another model."
     },
     "providers": {
       "title": "提供方",
@@ -779,7 +782,20 @@
       "save": "保存",
       "saved": "设置已保存。",
       "test": "测试连接",
-      "testOk": "连接正常。"
+      "testOk": "连接正常。",
+      "typePlugin": "{{type}} · plugin {{plugin}}",
+      "typeOnly": "Type: {{type}}",
+      "unavailable": "Not available",
+      "pluginOff": "The plugin of this provider is off. Its settings and models are kept; switch the plugin on in the Plugins section to use it.",
+      "name": "Name",
+      "namePlaceholder": "For example, Local Ollama",
+      "type": "Type",
+      "addTitle": "Add a provider",
+      "add": "Add provider",
+      "rename": "Rename",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "deleteBody": "Delete {{name}} with its settings and models? Its usage records stay. A provider that a task uses cannot be deleted."
     },
     "tasks": {
       "title": "任务",
@@ -853,7 +869,8 @@
       "tagsAdded_other": "已添加 {{count, number}} 个标签。",
       "descriptionsSet_other": "已撰写 {{count, number}} 条描述。",
       "failed_other": "有 {{count, number}} 张照片无法处理。",
-      "tokens": "已用令牌：发送 {{input, number}}，接收 {{output, number}}。"
+      "tokens": "已用令牌：发送 {{input, number}}，接收 {{output, number}}。",
+      "credits": "Credits used: {{credits, number(maximumFractionDigits: 6)}}."
     },
     "info": {
       "title": "AI",
@@ -863,6 +880,50 @@
       "byModel": "{{model}}，{{date}}",
       "noObjects": "未找到物体。",
       "noTags": "未找到标签。"
+    },
+    "models": {
+      "title": "Models",
+      "intro": "Only enabled models can be chosen for a task. Models found by Refresh start disabled. Prices are credits per 1,000,000 tokens.",
+      "refresh": "Refresh from the service",
+      "addById": "Model id",
+      "add": "Add model",
+      "empty": "No models yet. Refresh the list or add a model by its id.",
+      "notListed": "No longer listed by the service",
+      "enabled": "Enabled",
+      "description": "Description",
+      "noDescription": "No description.",
+      "price": {
+        "prompt_tokens": "Price of prompt tokens",
+        "completion_tokens": "Price of completion tokens"
+      },
+      "priceHelp": "Credits per 1,000,000 tokens",
+      "perMillion": "{{credits, number(maximumFractionDigits: 6)}} per 1,000,000",
+      "capabilities": "Capabilities (0–100)",
+      "capabilityName": "Capability",
+      "grade": "Grade",
+      "addCapability": "Add capability",
+      "removeCapability": "Remove capability",
+      "noCapabilities": "No capabilities graded.",
+      "info": "Information from the provider",
+      "noInfo": "The provider reports nothing about this model.",
+      "save": "Save model",
+      "noneEnabled": "No model is enabled yet.",
+      "openDialog": "Models, prices and usage",
+      "dialogTitle": "AI models and usage"
+    },
+    "usage": {
+      "title": "Usage",
+      "totals": "{{calls, number}} calls, {{prompt, number}} prompt and {{completion, number}} completion tokens, {{credits}} credits.",
+      "empty": "No AI calls yet.",
+      "time": "Time",
+      "task": "Task",
+      "model": "Model",
+      "tokens": "Tokens",
+      "credits": "Credits",
+      "tokenPair": "{{prompt, number}} + {{completion, number}}",
+      "unknownTokens": "unknown",
+      "failed": "failed",
+      "showing": "Showing {{shown, number}} of {{total, number}} calls."
     }
   },
   "tasks": {

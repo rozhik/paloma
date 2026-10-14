@@ -4,7 +4,7 @@ import path from 'node:path';
 import sharp from 'sharp';
 import type { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { openTestDatabase, startTestApp, TestClient } from '../auth/testing.js';
-import { writeTestPlugin } from '../plugins/testing.js';
+import { seedAiProviders, writeTestPlugin } from '../plugins/testing.js';
 import { buildLibrary, type TestLibrary } from '../model/testLibrary.js';
 import type { AiAnswer, AiRequest } from '../plugins/api.js';
 import { connectMcp } from './testClient.js';
@@ -43,6 +43,7 @@ const json = (result: ToolResult) => JSON.parse(result.content.find((item) => it
 beforeAll(async () => {
   ({ cleanup, tmpDir } = await openTestDatabase('paloma_mcp_tools_test_', { PALOMA_AUTH: 'on', OPENAI_API_KEY: '', OPENAI_BASE_URL: '' }));
   writeTestPlugin(path.join(tmpDir, 'plugins'), 'fake-vision', { module: FAKE_PROVIDER });
+  seedAiProviders(path.join(tmpDir, 'data'), [{ id: 'fake', name: 'Fake vision', type: 'fake' }]);
   vi.spyOn(console, 'log').mockImplementation(() => {});
   vi.spyOn(console, 'warn').mockImplementation(() => {});
   vi.spyOn(console, 'error').mockImplementation(() => {});
