@@ -6,6 +6,7 @@ import { all, run } from '../db/query.js';
 import { tasks } from '../db/schema.js';
 import { runWithAccess } from '../auth/scope.js';
 import { fail } from '../services/apiError.js';
+import { redactPaths } from '../services/redact.js';
 
 export const ENDED_STATES: readonly TaskState[] = ['finished', 'cancelled', 'failed'];
 /** Ended tasks are listed this long, and at most this many. */
@@ -369,7 +370,8 @@ export class TaskQueue {
           task.state = 'cancelled';
         } else {
           task.state = 'failed';
-          task.error = err instanceof Error ? err.message : String(err);
+          // Shown to users and MCP clients: no server paths
+          task.error = redactPaths(err instanceof Error ? err.message : String(err));
           if (!(err instanceof TaskFailed)) console.error(`Task ${task.id} (${task.kind}) failed:`, err);
         }
       }

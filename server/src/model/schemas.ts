@@ -1,4 +1,5 @@
 import { z } from 'zod/v4';
+import { MAX_ALIAS, MAX_COMMENT, MAX_LINK, MAX_LINKS, MAX_NAME } from '../services/personValidation.js';
 
 // The JSON documents of library objects and the changeset that changes them. These schemas are the one source
 // for the published JSON Schema (`GET /api/schema`) and for validating changesets; every description is written
@@ -28,18 +29,30 @@ export const editStep = z.object({
   enabled: z.literal(false).optional().describe('false keeps the step without applying it; leave out to apply it'),
 }).catchall(z.unknown()).describe('One step of the non-destructive edit chain: the filter name and its parameters as named keys');
 
-export const editChain = z.array(editStep)
-  .describe('Non-destructive edits applied from first to last when the photo is shown or exported. The photo file is never changed. [] means no edits');
+/** Size limits of changeset values (object-changes capability). */
+export const MAX_CAPTION = 2000;
+export const MAX_TAGS = 200;
+export const MAX_TAG = 100;
+export const MAX_PHOTO_LIST = 200;
+export const MAX_ALBUM_NAME = 200;
+export const MAX_ALBUM_LOCATION = 200;
+export const MAX_ALBUM_DESCRIPTION = 5000;
+export const MAX_EDIT_STEPS = 100;
+/** Album tokens, contact ids and refs are much shorter; this only bounds what is accepted. */
+export const MAX_ID = 100;
+
+export const editChain = z.array(editStep).max(MAX_EDIT_STEPS)
+  .describe(`Non-destructive edits applied from first to last when the photo is shown or exported. The photo file is never changed. [] means no edits. At most ${MAX_EDIT_STEPS} steps`);
 
 const photoId = z.number().int().positive();
 const contactId = z.string().regex(/^[0-9a-f]{16}$/);
 
 export const photoDocument = z.object({
   type: readOnly(z.literal('photo').describe('Always "photo"')),
-  id: readOnly(photoId.describe('Photo id in this library. Ids can change when the library is rebuilt; folder.path + fileName names the file')),
+  id: readOnly(photoId.describe('Photo id in this library. Ids can change when the library is rebuilt; folder.id + fileName name the file')),
   folder: readOnly(z.object({
     id: z.number().int().describe('Folder id'),
-    path: z.string().describe('Absolute folder path on the server'),
+    name: z.string().describe('Folder name: the last segment of its path (the full path on the server is not shown)'),
   }).describe('The folder the photo file is in')),
   fileName: readOnly(z.string().describe('File name in the folder. Files are never renamed, moved or deleted through this model')),
   width: readOnly(z.number().int().describe('Width of the original image in pixels')),
@@ -97,8 +110,7 @@ export const personDocument = z.object({
 export const folderDocument = z.object({
   type: readOnly(z.literal('folder').describe('Always "folder"')),
   id: readOnly(z.number().int().describe('Folder id')),
-  path: readOnly(z.string().describe('Absolute folder path on the server')),
-  name: readOnly(z.string().describe('Last segment of the path')),
+  name: readOnly(z.string().describe('Folder name: the last segment of its path (the full path on the server is not shown)')),
   photoCount: readOnly(z.number().int().describe('Photos in the folder that are not hidden')),
 }).describe('A folder of photo files on the server; read-only');
 
@@ -124,15 +136,15 @@ export const REF = /^@[A-Za-z0-9_-]{1,64}$/;
 export const refName = z.string().regex(/^[A-Za-z0-9_-]{1,64}$/)
   .describe('A name for the new object, so later changes in the same changeset can use "@<ref>" as its id');
 
-const albumToken = z.string().min(1).describe('Album token, or "@<ref>" of an album created earlier in this changeset');
-const personRef = z.string().min(1).describe('Contact id, or "@<ref>" of a person created earlier in this changeset');
+const albumToken = z.string().min(1).max(MAX_ID).describe('Album token, or "@<ref>" of an album created earlier in this changeset');
+const personRef = z.string().min(1).max(MAX_ID).describe('Contact id, or "@<ref>" of a person created earlier in this changeset');
 
 /** An array replaces the list; `add`/`remove` adjust it. */
-const listChange = <T extends z.ZodType>(item: T, what: string) => z.union([
-  z.array(item).describe(`The new ${what}, replacing the current ones`),
+const listChange = <T extends z.ZodType>(item: T, what: string, max: number) => z.union([
+  z.array(item).max(max).describe(`The new ${what}, replacing the current ones; at most ${max}`),
   z.object({
-    add: z.array(item).optional().describe(`${what} to add at the end when missing`),
-    remove: z.array(item).optional().describe(`${what} to remove`),
+    add: z.array(item).max(max).optional().describe(`${what} to add at the end when missing; at most ${max}`),
+    remove: z.array(item).max(max).optional().describe(`${what} to remove; at most ${max}`),
   }).strict().describe(`Adjust the ${what}`),
 ]).describe(`The ${what}: an array replaces them, {"add", "remove"} adjusts them`);
 
@@ -147,18 +159,18 @@ const photoPerson = z.union([
 export const photoSet = z.object({
   star: photoDocument.shape.star,
   hidden: photoDocument.shape.hidden,
-  caption: z.string().describe('New description; "" removes it'),
-  tags: listChange(z.string(), 'tags'),
+  caption: z.string().max(MAX_CAPTION).describe(`New description, at most ${MAX_CAPTION} characters; "" removes it`),
+  tags: listChange(z.string().max(MAX_TAG).describe(`A tag, at most ${MAX_TAG} characters`), 'tags', MAX_TAGS),
   location: photoDocument.shape.location,
-  albums: listChange(albumToken, 'albums'),
-  people: listChange(photoPerson, 'people'),
+  albums: listChange(albumToken, 'albums', MAX_PHOTO_LIST),
+  people: listChange(photoPerson, 'people', MAX_PHOTO_LIST),
   edits: photoDocument.shape.edits,
 }).partial().strict().describe('Photo attributes to set');
 
 const albumFields = {
-  name: z.string().describe('Album name, not empty'),
-  description: z.string().nullable().describe('Description; "" or null removes it'),
-  location: z.string().nullable().describe('Location text; "" or null removes it'),
+  name: z.string().max(MAX_ALBUM_NAME).describe(`Album name, not empty, at most ${MAX_ALBUM_NAME} characters`),
+  description: z.string().max(MAX_ALBUM_DESCRIPTION).nullable().describe(`Description, at most ${MAX_ALBUM_DESCRIPTION} characters; "" or null removes it`),
+  location: z.string().max(MAX_ALBUM_LOCATION).nullable().describe(`Location text, at most ${MAX_ALBUM_LOCATION} characters; "" or null removes it`),
 };
 
 export const albumCreateSet = z.object({
@@ -172,10 +184,11 @@ export const albumUpdateSet = z.object({
 }).partial().strict().describe('Album attributes to set');
 
 export const personSet = z.object({
-  name: z.string().describe('Name, not empty'),
-  alias: personDocument.shape.alias,
-  comment: personDocument.shape.comment,
-  links: personDocument.shape.links,
+  name: z.string().max(MAX_NAME).describe(`Name, not empty, at most ${MAX_NAME} characters`),
+  alias: z.string().max(MAX_ALIAS).nullable().describe(`Short name or nickname, at most ${MAX_ALIAS} characters. Set a string, or null to remove`),
+  comment: z.string().max(MAX_COMMENT).nullable().describe(`Free-text note, at most ${MAX_COMMENT} characters. Set a string, or null to remove`),
+  links: z.array(z.string().max(MAX_LINK)).max(MAX_LINKS)
+    .describe(`Profile links: absolute http or https URLs, at most ${MAX_LINKS} of at most ${MAX_LINK} characters. Set the whole list`),
   birth: personDocument.shape.birth,
   gender: personDocument.shape.gender,
 }).partial().strict().describe('Person attributes to set');

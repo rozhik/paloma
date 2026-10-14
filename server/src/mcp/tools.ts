@@ -14,11 +14,16 @@ import { getDocuments, listDocuments, OBJECT_TYPES, photoDocumentsById } from '.
 import { modelSchema } from '../model/jsonSchema.js';
 import { aiGuide } from '../model/guide.js';
 import { runChangeset } from '../model/changes/apply.js';
+import { MAX_CHANGES, MAX_EDIT_STEPS } from '../model/schemas.js';
 import type { PhotoFilterQuery } from '../services/photoFilters.js';
-import type { ApiError, ExportTaskDetails, ObjectType, Permission } from '../../../shared/types.js';
+import { redactPaths } from '../services/redact.js';
+import type { ApiError, ExportTaskDetails, ObjectList, ObjectType, Permission } from '../../../shared/types.js';
+import { withImages, type ImageLinks } from './images.js';
+import { MAX_VIEW_SIZE, MIN_VIEW_SIZE } from './media.js';
 
 // The MCP tools: thin adapters over the functions the REST routes use, each needing the permission of the
-// matching endpoint.
+// matching endpoint. Every argument is bounded, no result carries a server path, and images come with
+// temporary links (never for hidden photos).
 
 /** A tool of the Paloma MCP server. */
 export interface PalomaTool {
@@ -29,31 +34,57 @@ export interface PalomaTool {
   permissions: Permission[];
   readOnly: boolean;
   input: z.ZodRawShape;
-  run(args: Record<string, unknown>, principal: Principal): Promise<CallToolResult>;
+  run(args: Record<string, unknown>, principal: Principal, links: ImageLinks): Promise<CallToolResult>;
+}
+
+/** The value with every absolute server path in its strings replaced by `<path>` (a second line of defence). */
+export function redactValue<T>(value: T): T {
+  if (typeof value === 'string') return redactPaths(value) as T;
+  if (Array.isArray(value)) return value.map(redactValue) as T;
+  if (typeof value === 'object' && value !== null) {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, redactValue(item)])) as T;
+  }
+  return value;
 }
 
 /** A tool result with a JSON value, as text and as structured content. */
 export function jsonResult(value: unknown): CallToolResult {
+  const safe = redactValue(value);
   return {
-    content: [{ type: 'text', text: JSON.stringify(value, null, 2) }],
-    ...(typeof value === 'object' && value !== null && !Array.isArray(value) ? { structuredContent: value as Record<string, unknown> } : {}),
+    content: [{ type: 'text', text: JSON.stringify(safe, null, 2) }],
+    ...(typeof safe === 'object' && safe !== null && !Array.isArray(safe) ? { structuredContent: safe as Record<string, unknown> } : {}),
   };
 }
 
 /** A tool error with the same error body the REST API sends. */
 export function errorResult(body: ApiError): CallToolResult {
-  return { isError: true, content: [{ type: 'text', text: JSON.stringify(body) }] };
+  return { isError: true, content: [{ type: 'text', text: JSON.stringify(redactValue(body)) }] };
 }
 
+/** Limits of tool arguments (mcp-server capability: tool arguments have size limits). */
+export const MAX_QUERY = 500;
+export const MAX_ID_TEXT = 100;
+export const MAX_OUTPUT_DIR = 200;
+export const MAX_PHOTO_IDS = 1000;
+export const MAX_GET_IDS = 200;
+export const MAX_JSON_BYTES = 64 * 1024;
+export const MAX_RESIZE_WIDTH = 10000;
+
+const jsonBytes = (value: unknown): number => Buffer.byteLength(JSON.stringify(value) ?? '');
+const withinBytes = <T extends z.ZodType>(schema: T, what: string) =>
+  schema.refine((value) => jsonBytes(value) <= MAX_JSON_BYTES, { message: `${what} must be at most ${MAX_JSON_BYTES / 1024} KiB as JSON` });
+
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const idText = (description: string) => z.string().max(MAX_ID_TEXT).describe(`${description}; at most ${MAX_ID_TEXT} characters`);
+const photoIds = (description: string) => z.array(z.number().int().positive()).min(1).max(MAX_PHOTO_IDS).describe(`${description}; 1 to ${MAX_PHOTO_IDS} ids`);
 
 /** The photo selection of `GET /api/photos`, as tool arguments. */
 const selection = {
   folderId: z.number().int().optional().describe('Only photos of this folder (folder id)'),
-  album: z.string().optional().describe('Only photos of this album (album token)'),
-  tag: z.string().optional().describe('Only photos with this tag, ignoring letter case'),
-  person: z.string().optional().describe('Only photos showing this person (contact id)'),
-  query: z.string().optional().describe('Search text: every word must occur in the file name, folder, caption, tags, camera, place, album names or people\'s names'),
+  album: idText('Only photos of this album (album token)').optional(),
+  tag: idText('Only photos with this tag, ignoring letter case').optional(),
+  person: idText('Only photos showing this person (contact id)').optional(),
+  query: z.string().max(MAX_QUERY).optional().describe(`Search text, at most ${MAX_QUERY} characters: every word must occur in the file name, folder name, caption, tags, camera, place, album names or people's names`),
   starred: z.boolean().optional().describe('true: only starred photos'),
   geotagged: z.boolean().optional().describe('true: only photos with a location; false: only photos without one'),
   takenFrom: date.optional().describe('Only photos taken on or after this day (YYYY-MM-DD)'),
@@ -73,6 +104,12 @@ function filterQuery(args: Record<string, unknown>): PhotoFilterQuery {
 
 const objectType = z.enum(OBJECT_TYPES as [ObjectType, ...ObjectType[]]).describe('Kind of object: photo, album, person, folder or tag');
 
+const LINKS_NOTE = 'Photos that are not hidden come with images.thumbnail.url and images.preview.url: temporary links that need no token and stop working after uri_valid_time_sec seconds.';
+
+/** A list of documents with links to the images of its photos and how long they stay valid. */
+const listWithImages = <T extends { items: ObjectList['items'] }>(list: T, links: ImageLinks) =>
+  ({ ...list, items: withImages(list.items, links), uri_valid_time_sec: links.validSec });
+
 export const TOOLS: PalomaTool[] = [
   {
     name: 'describe_model',
@@ -91,7 +128,7 @@ export const TOOLS: PalomaTool[] = [
   {
     name: 'search_photos',
     title: 'Search photos',
-    description: 'Finds photos by folder, album, tag, person, text, star, location and date, newest first. Returns photo documents and the total number of matches.',
+    description: `Finds photos by folder, album, tag, person, text, star, location and date, newest first. Returns photo documents and the total number of matches. ${LINKS_NOTE}`,
     permissions: ['library.view'],
     readOnly: true,
     input: {
@@ -99,9 +136,9 @@ export const TOOLS: PalomaTool[] = [
       limit: z.number().int().min(1).max(200).optional().describe('Photos to return, 1 to 200 (default 50)'),
       offset: z.number().int().min(0).optional().describe('Matches to skip, for paging (default 0)'),
     },
-    run: async (args) => jsonResult(await listDocuments('photo', filterQuery(args), {
+    run: async (args, principal, links) => jsonResult(listWithImages(await listDocuments('photo', filterQuery(args), {
       limit: (args.limit as number | undefined) ?? 50, offset: (args.offset as number | undefined) ?? 0,
-    })),
+    }), links)),
   },
   {
     name: 'list_objects',
@@ -114,21 +151,29 @@ export const TOOLS: PalomaTool[] = [
       limit: z.number().int().min(1).max(200).optional().describe('Objects to return, 1 to 200 (default 100)'),
       offset: z.number().int().min(0).optional().describe('Objects to skip (default 0)'),
     },
-    run: async (args) => jsonResult(await listDocuments(args.type as ObjectType, {}, {
-      limit: (args.limit as number | undefined) ?? 100, offset: (args.offset as number | undefined) ?? 0,
-    })),
+    run: async (args, principal, links) => {
+      const list = await listDocuments(args.type as ObjectType, {}, {
+        limit: (args.limit as number | undefined) ?? 100, offset: (args.offset as number | undefined) ?? 0,
+      });
+      return jsonResult(args.type === 'photo' ? listWithImages(list, links) : list);
+    },
   },
   {
     name: 'get_objects',
     title: 'Get objects',
-    description: 'Returns the documents of up to 200 objects of one type by id, and lists the ids that were not found.',
+    description: `Returns the documents of up to ${MAX_GET_IDS} objects of one type by id, and lists the ids that were not found. Hidden photos count as not found unless includeHidden is true. ${LINKS_NOTE}`,
     permissions: ['library.view'],
     readOnly: true,
     input: {
       type: objectType,
-      ids: z.array(z.union([z.number(), z.string()])).min(1).max(200).describe('Ids of the objects: photo and folder ids are numbers, album tokens, contact ids and tags are strings'),
+      ids: z.array(z.union([z.number(), z.string().max(MAX_ID_TEXT)])).min(1).max(MAX_GET_IDS)
+        .describe(`Ids of the objects, 1 to ${MAX_GET_IDS}: photo and folder ids are numbers, album tokens, contact ids and tags are strings of at most ${MAX_ID_TEXT} characters`),
+      includeHidden: z.boolean().optional().describe('true: also return hidden photos (without image links); they count as not found otherwise'),
     },
-    run: async (args) => jsonResult(await getDocuments(args.type as ObjectType, args.ids as (string | number)[])),
+    run: async (args, principal, links) => {
+      const found = await getDocuments(args.type as ObjectType, args.ids as (string | number)[], { includeHidden: args.includeHidden === true });
+      return jsonResult(args.type === 'photo' ? listWithImages(found, links) : found);
+    },
   },
   {
     name: 'library_stats',
@@ -142,24 +187,37 @@ export const TOOLS: PalomaTool[] = [
   {
     name: 'view_photo',
     title: 'View a photo',
-    description: 'Returns a photo as a JPEG image you can look at, rendered through its saved edits, with its document. Give "edits" to see a different edit chain without saving it. The image is sent to you; use it only when needed.',
+    description: 'Returns a photo as a JPEG image you can look at, rendered through its saved edits, with its document and a temporary link to the same image '
+      + '(image.url, valid for uri_valid_time_sec seconds, no token needed). Give "edits" to see a different edit chain without saving it; such an image gets no link. '
+      + 'Hidden photos are not shown. The image is sent to you; use it only when needed.',
     permissions: ['library.view'],
     readOnly: true,
     input: {
       id: z.number().int().positive().describe('Photo id'),
-      maxSize: z.number().int().min(64).max(1600).optional().describe('Longest side of the image in pixels, 64 to 1600 (default 1024)'),
-      edits: z.array(z.record(z.string(), z.unknown())).optional().describe('An edit chain to render instead of the saved one; nothing is saved'),
+      maxSize: z.number().int().min(MIN_VIEW_SIZE).max(MAX_VIEW_SIZE).optional().describe(`Longest side of the image in pixels, ${MIN_VIEW_SIZE} to ${MAX_VIEW_SIZE} (default 1024)`),
+      edits: withinBytes(z.array(z.record(z.string(), z.unknown())).max(MAX_EDIT_STEPS), 'edits').optional()
+        .describe(`An edit chain of at most ${MAX_EDIT_STEPS} steps to render instead of the saved one; nothing is saved`),
     },
-    run: async (args) => {
-      const [document] = await photoDocumentsById([args.id as number]);
+    run: async (args, principal, links) => {
+      const [document] = await photoDocumentsById([args.id as number], { includeHidden: false });
+      // A hidden photo is not served at all, whatever is asked
       if (!document) return errorResult(apiError('object_not_found', `No photo ${args.id}`, { type: 'photo', id: args.id as number }));
-      const image = await renderPreview(document.id, { edits: args.edits ?? document.edits, maxSize: (args.maxSize as number | undefined) ?? 1024 }, 'jpeg');
+      const maxSize = (args.maxSize as number | undefined) ?? 1024;
+      const image = await renderPreview(document.id, { edits: args.edits ?? document.edits, maxSize }, 'jpeg');
       if (image.status !== 200) return errorResult(image.body);
       if (image.kind !== 'buffer') return errorResult(apiError('render_failed', 'Could not render the photo'));
+      const unsaved = args.edits !== undefined;
+      const [shown] = withImages([document], links);
+      const result = {
+        ...shown,
+        image: unsaved ? null : links.link(document, maxSize) ?? null,
+        ...(unsaved ? { imageNote: 'Rendered with unsaved edits: this image has no link' } : {}),
+        uri_valid_time_sec: links.validSec,
+      };
       return {
         content: [
           { type: 'image', data: image.image.toString('base64'), mimeType: 'image/jpeg' },
-          { type: 'text', text: JSON.stringify(document, null, 2) },
+          { type: 'text', text: JSON.stringify(redactValue(result), null, 2) },
         ],
       };
     },
@@ -173,7 +231,8 @@ export const TOOLS: PalomaTool[] = [
     permissions: ['photos.edit', 'albums.manage', 'people.manage'],
     readOnly: false,
     input: {
-      changes: z.array(z.record(z.string(), z.unknown())).min(1).describe('The changes, as the Changeset definition of the schema describes them: {"op", "type", "id" or "ids", "ref", "set"}'),
+      changes: z.array(withinBytes(z.record(z.string(), z.unknown()), 'A change')).min(1).max(MAX_CHANGES)
+        .describe(`The changes, 1 to ${MAX_CHANGES}, each at most ${MAX_JSON_BYTES / 1024} KiB as JSON, as the Changeset definition of the schema describes them: {"op", "type", "id" or "ids", "ref", "set"}`),
       dryRun: z.boolean().optional().describe('true: check and return what would change without writing anything. Use it before large changes'),
     },
     run: async (args, principal) => {
@@ -197,8 +256,8 @@ export const TOOLS: PalomaTool[] = [
     permissions: ['ai.run'],
     readOnly: false,
     input: {
-      taskId: z.string().describe('Task id from list_ai_tasks'),
-      photoIds: z.array(z.number().int().positive()).min(1).describe('Photos to process'),
+      taskId: idText('Task id from list_ai_tasks'),
+      photoIds: photoIds('Photos to process'),
       again: z.boolean().optional().describe('true: also process photos already processed with the same task settings'),
     },
     run: async (args, principal) => jsonResult(await describeTask(principal,
@@ -211,7 +270,7 @@ export const TOOLS: PalomaTool[] = [
     permissions: ['ai.run'],
     readOnly: true,
     input: {
-      taskId: z.string().optional().describe('Task id returned by start_ai_run; leave out for your most recent run'),
+      taskId: idText('Task id returned by start_ai_run; leave out for your most recent run').optional(),
     },
     run: async (args, principal) => {
       const task = await aiRunTask(args.taskId, principal, false);
@@ -225,7 +284,7 @@ export const TOOLS: PalomaTool[] = [
     permissions: ['ai.run'],
     readOnly: false,
     input: {
-      taskId: z.string().optional().describe('Task id returned by start_ai_run; leave out for your most recent run that has not ended'),
+      taskId: idText('Task id returned by start_ai_run; leave out for your most recent run that has not ended').optional(),
     },
     run: async (args, principal) => {
       const task = await aiRunTask(args.taskId, principal, true);
@@ -249,10 +308,10 @@ export const TOOLS: PalomaTool[] = [
     permissions: ['export'],
     readOnly: false,
     input: {
-      photoIds: z.array(z.number().int().positive()).min(1).describe('Photos to export'),
-      outputDir: z.string().min(1).describe('Folder inside the export folder, e.g. "trip-2024"'),
+      photoIds: photoIds('Photos to export'),
+      outputDir: z.string().min(1).max(MAX_OUTPUT_DIR).describe(`Folder inside the export folder, e.g. "trip-2024"; at most ${MAX_OUTPUT_DIR} characters`),
       quality: z.number().int().min(1).max(100).optional().describe('JPEG quality 1 to 100 (default 85)'),
-      resizeWidth: z.number().int().positive().optional().describe('Width in pixels to resize to; leave out to keep the full size'),
+      resizeWidth: z.number().int().positive().max(MAX_RESIZE_WIDTH).optional().describe(`Width in pixels to resize to, at most ${MAX_RESIZE_WIDTH}; leave out to keep the full size`),
     },
     run: async (args, principal) => {
       const task = await startExport(args, principal);
@@ -283,13 +342,27 @@ async function aiRunTask(taskId: unknown, principal: Principal, active: boolean)
 /** Whether a principal may use a tool. */
 export const mayUse = (tool: PalomaTool, principal: Principal): boolean => tool.permissions.some((permission) => principal.permissions.has(permission));
 
-/** Runs a tool for a principal: refuses it without its permission, and turns thrown API errors into tool errors. */
-export async function runTool(tool: PalomaTool, args: Record<string, unknown>, principal: Principal): Promise<CallToolResult> {
+/** The arguments checked against the tool's input schema, or the `invalid_field` error naming the first bad one. */
+export function parseArgs(tool: PalomaTool, args: unknown): { args: Record<string, unknown> } | { error: CallToolResult } {
+  const parsed = z.object(tool.input).safeParse(args ?? {});
+  if (parsed.success) return { args: parsed.data };
+  const issue = parsed.error.issues[0];
+  const field = issue.path.length > 0 ? String(issue.path[0]) : 'arguments';
+  return { error: errorResult(apiError('invalid_field', `${field}: ${issue.message}`, { field })) };
+}
+
+/**
+ * Runs a tool for a principal: refuses it without its permission or with arguments its schema refuses, and turns
+ * thrown API errors into tool errors.
+ */
+export async function runTool(tool: PalomaTool, args: unknown, principal: Principal, links: ImageLinks): Promise<CallToolResult> {
   if (!mayUse(tool, principal)) {
     return errorResult(apiError('permission_required', `This needs the permission ${tool.permissions[0]}`, { permission: tool.permissions[0] }));
   }
+  const checked = parseArgs(tool, args);
+  if ('error' in checked) return checked.error;
   try {
-    return await tool.run(args, principal);
+    return await tool.run(checked.args, principal, links);
   } catch (err) {
     if (err instanceof HttpError) return errorResult(err.body);
     throw err;

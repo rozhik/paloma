@@ -6,6 +6,8 @@ import { apiError } from '../services/apiError.js';
 import { palomaVersion } from '../services/serverInfo.js';
 import { asyncRoute } from '../routes/asyncRoute.js';
 import { createMcpServer } from './server.js';
+import { baseUrlOf } from './images.js';
+import { sendLinkImage } from './media.js';
 
 /**
  * Whether a request may come from where its `Origin` says: no origin (not a browser), the server's own, or the
@@ -28,7 +30,7 @@ export function registerMcpRoutes(router: Router): void {
 
   router.post('/mcp', need('library.view', { tokenOnly: true }), asyncRoute(async (req, res) => {
     if (!originAllowed(req)) return res.status(403).json(apiError('origin_not_allowed', 'Requests from this web page are not allowed'));
-    const server = createMcpServer(principalOf(res), await palomaVersion());
+    const server = createMcpServer(principalOf(res), await palomaVersion(), baseUrlOf(req));
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     res.on('close', () => {
       void transport.close();
@@ -37,6 +39,9 @@ export function registerMcpRoutes(router: Router): void {
     await server.connect(transport);
     await transport.handleRequest(req, res, req.body);
   }));
+
+  // Temporary image links: the link itself is the credential, so no token, cookie or Origin check here
+  router.get('/mcp/media/:link', need('public'), asyncRoute(sendLinkImage));
 
   // No server-sent stream or session to end in stateless mode
   router.get('/mcp', need('library.view', { tokenOnly: true }), (req, res) => {

@@ -80,14 +80,26 @@ describe('authConfig', () => {
 
 describe('mcpConfig', () => {
   it('is on when PALOMA_MCP is not set', () => {
-    expect(mcpConfig({})).toEqual({ enabled: true });
+    expect(mcpConfig({})).toEqual({ enabled: true, uriValidSec: 300 });
   });
 
   it('is off with PALOMA_MCP=off', () => {
-    expect(mcpConfig({ PALOMA_MCP: ' Off ' })).toEqual({ enabled: false });
+    expect(mcpConfig({ PALOMA_MCP: ' Off ' })).toEqual({ enabled: false, uriValidSec: 300 });
   });
 
   it('refuses another value, naming PALOMA_MCP and the allowed values', () => {
     expect(() => mcpConfig({ PALOMA_MCP: 'yes' })).toThrow(/PALOMA_MCP must be "on" or "off"/);
+  });
+
+  it('takes the lifetime of temporary image URLs from PALOMA_MCP_URI_VALID_SEC', () => {
+    expect(mcpConfig({ PALOMA_MCP_URI_VALID_SEC: '' }).uriValidSec).toBe(300);
+    expect(mcpConfig({ PALOMA_MCP_URI_VALID_SEC: '10' }).uriValidSec).toBe(10);
+    expect(mcpConfig({ PALOMA_MCP_URI_VALID_SEC: ' 3600 ' }).uriValidSec).toBe(3600);
+  });
+
+  it('refuses a lifetime that is not a whole number from 10 to 3600, naming PALOMA_MCP_URI_VALID_SEC', () => {
+    for (const value of ['0', '9', '3601', 'abc', '1.5', '-5']) {
+      expect(() => mcpConfig({ PALOMA_MCP_URI_VALID_SEC: value })).toThrow(/PALOMA_MCP_URI_VALID_SEC must be a whole number of seconds from 10 to 3600/);
+    }
   });
 });

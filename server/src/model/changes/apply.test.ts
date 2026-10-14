@@ -60,6 +60,34 @@ describe('applying changesets', () => {
     expect(entry('b', 'p3.jpg')).toMatchObject({ caption: 'Sunrise', keywords: ['dawn', 'hills'], geotag: { lat: 49.8397, lon: 24.0297 }, modified: expect.any(String) });
   });
 
+  it('refuses a caption over 2000 characters and saves one of exactly 2000', async () => {
+    const tooLong = await run({ changes: [{ op: 'update', type: 'photo', id: lib.id.p3, set: { caption: 'x'.repeat(2001) } }] });
+    expect([tooLong.status, tooLong.body]).toMatchObject([400, { code: 'invalid_field', params: { index: 0, field: 'caption' } }]);
+    expect(lib.hasSidecar('b')).toBe(false);
+    await applied({ changes: [{ op: 'update', type: 'photo', id: lib.id.p3, set: { caption: 'x'.repeat(2000) } }] });
+    expect(entry('b', 'p3.jpg').caption).toHaveLength(2000);
+  });
+
+  it('refuses values over their maximum, naming the field', async () => {
+    const cases: [Record<string, unknown>, string][] = [
+      [{ op: 'update', type: 'photo', id: lib.id.p3, set: { tags: Array.from({ length: 201 }, (_, i) => `t${i}`) } }, 'tags'],
+      [{ op: 'update', type: 'photo', id: lib.id.p3, set: { tags: { add: ['y'.repeat(101)] } } }, 'tags'],
+      [{ op: 'update', type: 'photo', id: lib.id.p3, set: { edits: Array.from({ length: 101 }, () => ({ filter: 'bw' })) } }, 'edits'],
+      [{ op: 'update', type: 'album', id: BIRDS, set: { name: 'n'.repeat(201) } }, 'name'],
+      [{ op: 'update', type: 'album', id: BIRDS, set: { description: 'd'.repeat(5001) } }, 'description'],
+      [{ op: 'update', type: 'person', id: ROY, set: { comment: 'c'.repeat(5001) } }, 'comment'],
+      [{ op: 'update', type: 'person', id: ROY, set: { links: Array.from({ length: 21 }, (_, i) => `https://example.com/${i}`) } }, 'links'],
+    ];
+    for (const [change, field] of cases) {
+      const result = await run({ changes: [change] });
+      expect(result.status, field).toBe(400);
+      const body = result.body as import('../../../../shared/types.js').ApiError;
+      expect(body.code).toBe('invalid_field');
+      expect(String(body.params?.field).split('.')[0], field).toBe(field);
+    }
+    expect(lib.hasSidecar('b')).toBe(false);
+  });
+
   it('leaves the edits unchanged for an invalid step', async () => {
     const result = await run({ changes: [{ op: 'update', type: 'photo', id: lib.id.p3, set: { edits: [{ filter: 'brightness', amount: 500 }] } }] });
     expect(result.status).toBe(400);

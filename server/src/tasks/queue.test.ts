@@ -115,6 +115,12 @@ describe('order and running', () => {
     expect([task.state, task.error, task.endedAt !== null]).toEqual(['failed', 'The provider refused the key', true]);
   });
 
+  it('keeps server paths out of a failed task\'s message', async () => {
+    const a = await add('anna', 3, { fail: "ENOENT: no such file or directory, open '/srv/photos/trip/a.jpg'" });
+    await step();
+    expect((await queue.get(a.id)).error).toBe("ENOENT: no such file or directory, open '<path>'");
+  });
+
   it('holds tasks until released', async () => {
     queue.hold();
     const a = await add('anna');

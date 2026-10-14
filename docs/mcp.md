@@ -22,6 +22,8 @@ same rules as the changes made in the UI.
   Photos take the `GET /api/photos` parameters (`folderId`, `album`, `tag`, `person`, `query`, `starred`,
   `geotagged`, `takenFrom`, `takenTo`, `includeHidden`).
 - `GET /api/objects/:type/:id` — one document; 404 `object_not_found` when it does not exist or is not visible.
+- Documents never carry a server path: a photo's `folder` is `{id, name}` (the last segment of the folder's path),
+  and a folder document has `id`, `name` and `photoCount`.
 - `GET /api/schema` — JSON Schema (draft 2020-12): `$defs` `PhotoDocument`, `AlbumDocument`, `PersonDocument`,
   `FolderDocument`, `TagDocument`, `Changeset`, `EditStep` (one definition per filter of the active plugins)
   and `RelativeRect`. Every property has a description written for an AI; read-only ones have `readOnly: true`.
@@ -56,7 +58,10 @@ against the permission it needs):
 
 - **Lists** (`tags`, `albums`, `people`): an array replaces the list, `{"add", "remove"}` adjusts it.
 - **Refs**: a `create` with `"ref": "x"` lets later changes use `"@x"` as the new object's id.
-- **Limits**: 1–1 000 changes, at most 5 000 named objects.
+- **Limits**: 1–1 000 changes, at most 5 000 named objects. Values: `caption` 2 000 characters; `tags` 200 tags of
+  100 characters; `albums` and `people` 200 items; `edits` 100 steps; album `name` and `location` 200 characters,
+  `description` 5 000; person `name` and `alias` 200, `comment` 5 000, `links` 20 of 2 000 characters. A longer value
+  is 400 `invalid_field` naming the field.
 - **Checks first**: the whole changeset is validated, ids resolved and permissions checked before anything is
   written. Errors: 400 (`invalid_field`, `read_only_field`, `edits_invalid`, …), 403 (`permission_required`,
   `album_not_granted`, `outside_access`), 404 (`object_not_found`, `face_not_found`) and 409
@@ -118,9 +123,9 @@ Clients that only start local (stdio) servers can use a bridge such as
 | `describe_model` | `library.view` | The AI guide and the JSON Schema |
 | `search_photos` | `library.view` | Photo documents of a selection (photo-list parameters), `limit` ≤ 200 |
 | `list_objects` | `library.view` | Documents of one type |
-| `get_objects` | `library.view` | Documents of up to 200 ids, and the ids not found |
+| `get_objects` | `library.view` | Documents of up to 200 ids, and the ids not found (hidden photos unless `includeHidden`) |
 | `library_stats` | `library.view` | Totals of a selection (as `GET /api/photos/stats`) |
-| `view_photo` | `library.view` | The photo as a JPEG image (64–1600 px, default 1024) through its saved edits or given unsaved `edits` |
+| `view_photo` | `library.view` | The photo as a JPEG image (64–1600 px, default 1024) through its saved edits or given unsaved `edits`, with a temporary link to it; not for hidden photos |
 | `apply_changes` | any of `photos.edit`, `albums.manage`, `people.manage` | A changeset, optionally as a dry run |
 | `list_tasks` | `library.view` | The [task queue](task-queue.md), as `GET /api/tasks` |
 | `list_ai_tasks`, `start_ai_run`, `get_ai_run`, `cancel_ai_run` | `ai.run` | AI tasks; a run is added to the task queue, followed and cancelled by its task id (default: your most recent run) |
@@ -128,6 +133,34 @@ Clients that only start local (stdio) servers can use a bridge such as
 
 A client sees only the tools its token allows. Errors are tool results with `isError` and the same JSON body
 as the REST API (`code`, `params`). Resources: `paloma://guide` (Markdown) and `paloma://schema` (JSON).
+
+- **Hidden photos** are never shown as images: `view_photo` answers `object_not_found`, and they get no image links.
+  `search_photos` and `get_objects` return their documents only with `includeHidden: true`.
+- **Argument limits**: `query` 500 characters; `album`, `person`, `tag`, `taskId` and string ids 100; `outputDir`
+  200; `photoIds` 1 000; `get_objects` `ids` 200; `edits` 100 steps and 64 KiB; `changes` 1 000, each at most
+  64 KiB; `resizeWidth` 10 000. The tool schemas give them as `maxLength` / `maxItems`; a value over a limit is a
+  tool error `invalid_field` naming the argument, and nothing runs.
+- **No server paths**: no result, error or task message contains a path on the server; errors that would name a
+  file are reported without it (a path that still slips through shows as `<path>`).
+
+### Temporary image links
+
+Photo documents in `search_photos`, `list_objects` (photos) and `get_objects` results have
+`images.thumbnail.url` and `images.preview.url`, and `view_photo` returns `image.url` for the image it rendered
+(not for unsaved `edits`). Each result says how long its links work in `uri_valid_time_sec`:
+
+```json
+{ "items": [{ "type": "photo", "id": 12, "images": { "thumbnail": { "url": "http://localhost:3001/api/mcp/media/eyJw….3q2…" }, "preview": { "url": "…" } } }],
+  "total": 1, "uri_valid_time_sec": 300 }
+```
+
+- A link is `GET /api/mcp/media/<link>` on the address the client used, and needs no token: it is a secret, so
+  treat it like one. It carries the photo id and its expiry, signed by the server; never a path, file name or hash.
+- It works for `PALOMA_MCP_URI_VALID_SEC` seconds (default 300, 10 to 3600; set in `.env`), and stops earlier when
+  the token that made it is revoked or expires, loses `library.view`, when the photo is hidden or its owner can no
+  longer see it, or when the photo's edits change. A link that does not work answers 404, whatever the reason.
+- Links are signed with a key made at server start: after a restart, earlier links stop working.
+- Responses are `Cache-Control: private, no-store`.
 
 ### Privacy
 

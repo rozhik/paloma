@@ -12,6 +12,7 @@ import type { AiAnswer, AiRequest } from '../plugins/api.js';
 import { fail } from '../services/apiError.js';
 import { parsePhotoIds } from '../services/folderChanges.js';
 import { parseKeywords } from '../services/libraryText.js';
+import { redactPhotoPath } from '../services/redact.js';
 import { checkAnswer, toCallError, usageTokens, type AiCallError } from './answer.js';
 import { applyResult } from './apply.js';
 import { currentTasks, serverEnv } from './config.js';
@@ -190,10 +191,13 @@ async function runAiTask(context: TaskRun<AiParams, AiTaskDetails>): Promise<voi
   if (run.stopped !== null) throw new TaskFailed(run.stopped);
 }
 
+/** Counts a failed photo and lists its message, with the photo named by id instead of its file. */
 function failPhoto(run: Run, photo: RunPhoto, message: string): void {
   const record = run.context.task;
   record.failed += 1;
-  if (record.details.failures.length < MAX_FAILURES_LISTED) record.details.failures.push({ photoId: photo.id, message });
+  if (record.details.failures.length < MAX_FAILURES_LISTED) {
+    record.details.failures.push({ photoId: photo.id, message: redactPhotoPath(message, photo.filePath, photo.id) });
+  }
 }
 
 async function processPhoto(run: Run, photo: RunPhoto): Promise<void> {
@@ -217,7 +221,7 @@ async function processPhoto(run: Run, photo: RunPhoto): Promise<void> {
     const error = toCallError(err);
     failPhoto(run, photo, error.message);
     run.fatalInARow = FATAL.includes(error.kind) ? run.fatalInARow + 1 : 0;
-    if (run.fatalInARow >= STOP_AFTER && run.stopped === null) run.stopped = error.message;
+    if (run.fatalInARow >= STOP_AFTER && run.stopped === null) run.stopped = redactPhotoPath(error.message, photo.filePath, photo.id);
   } finally {
     record.done += 1;
     details.photoIds.push(photo.id);

@@ -34,9 +34,10 @@ describe('route guards', () => {
     expect(unguarded).toEqual([]);
   });
 
-  it('keeps public routes to the auth status, setup and login', () => {
+  it('keeps public routes to the auth status, setup, login and signed MCP image links', () => {
     const open = routes.filter((route) => route.guards[0].requirement === 'public').map((r) => `${r.method} ${r.path}`);
-    expect(open.sort()).toEqual(['GET /auth/status', 'POST /auth/login/:provider', 'POST /auth/setup']);
+    // A temporary image link carries its own signed credential and is checked against its token on every fetch
+    expect(open.sort()).toEqual(['GET /auth/status', 'GET /mcp/media/:link', 'POST /auth/login/:provider', 'POST /auth/setup']);
   });
 
   it('protects what changes the library with the matching permission', () => {
