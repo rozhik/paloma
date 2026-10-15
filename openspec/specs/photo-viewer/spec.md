@@ -14,11 +14,19 @@ The viewer SHALL fill the whole browser window with the photo as rendered throug
 - **THEN** the photo is shown 1200×900, centred, and the navigation bar and the edit bar overlap it
 
 ### Requirement: Photo opens fitted to the screen
-When the viewer opens a photo, and when it moves to another photo, the photo SHALL be shown whole, as large as fits in the window and centred. A photo smaller than the window SHALL be shown at its actual size. When the window is resized while the photo is fitted, it SHALL stay fitted.
+When the viewer opens a photo, and when it moves to another photo, the photo SHALL be shown centred at the zoom level chosen in Settings as "Open photos at": Fit, Fill or Original size, Fit by default. At Fit the photo SHALL be shown whole, as large as fits in the window, and a photo smaller than the window SHALL be shown at its actual size. When the window is resized while the photo is at Fit or Fill, it SHALL stay at that level.
 
 #### Scenario: Small photo
-- **WHEN** the user opens a 640×480 photo in a 1600×900 window
+- **WHEN** "Open photos at" is Fit and the user opens a 640×480 photo in a 1600×900 window
 - **THEN** the photo is shown at 640×480, centred
+
+#### Scenario: Open at original size
+- **WHEN** "Open photos at" is Original size and the user opens a 4000×3000 photo in a 1600×900 window
+- **THEN** the photo is shown at 100%, centred, and can be panned
+
+#### Scenario: Next photo at the chosen level
+- **WHEN** "Open photos at" is Fill, the user zooms the photo to 300% and chooses Next
+- **THEN** the next photo is shown at Fill
 
 ### Requirement: Zoom
 The user SHALL be able to zoom with the mouse wheel or a trackpad pinch, keeping the point under the pointer in place. The user SHALL also be able to zoom with the zoom-in and zoom-out buttons and the `+` and `-` keys, keeping the centre of the window in place. Zoom SHALL range from fitted to 400% of the photo's actual pixels. "Fit" (button or `0` key) SHALL return to the fitted view. The navigation bar SHALL show the current zoom as a percentage of actual pixels.
@@ -34,6 +42,25 @@ The user SHALL be able to zoom with the mouse wheel or a trackpad pinch, keeping
 #### Scenario: Back to fit
 - **WHEN** the photo is zoomed in and the user presses `0`
 - **THEN** the whole photo is shown fitted and centred
+
+### Requirement: Zoom levels
+Choosing the zoom percentage in the navigation bar SHALL open a menu of zoom levels: Fit, Fill, 50%, 100% (Original size), 200% and 400%, with names in the active UI language and the current level marked. Fit SHALL be as described in Photo opens fitted to the screen; Fill SHALL cover the whole window with the photo, centred, up to 400%. Percentages SHALL keep the centre of the window in place. A level below Fit SHALL be disabled.
+
+#### Scenario: Choose 100%
+- **WHEN** a 4000×3000 photo is fitted and the user chooses 100% in the zoom menu
+- **THEN** the photo is shown at 100% with the photo point at the centre of the window kept in place, and the bar shows 100%
+
+#### Scenario: Fill
+- **WHEN** the user chooses Fill for a 4000×3000 photo in a 1600×900 window
+- **THEN** the photo is shown 1600×1200, centred, and can be panned up and down
+
+#### Scenario: Level below fit
+- **WHEN** a 4000×3000 photo fits a 1600×900 window at 30%
+- **THEN** 50% is enabled, and for a 1000×750 photo, fitted at 100%, 50% is disabled
+
+#### Scenario: Current level marked
+- **WHEN** the photo is at Fill and the user opens the zoom menu
+- **THEN** Fill is marked as the current level
 
 ### Requirement: Double-click toggles zoom
 Double-clicking the photo SHALL zoom to 100% of actual pixels centred on the clicked point when the photo is fitted, and SHALL return to fitted otherwise.
@@ -98,7 +125,7 @@ Close SHALL return to the library view with the same folder, album, filter, sear
 - **THEN** the library shows the same grid, and that photo's thumbnail is in sepia
 
 ### Requirement: Viewer keyboard
-In the viewer, the keys bound in the user's keymap SHALL close the viewer, go to the previous and next photo, open or close the Info panel, turn face frames on or off, zoom and undo, each when the level allows it. In the `mac` and `windows` presets these SHALL be Esc, `←`, `→`, `i`, `f`, `+`, `-`, `0`, and `Meta+Z` or `Ctrl+Z`. In a right-to-left UI language `←` and `→` SHALL be swapped and the Previous and Next icons mirrored. Keys typed into a text or slider control SHALL go to that control. While a floating panel, the Info panel or a frame is open, Esc SHALL close it instead of the viewer.
+In the viewer, the keys bound in the user's keymap SHALL close the viewer, go to the previous and next photo, open or close the Info panel, turn face frames on or off, zoom, zoom to 100% and undo, each when the level allows it. In the `mac` and `windows` presets these SHALL be Esc, `←`, `→`, `i`, `f`, `+`, `-`, `0`, `1`, and `Meta+Z` or `Ctrl+Z`. In a right-to-left UI language `←` and `→` SHALL be swapped and the Previous and Next icons mirrored. Keys typed into a text or slider control SHALL go to that control. While a floating panel, the Info panel or a frame is open, Esc SHALL close it instead of the viewer.
 
 #### Scenario: Arrow keys
 - **WHEN** the UI language is English and the user presses `→`
@@ -127,6 +154,10 @@ In the viewer, the keys bound in the user's keymap SHALL close the viewer, go to
 #### Scenario: Rebound next
 - **WHEN** the user has bound Viewer → Next photo to `N` only
 - **THEN** `N` shows the next photo and `→` does nothing
+
+#### Scenario: Actual size key
+- **WHEN** the keymap is `windows`, a 4000×3000 photo is fitted and the user presses `1`
+- **THEN** the photo is shown at 100%, keeping the centre of the window in place
 
 ### Requirement: Overlay bars are placed by the settings
 The navigation bar and the edit bar SHALL each be placed along the screen edge chosen in the settings: top, bottom, left or right. On the top or bottom edge a bar SHALL lay out its buttons in a row, and on the left or right edge in a column. When both bars are on the same edge, the navigation bar SHALL be nearest the edge and the edit bar next to it, without overlapping. The edges are physical screen sides and SHALL NOT be mirrored in a right-to-left UI language.
