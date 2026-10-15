@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
-  MAX_SCALE, clampPan, fitScale, fitted, isFitted, panBy, resized, toggleZoom, wheelFactor, zoomAt, type Point, type ZoomState,
+  MAX_SCALE, atLevel, canZoomTo, clampPan, fillScale, filled, fitScale, fitted, isFilled, isFitted, panBy, resized, toggleZoom,
+  wheelFactor, zoomAt, type Point, type ZoomState,
 } from './zoomMath.js';
 
 const stage = { width: 1600, height: 900 };
@@ -66,5 +67,36 @@ describe('zoomMath', () => {
     expect(wheelFactor(-100)).toBeGreaterThan(1);
     expect(wheelFactor(100)).toBeLessThan(1);
     expect(wheelFactor(0)).toBe(1);
+  });
+
+  describe('zoom levels', () => {
+    it('fills the stage with a large photo, cropping top and bottom', () => {
+      expect(fillScale(photo, stage)).toBe(0.4);
+      expect(filled(photo, stage)).toEqual({ scale: 0.4, x: 0, y: 0 });
+      expect(clampPan({ scale: 0.4, x: 0, y: 500 }, photo, stage).y).toBe(150);
+    });
+
+    it('fills a tiny photo at most at 400%', () => {
+      expect(fillScale({ width: 100, height: 100 }, stage)).toBe(MAX_SCALE);
+    });
+
+    it('opens at each named level, centred', () => {
+      expect(atLevel('fit', photo, stage)).toEqual({ scale: 0.3, x: 0, y: 0 });
+      expect(atLevel('fill', photo, stage)).toEqual({ scale: 0.4, x: 0, y: 0 });
+      expect(atLevel('actual', photo, stage)).toEqual({ scale: 1, x: 0, y: 0 });
+      expect(atLevel('fit', { width: 640, height: 480 }, stage).scale).toBe(1);
+    });
+
+    it('offers only percentages from the fitted size up', () => {
+      expect(canZoomTo(0.5, photo, stage)).toBe(true);
+      expect(canZoomTo(0.5, { width: 1000, height: 750 }, stage)).toBe(false);
+      expect(canZoomTo(1, { width: 1000, height: 750 }, stage)).toBe(true);
+    });
+
+    it('keeps a filled photo filled when the stage is resized', () => {
+      const bigger = { width: 2000, height: 1000 };
+      expect(isFilled(filled(photo, stage), photo, stage)).toBe(true);
+      expect(resized(filled(photo, stage), photo, stage, bigger)).toEqual({ scale: 0.5, x: 0, y: 0 });
+    });
   });
 });

@@ -576,6 +576,27 @@ body {
   text-align: center;
 }
 
+/* The zoom percentage opens the zoom level menu */
+.viewer-zoom-toggle {
+  min-height: calc(var(--viewer-bar-size) - 10px);
+  padding: 0 4px;
+  border: 0;
+  border-radius: var(--pal-radius);
+  background: transparent;
+}
+.viewer-zoom-toggle:hover:not(:disabled),
+.viewer-zoom-toggle:focus-visible {
+  background: color-mix(in srgb, var(--pal-viewer-text) 16%, transparent);
+}
+.viewer-zoom-toggle:focus-visible {
+  outline: 3px solid var(--pal-focus);
+  outline-offset: -3px;
+}
+/* Over the viewer (1040), under tooltips (1080) */
+.viewer-zoom-menu {
+  z-index: 1060;
+}
+
 /* The Info panel: along the right edge, inside the bars (placed inline from the bar layout) */
 .viewer-info {
   z-index: 2;
@@ -921,12 +942,119 @@ img {
 .slideshow-idle {
   cursor: none;
 }
+.slideshow-stage {
+  position: absolute;
+  inset: 0;
+  /* Its own stacking context, so the layers stay under the controls */
+  z-index: 0;
+  overflow: hidden;
+  perspective: 2000px;
+}
+/* One photo per layer, centred; a photo larger than the screen is cut off equally on both sides */
+.slideshow-layer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.slideshow-layer-in {
+  z-index: 1;
+}
 .slideshow-photo {
-  width: 100%;
-  height: 100%;
+  flex-shrink: 0;
+  max-width: none;
   object-fit: contain;
   user-select: none;
 }
+
+/* Transition effects: the incoming layer arrives over the outgoing one in --fx-duration. Every effect animates
+   the incoming layer, so its animationend ends the effect. Directions are physical screen sides. */
+.slideshow-stage[class*='fx-'] .slideshow-layer {
+  animation-duration: var(--fx-duration, 1s);
+  animation-timing-function: ease-in-out;
+  animation-fill-mode: both;
+}
+.fx-fade .slideshow-layer-in { animation-name: fx-fade-in; }
+@keyframes fx-fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* Dips: the outgoing photo fades to black or white, then the incoming one fades in from it */
+.fx-dipBlack { background: #000; }
+.fx-dipWhite { background: #fff; }
+.fx-dipBlack .slideshow-layer-out,
+.fx-dipWhite .slideshow-layer-out { animation-name: fx-dip-out; }
+.fx-dipBlack .slideshow-layer-in,
+.fx-dipWhite .slideshow-layer-in { animation-name: fx-dip-in; }
+@keyframes fx-dip-out { 0% { opacity: 1; } 50%, 100% { opacity: 0; } }
+@keyframes fx-dip-in { 0%, 50% { opacity: 0; } 100% { opacity: 1; } }
+
+/* Slides: the incoming photo moves in over the outgoing one, towards the named side */
+.fx-slideLeft .slideshow-layer-in { animation-name: fx-from-right; }
+.fx-slideRight .slideshow-layer-in { animation-name: fx-from-left; }
+.fx-slideUp .slideshow-layer-in { animation-name: fx-from-bottom; }
+.fx-slideDown .slideshow-layer-in { animation-name: fx-from-top; }
+@keyframes fx-from-right { from { transform: translateX(100%); } to { transform: none; } }
+@keyframes fx-from-left { from { transform: translateX(-100%); } to { transform: none; } }
+@keyframes fx-from-bottom { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes fx-from-top { from { transform: translateY(-100%); } to { transform: none; } }
+
+/* Pushes: both photos move together, the incoming one pushing the outgoing one off the screen */
+.fx-pushLeft .slideshow-layer-in { animation-name: fx-from-right; }
+.fx-pushLeft .slideshow-layer-out { animation-name: fx-to-left; }
+.fx-pushRight .slideshow-layer-in { animation-name: fx-from-left; }
+.fx-pushRight .slideshow-layer-out { animation-name: fx-to-right; }
+.fx-pushUp .slideshow-layer-in { animation-name: fx-from-bottom; }
+.fx-pushUp .slideshow-layer-out { animation-name: fx-to-top; }
+.fx-pushDown .slideshow-layer-in { animation-name: fx-from-top; }
+.fx-pushDown .slideshow-layer-out { animation-name: fx-to-bottom; }
+@keyframes fx-to-left { from { transform: none; } to { transform: translateX(-100%); } }
+@keyframes fx-to-right { from { transform: none; } to { transform: translateX(100%); } }
+@keyframes fx-to-top { from { transform: none; } to { transform: translateY(-100%); } }
+@keyframes fx-to-bottom { from { transform: none; } to { transform: translateY(100%); } }
+
+/* Wipes: an edge sweeps across the screen towards the named side, uncovering the incoming photo */
+.fx-wipeLeft .slideshow-layer-in { animation-name: fx-wipe-left; }
+.fx-wipeRight .slideshow-layer-in { animation-name: fx-wipe-right; }
+.fx-wipeUp .slideshow-layer-in { animation-name: fx-wipe-up; }
+.fx-wipeDown .slideshow-layer-in { animation-name: fx-wipe-down; }
+@keyframes fx-wipe-left { from { clip-path: inset(0 0 0 100%); } to { clip-path: inset(0); } }
+@keyframes fx-wipe-right { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0); } }
+@keyframes fx-wipe-up { from { clip-path: inset(100% 0 0 0); } to { clip-path: inset(0); } }
+@keyframes fx-wipe-down { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0); } }
+
+/* Zoom in: the incoming photo grows from the centre. Zoom out: the outgoing photo grows and fades away over it */
+.fx-zoomIn .slideshow-layer-in { animation-name: fx-zoom-in; }
+@keyframes fx-zoom-in { from { opacity: 0; transform: scale(0.3); } to { opacity: 1; transform: none; } }
+.fx-zoomOut .slideshow-layer-out { z-index: 2; animation-name: fx-zoom-away; }
+.fx-zoomOut .slideshow-layer-in { animation-name: fx-hold; }
+@keyframes fx-zoom-away { from { opacity: 1; transform: none; } to { opacity: 0; transform: scale(1.6); } }
+@keyframes fx-hold { from { opacity: 1; } to { opacity: 1; } }
+
+/* Iris: a circle opens from the centre */
+.fx-iris .slideshow-layer-in { animation-name: fx-iris; }
+@keyframes fx-iris { from { clip-path: circle(0% at 50% 50%); } to { clip-path: circle(75% at 50% 50%); } }
+
+/* Blinds: horizontal slats open from thin lines to the whole photo */
+@property --fx-blind {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 0%;
+}
+.fx-blinds .slideshow-layer-in {
+  animation-name: fx-blinds;
+  -webkit-mask-image: repeating-linear-gradient(to bottom, #000 0, #000 var(--fx-blind), transparent var(--fx-blind), transparent 10%);
+  mask-image: repeating-linear-gradient(to bottom, #000 0, #000 var(--fx-blind), transparent var(--fx-blind), transparent 10%);
+}
+@keyframes fx-blinds { from { --fx-blind: 0%; } to { --fx-blind: 10.01%; } }
+
+/* Flip: the outgoing photo turns away like a card, then the incoming one turns in */
+.fx-flip .slideshow-layer-out { animation-name: fx-flip-out; }
+.fx-flip .slideshow-layer-in { animation-name: fx-flip-in; }
+@keyframes fx-flip-out { 0% { transform: none; } 50%, 100% { transform: rotateY(-90deg); } }
+@keyframes fx-flip-in { 0%, 50% { transform: rotateY(90deg); } 100% { transform: none; } }
 .slideshow-controls {
   position: absolute;
   bottom: 24px;

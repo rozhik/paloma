@@ -99,6 +99,15 @@ describe('presets', () => {
     expect(PRESET_BINDINGS.mac['edit.undo']).toEqual(['Meta+Z']);
   });
 
+  it('zooms to 100% with 1 and turns slideshow shuffle on or off with S', () => {
+    for (const preset of ['mac', 'windows'] as const) {
+      expect(PRESET_BINDINGS[preset]['viewer.zoomActual']).toEqual(['1']);
+      expect(PRESET_BINDINGS[preset]['slideshow.shuffle']).toEqual(['S']);
+    }
+    expect(PRESET_BINDINGS.tvBox['slideshow.shuffle']).toEqual(['ColorF3Blue']);
+    expect(PRESET_BINDINGS.tvBox['viewer.zoomActual']).toBeUndefined();
+  });
+
   it('picks the preset of the device', () => {
     expect(devicePreset('MacIntel')).toBe('mac');
     expect(devicePreset('iPhone')).toBe('mac');

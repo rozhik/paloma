@@ -1,10 +1,11 @@
 import React, { useEffect, useReducer, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronLeft, ChevronRight, Pause, Play, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Pause, Play, Shuffle, X } from 'lucide-react';
 import { IconButton } from '../../shell/IconButton.js';
 import { usePalomaStore, type SlideshowState } from '../../store/usePalomaStore.js';
 import { SLIDESHOW_INTERVALS, useUiSettings } from '../../settings/uiSettings.js';
-import { slideshowReducer, startPlayback } from './slideshowReducer.js';
+import { type SlideshowAction, type SlideshowPlayback, currentIndex, peekNext, positionOf, slideshowReducer, startPlayback } from './slideshowReducer.js';
+import { SlideshowStage } from './SlideshowStage.js';
 import { LAYER, useKeyActions } from '../../keys/dispatcher.js';
 
 /** How long the controls stay after the pointer last moved */
@@ -36,30 +37,46 @@ const SlideshowScreen: React.FC<{ slideshow: SlideshowState }> = ({ slideshow })
   const { t, i18n } = useTranslation();
   const stop = usePalomaStore((state) => state.stopSlideshow);
   const interval = useUiSettings((state) => state.slideshowInterval);
+  const effect = useUiSettings((state) => state.slideshowEffect);
+  const duration = useUiSettings((state) => state.slideshowEffectDuration);
+  const shuffle = useUiSettings((state) => state.slideshowShuffle);
+  const fit = useUiSettings((state) => state.slideshowFit);
   const update = useUiSettings((state) => state.update);
   const { photos } = slideshow;
-  const [state, dispatch] = useReducer(slideshowReducer, startPlayback(slideshow.index, photos.length));
+  const [state, dispatch] = useReducer(
+    (current: SlideshowPlayback, action: SlideshowAction) => slideshowReducer(current, action),
+    null,
+    () => startPlayback(slideshow.index, photos.length, useUiSettings.getState().slideshowShuffle),
+  );
   const [controls, setControls] = useState(true);
+  /** The last move whose photo is fully shown; its interval runs only then */
+  const [settled, setSettled] = useState(-1);
   const root = useRef<HTMLDivElement | null>(null);
-  const photo = photos[state.index];
-  const src = (index: number) => photos[index].previewUrl ?? photos[index].thumbnailUrl ?? '';
+  const index = currentIndex(state);
+  /** The move whose photo is on screen; its name and position are shown until the next photo arrives */
+  const [shownMove, setShownMove] = useState(0);
+  const moves = useRef(new Map<number, { photo: typeof photos[number]; position: { index: number; total: number } }>());
+  moves.current.set(state.move, { photo: photos[index], position: positionOf(state) });
+  for (const move of moves.current.keys()) if (move < shownMove) moves.current.delete(move);
+  const { photo, position } = moves.current.get(shownMove) ?? moves.current.get(state.move)!;
 
   const exit = () => {
     leaveFullscreen();
     stop();
   };
 
-  // The next photo after the interval; every move or a new interval starts it again
+  // The next photo after the interval, counted once the photo is fully shown; every move or a new interval
+  // starts it again
+  const shown = settled === state.move;
   useEffect(() => {
-    if (!state.playing) return;
+    if (!state.playing || !shown) return;
     const timer = window.setTimeout(() => dispatch({ type: 'tick' }), interval * 1000);
     return () => window.clearTimeout(timer);
-  }, [state.step, state.playing, interval]);
+  }, [state.step, state.playing, shown, interval]);
 
-  // The next photo loads while this one is shown
-  useEffect(() => {
-    if (photos.length > 1) new Image().src = src((state.index + 1) % photos.length);
-  }, [state.index]);
+  // Shuffle chosen in Settings or on the bar reorders the photos still to come
+  useEffect(() => dispatch({ type: 'shuffle', on: shuffle }), [shuffle]);
+  const toggleShuffle = () => update({ slideshowShuffle: !useUiSettings.getState().slideshowShuffle });
 
   // Controls hide when the pointer rests, and come back when it moves or the screen is touched
   const showControls = () => setControls(true);
@@ -97,6 +114,7 @@ const SlideshowScreen: React.FC<{ slideshow: SlideshowState }> = ({ slideshow })
     'slideshow.playPause': withControls(() => dispatch({ type: 'toggle' })),
     'slideshow.previous': withControls(() => dispatch({ type: 'previous' })),
     'slideshow.next': withControls(() => dispatch({ type: 'next' })),
+    'slideshow.shuffle': withControls(toggleShuffle),
   });
 
   // In a right-to-left language "previous" points right
@@ -113,7 +131,18 @@ const SlideshowScreen: React.FC<{ slideshow: SlideshowState }> = ({ slideshow })
       onPointerMove={showControls}
       onPointerDown={showControls}
     >
-      <img key={photo.id} src={src(state.index)} alt={photo.filename} className="slideshow-photo" draggable={false} />
+      <SlideshowStage
+        photos={photos}
+        index={index}
+        move={state.move}
+        back={state.back}
+        next={peekNext(state)}
+        effect={effect}
+        duration={duration}
+        fit={fit}
+        onShown={setShownMove}
+        onSettled={setSettled}
+      />
       <div className="slideshow-controls" hidden={!controls}>
         <IconButton icon={X} label={t('slideshow.exit')} iconSize={26} placement="top" className="slideshow-btn" onClick={exit} />
         <IconButton
@@ -140,6 +169,16 @@ const SlideshowScreen: React.FC<{ slideshow: SlideshowState }> = ({ slideshow })
           className="slideshow-btn"
           onClick={() => dispatch({ type: 'next' })}
         />
+        <IconButton
+          icon={Shuffle}
+          label={t('slideshow.shuffle')}
+          iconSize={26}
+          placement="top"
+          className="slideshow-btn"
+          active={shuffle}
+          aria-pressed={shuffle}
+          onClick={toggleShuffle}
+        />
         <div className="slideshow-interval" role="radiogroup" aria-label={t('slideshow.interval')} title={t('slideshow.interval')}>
           {SLIDESHOW_INTERVALS.map((seconds) => (
             <button
@@ -155,7 +194,7 @@ const SlideshowScreen: React.FC<{ slideshow: SlideshowState }> = ({ slideshow })
           ))}
         </div>
         <span className="slideshow-position">
-          {t('viewer.position', { index: state.index + 1, total: photos.length })}
+          {t('viewer.position', position)}
         </span>
       </div>
       {/* For screen readers: which photo is shown, also while the controls are hidden */}

@@ -37,6 +37,30 @@ describe('Settings view', () => {
   });
 });
 
+describe('Slideshow section', () => {
+  it('comes after the viewer settings and before Keyboard, at every level', () => {
+    const normal = render('normal');
+    const slideshow = normal.indexOf('id="settings-slideshow"');
+    expect(normal.indexOf(i18n.t('settings.openZoom'))).toBeLessThan(slideshow);
+    expect(slideshow).toBeLessThan(normal.indexOf(i18n.t('keys.settingsTitle')));
+    for (const level of ['child', 'easy', 'pro'] as const) expect(render(level), level).toContain('id="settings-slideshow"');
+  });
+
+  it('shows the defaults: 5 seconds, Fade, 1 second, shuffle off and Fit', () => {
+    const markup = render('normal');
+    expect(markup).toMatch(/id="slideshowInterval-5"[^>]*checked/);
+    expect(markup).toMatch(/<option value="fade" selected/);
+    expect(markup).toMatch(/id="slideshowEffectDuration-1"[^>]*checked/);
+    expect(markup).not.toMatch(/id="settings-slideshow-shuffle"[^>]*checked/);
+    expect(markup).toMatch(/id="slideshowFit-fit"[^>]*checked/);
+    expect(markup).toMatch(/id="viewerOpenZoom-fit"[^>]*checked/);
+  });
+
+  it('offers None, Random and the 20 effects', () => {
+    expect(render('normal').match(/<option value=/g)).toHaveLength(22);
+  });
+});
+
 describe('Keyboard section', () => {
   it('comes after the viewer bars from Normal, and is not at Easy', () => {
     const normal = render('normal');

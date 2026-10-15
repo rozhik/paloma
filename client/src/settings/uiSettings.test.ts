@@ -22,7 +22,9 @@ describe('UI settings', () => {
   it('defaults to the navigation bar on top and the edit bar on the left, Classic and the system theme', () => {
     expect(DEFAULT_UI_SETTINGS).toEqual({
       navBar: 'top', editBar: 'left', skin: 'classic', theme: 'system', sidebarCollapsed: false, collapsedSidebarLists: [],
-      level: 'normal', pin: null, slideshowInterval: 5, showFaces: false, showObjects: false,
+      level: 'normal', pin: null, slideshowInterval: 5,
+      slideshowEffect: 'fade', slideshowEffectDuration: 1, slideshowShuffle: false, slideshowFit: 'fit', viewerOpenZoom: 'fit',
+      showFaces: false, showObjects: false,
     });
     expect(loadUiSettings(memoryStorage())).toEqual(DEFAULT_UI_SETTINGS);
     expect(loadUiSettings(null)).toEqual(DEFAULT_UI_SETTINGS);
@@ -118,6 +120,28 @@ describe('UI settings', () => {
     expect(parseUiSettings('{"slideshowInterval":10}')).toMatchObject({ slideshowInterval: 10 });
     expect(parseUiSettings('{"slideshowInterval":7}')).toMatchObject({ slideshowInterval: 5 });
     expect(parseUiSettings('{"slideshowInterval":"3"}')).toMatchObject({ slideshowInterval: 5 });
+  });
+
+  it('remembers the slideshow and viewer zoom choices', () => {
+    const storage = memoryStorage();
+    const settings = {
+      ...DEFAULT_UI_SETTINGS, slideshowEffect: 'random', slideshowEffectDuration: 2, slideshowShuffle: true,
+      slideshowFit: 'fitNoEnlarge', viewerOpenZoom: 'actual',
+    } as const satisfies UiSettings;
+    expect(saveUiSettings(settings, storage)).toBe(true);
+    expect(loadUiSettings(storage)).toEqual(settings);
+    expect(parseUiSettings('{"slideshowEffect":"none","slideshowFit":"fill","viewerOpenZoom":"fill"}'))
+      .toMatchObject({ slideshowEffect: 'none', slideshowFit: 'fill', viewerOpenZoom: 'fill' });
+  });
+
+  it('uses Fade for an unknown stored effect and keeps the other settings', () => {
+    expect(parseUiSettings('{"slideshowEffect":"spin","slideshowShuffle":true,"slideshowInterval":10}'))
+      .toEqual({ ...DEFAULT_UI_SETTINGS, slideshowShuffle: true, slideshowInterval: 10 });
+  });
+
+  it('replaces invalid slideshow and viewer zoom values with their defaults', () => {
+    expect(parseUiSettings('{"slideshowEffectDuration":3,"slideshowShuffle":"yes","slideshowFit":"stretch","viewerOpenZoom":"200"}'))
+      .toEqual(DEFAULT_UI_SETTINGS);
   });
 
   it('remembers whether face frames are shown in the viewer', () => {

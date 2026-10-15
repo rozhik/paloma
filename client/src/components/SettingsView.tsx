@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
-import { Alert } from 'react-bootstrap';
+import { Alert, Form } from 'react-bootstrap';
 import { useTranslation } from 'react-i18next';
 import { KeyRound, Settings } from 'lucide-react';
-import { EDGES, THEME_CHOICES, useUiSettings, type Edge, type ThemeChoice, type UiSettings } from '../settings/uiSettings.js';
+import {
+  EDGES, SLIDESHOW_FITS, SLIDESHOW_INTERVALS, THEME_CHOICES, useUiSettings, type Edge, type ThemeChoice, type UiSettings,
+} from '../settings/uiSettings.js';
+import { EFFECT_DURATIONS, SLIDESHOW_EFFECTS, type EffectChoice } from './slideshow/effects.js';
+import { ZOOM_LEVELS } from './viewer/zoomMath.js';
 import { SKIN_IDS, type SkinId } from '../appearance/skins/ids.js';
 import { THEMES } from '../appearance/themes/index.js';
 import { LANGUAGES } from '../i18n/languages.js';
@@ -163,6 +167,117 @@ const EdgeChoice: React.FC<{ setting: keyof UiSettings; label: string; hint: str
   );
 };
 
+/** Settings with a few plain choices, each a large button. */
+type ChoiceSetting = 'viewerOpenZoom' | 'slideshowInterval' | 'slideshowEffectDuration' | 'slideshowFit';
+
+/** One setting: a row of large choices, each with its name. */
+function OptionChoice<T extends UiSettings[ChoiceSetting]>({ setting, label, hint, options, nameOf }: {
+  setting: ChoiceSetting;
+  label: string;
+  hint?: string;
+  options: readonly T[];
+  nameOf: (option: T) => string;
+}) {
+  const value = useUiSettings((state) => state[setting]);
+  const update = useUiSettings((state) => state.update);
+  return (
+    <fieldset className="mb-4">
+      <legend className="fs-4 fw-semibold mb-1">{label}</legend>
+      {hint && <p className="fs-5 text-secondary mb-2">{hint}</p>}
+      <div className="d-flex flex-wrap gap-2">
+        {options.map((option) => {
+          const id = `${setting}-${option}`;
+          return (
+            <div key={String(option)}>
+              <input
+                type="radio"
+                className="btn-check"
+                name={setting}
+                id={id}
+                checked={value === option}
+                onChange={() => update({ [setting]: option })}
+              />
+              <label className="btn btn-outline-primary fs-5" htmlFor={id}>{nameOf(option)}</label>
+            </div>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+}
+
+/** The effects in groups, as the effect list shows them. */
+const EFFECT_GROUPS: { group: 'basic' | 'fades' | 'slides' | 'pushes' | 'wipes' | 'other'; effects: EffectChoice[] }[] = [
+  { group: 'basic', effects: ['none', 'random'] },
+  { group: 'fades', effects: ['fade', 'dipBlack', 'dipWhite'] },
+  { group: 'slides', effects: SLIDESHOW_EFFECTS.filter((effect) => effect.startsWith('slide')) },
+  { group: 'pushes', effects: SLIDESHOW_EFFECTS.filter((effect) => effect.startsWith('push')) },
+  { group: 'wipes', effects: SLIDESHOW_EFFECTS.filter((effect) => effect.startsWith('wipe')) },
+  { group: 'other', effects: ['zoomIn', 'zoomOut', 'iris', 'blinds', 'flip'] },
+];
+
+/** How the slideshow plays: time per photo, effect, shuffle and photo size. Remembered in this browser. */
+const SlideshowSection: React.FC = () => {
+  const { t } = useTranslation();
+  const effect = useUiSettings((state) => state.slideshowEffect);
+  const shuffle = useUiSettings((state) => state.slideshowShuffle);
+  const update = useUiSettings((state) => state.update);
+  return (
+    <section aria-labelledby="settings-slideshow">
+      <h3 id="settings-slideshow" className="fs-3 fw-bold mt-4 mb-1">{t('settings.slideshow')}</h3>
+      <p className="fs-5 text-secondary mb-3">{t('settings.slideshowHint')}</p>
+      <OptionChoice
+        setting="slideshowInterval"
+        label={t('settings.slideshowInterval')}
+        options={SLIDESHOW_INTERVALS}
+        nameOf={(seconds) => t('slideshow.seconds', { seconds })}
+      />
+      <div className="mb-4">
+        <label htmlFor="settings-slideshow-effect" className="fs-4 fw-semibold mb-1 d-block">{t('settings.slideshowEffect')}</label>
+        <p id="settings-slideshow-effect-hint" className="fs-5 text-secondary mb-2">{t('settings.slideshowEffectHint')}</p>
+        <Form.Select
+          id="settings-slideshow-effect"
+          size="lg"
+          style={{ maxWidth: '22rem' }}
+          aria-describedby="settings-slideshow-effect-hint"
+          value={effect}
+          onChange={(event) => update({ slideshowEffect: event.target.value as EffectChoice })}
+        >
+          {EFFECT_GROUPS.map(({ group, effects }) => (
+            <optgroup key={group} label={t(`settings.effectGroups.${group}`)}>
+              {effects.map((option) => <option key={option} value={option}>{t(`settings.effects.${option}`)}</option>)}
+            </optgroup>
+          ))}
+        </Form.Select>
+      </div>
+      <OptionChoice
+        setting="slideshowEffectDuration"
+        label={t('settings.slideshowEffectDuration')}
+        options={EFFECT_DURATIONS}
+        nameOf={(seconds) => t('slideshow.seconds', { seconds })}
+      />
+      <div className="mb-4">
+        <Form.Check
+          type="switch"
+          id="settings-slideshow-shuffle"
+          className="fs-4 fw-semibold"
+          label={t('settings.slideshowShuffle')}
+          checked={shuffle}
+          aria-describedby="settings-slideshow-shuffle-hint"
+          onChange={(event) => update({ slideshowShuffle: event.target.checked })}
+        />
+        <p id="settings-slideshow-shuffle-hint" className="fs-5 text-secondary mb-0">{t('settings.slideshowShuffleHint')}</p>
+      </div>
+      <OptionChoice
+        setting="slideshowFit"
+        label={t('settings.slideshowFit')}
+        options={SLIDESHOW_FITS}
+        nameOf={(fit) => t(`settings.slideshowFits.${fit}`)}
+      />
+    </section>
+  );
+};
+
 /** A small screen sketched in the skin's arrangement: bars, sidebar and floating glass. */
 const SkinPicture: React.FC<{ skin: SkinId }> = ({ skin }) => (
   <span className={`settings-screen settings-skin settings-skin-${skin}`} aria-hidden="true">
@@ -275,6 +390,15 @@ export const SettingsView: React.FC = () => {
         <h3 className="fs-3 fw-bold mt-4 mb-3">{t('settings.viewer')}</h3>
         <EdgeChoice setting="navBar" label={t('settings.navBar')} hint={t('settings.navBarHint')} />
         <EdgeChoice setting="editBar" label={t('settings.editBar')} hint={t('settings.editBarHint')} />
+        <OptionChoice
+          setting="viewerOpenZoom"
+          label={t('settings.openZoom')}
+          hint={t('settings.openZoomHint')}
+          options={ZOOM_LEVELS}
+          nameOf={(level) => t(`settings.zoomLevels.${level}`)}
+        />
+
+        <SlideshowSection />
 
         <KeyboardSection />
       </div>

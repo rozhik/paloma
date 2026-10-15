@@ -160,6 +160,7 @@ describe('face frames', () => {
         placement={barLayout(DEFAULT_UI_SETTINGS).navBar} style={{}} filename="a.jpg" index={0} total={1} scale={1}
         canPrev={false} canNext={false} zoomLocked={false} saving={false}
         onClose={() => {}} onPrev={() => {}} onNext={() => {}} onZoomIn={() => {}} onZoomOut={() => {}} onFit={() => {}}
+        zoomLevel="fit" canZoomTo={() => true} onZoomTo={() => {}}
         onFaces={onFaces} facesOn={facesOn}
       />,
     );

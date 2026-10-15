@@ -3,6 +3,8 @@ import { SKIN_IDS, type SkinId } from '../appearance/skins/ids.js';
 import { THEME_IDS, type ThemeId } from '../appearance/themes/types.js';
 import { DEFAULT_LEVEL, isLevel, type Level } from '../levels/levels.js';
 import { isPinRecord, type PinRecord } from '../levels/pin.js';
+import { EFFECT_CHOICES, EFFECT_DURATIONS, type EffectChoice, type EffectDuration } from '../components/slideshow/effects.js';
+import { ZOOM_LEVELS, type ZoomLevel } from '../components/viewer/zoomMath.js';
 
 /** A screen edge. Physical sides: they do not mirror in right-to-left languages. */
 export type Edge = 'top' | 'bottom' | 'left' | 'right';
@@ -19,6 +21,10 @@ export type SidebarListId = typeof SIDEBAR_LISTS[number];
 /** Seconds a slideshow shows each photo. */
 export const SLIDESHOW_INTERVALS = [3, 5, 10] as const;
 export type SlideshowInterval = typeof SLIDESHOW_INTERVALS[number];
+
+/** How a slideshow sizes each photo on the screen. */
+export const SLIDESHOW_FITS = ['fit', 'fitNoEnlarge', 'fill', 'actual'] as const;
+export type SlideshowFit = typeof SLIDESHOW_FITS[number];
 
 /** UI preferences kept in this browser only. */
 export interface UiSettings {
@@ -37,6 +43,15 @@ export interface UiSettings {
   /** The PIN that unlocks Settings at the Child level; null at every other level */
   pin: PinRecord | null;
   slideshowInterval: SlideshowInterval;
+  /** The transition between slideshow photos */
+  slideshowEffect: EffectChoice;
+  /** Seconds a slideshow transition takes */
+  slideshowEffectDuration: EffectDuration;
+  /** The slideshow plays the photos in random rounds */
+  slideshowShuffle: boolean;
+  slideshowFit: SlideshowFit;
+  /** The zoom the viewer shows each photo at when it opens or moves to it */
+  viewerOpenZoom: ZoomLevel;
   /** Face frames drawn over the photo in the viewer */
   showFaces: boolean;
   /** Frames of objects found by AI drawn over the photo in the viewer */
@@ -45,7 +60,9 @@ export interface UiSettings {
 
 export const DEFAULT_UI_SETTINGS: UiSettings = {
   navBar: 'top', editBar: 'left', skin: 'classic', theme: 'system', sidebarCollapsed: false, collapsedSidebarLists: [],
-  level: DEFAULT_LEVEL, pin: null, slideshowInterval: 5, showFaces: false, showObjects: false,
+  level: DEFAULT_LEVEL, pin: null, slideshowInterval: 5,
+  slideshowEffect: 'fade', slideshowEffectDuration: 1, slideshowShuffle: false, slideshowFit: 'fit', viewerOpenZoom: 'fit',
+  showFaces: false, showObjects: false,
 };
 
 /** Key under which the settings are kept in `localStorage`, as JSON. */
@@ -59,6 +76,7 @@ const isThemeChoice = (value: unknown): value is ThemeChoice => THEME_CHOICES.in
 const isSidebarList = (value: unknown): value is SidebarListId => SIDEBAR_LISTS.includes(value as SidebarListId);
 const isSlideshowInterval = (value: unknown): value is SlideshowInterval =>
   SLIDESHOW_INTERVALS.includes(value as SlideshowInterval);
+const oneOf = <T,>(values: readonly T[], value: unknown, fallback: T): T => (values.includes(value as T) ? value as T : fallback);
 
 /**
  * The level and PIN that may be kept together: Child needs a PIN, and only Child has one.
@@ -93,6 +111,11 @@ export function parseUiSettings(raw: string | null): UiSettings {
     slideshowInterval: isSlideshowInterval(stored.slideshowInterval)
       ? stored.slideshowInterval
       : DEFAULT_UI_SETTINGS.slideshowInterval,
+    slideshowEffect: oneOf(EFFECT_CHOICES, stored.slideshowEffect, DEFAULT_UI_SETTINGS.slideshowEffect),
+    slideshowEffectDuration: oneOf(EFFECT_DURATIONS, stored.slideshowEffectDuration, DEFAULT_UI_SETTINGS.slideshowEffectDuration),
+    slideshowShuffle: typeof stored.slideshowShuffle === 'boolean' ? stored.slideshowShuffle : DEFAULT_UI_SETTINGS.slideshowShuffle,
+    slideshowFit: oneOf(SLIDESHOW_FITS, stored.slideshowFit, DEFAULT_UI_SETTINGS.slideshowFit),
+    viewerOpenZoom: oneOf(ZOOM_LEVELS, stored.viewerOpenZoom, DEFAULT_UI_SETTINGS.viewerOpenZoom),
     showFaces: typeof stored.showFaces === 'boolean' ? stored.showFaces : DEFAULT_UI_SETTINGS.showFaces,
     showObjects: typeof stored.showObjects === 'boolean' ? stored.showObjects : DEFAULT_UI_SETTINGS.showObjects,
   };
@@ -140,6 +163,11 @@ const settingsOf = (state: UiSettings): UiSettings => ({
   collapsedSidebarLists: state.collapsedSidebarLists,
   ...normalizeLevel(state.level, state.pin),
   slideshowInterval: state.slideshowInterval,
+  slideshowEffect: state.slideshowEffect,
+  slideshowEffectDuration: state.slideshowEffectDuration,
+  slideshowShuffle: state.slideshowShuffle,
+  slideshowFit: state.slideshowFit,
+  viewerOpenZoom: state.viewerOpenZoom,
   showFaces: state.showFaces,
   showObjects: state.showObjects,
 });

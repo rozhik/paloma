@@ -7,7 +7,7 @@ import { EditBar } from './EditBar.js';
 import { ChangesList, FilterControls, FloatingPanel, FrameControls } from './FilterPanel.js';
 import { NavBar } from './NavBar.js';
 import { STRAIGHTEN, type PhotoViewerModel } from './usePhotoViewer.js';
-import { ZOOM_STEP } from './zoomMath.js';
+import { ZOOM_STEP, canZoomTo } from './zoomMath.js';
 
 export interface ViewerChromeProps {
   model: PhotoViewerModel;
@@ -43,6 +43,9 @@ export const ViewerChrome: React.FC<ViewerChromeProps> = ({ model: v, className 
         onZoomIn={() => v.zoomBy(ZOOM_STEP)}
         onZoomOut={() => v.zoomBy(1 / ZOOM_STEP)}
         onFit={v.fit}
+        zoomLevel={v.zoomLevel}
+        canZoomTo={(scale) => canZoomTo(scale, v.full, v.stage)}
+        onZoomTo={v.zoomTo}
         onInfo={v.canInfo ? v.toggleInfo : undefined}
         infoOpen={v.showInfo}
         onFaces={v.canFaces ? v.toggleFaces : undefined}

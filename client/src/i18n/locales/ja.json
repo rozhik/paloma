@@ -389,6 +389,60 @@
         "name": "ハイコントラスト",
         "description": "黒地に白と鮮やかな色で、最も読みやすい文字。"
       }
+    },
+    "openZoom": "写真を開くときの表示",
+    "openZoomHint": "ビューアーが写真を開いたときや次の写真に移ったときの大きさです。",
+    "zoomLevels": {
+      "fit": "全体表示",
+      "fill": "画面いっぱいに表示",
+      "actual": "実寸"
+    },
+    "slideshow": "スライドショー",
+    "slideshowHint": "スライドショーでの写真の見せ方です。",
+    "slideshowInterval": "1 枚あたりの時間",
+    "slideshowEffect": "効果",
+    "slideshowEffectHint": "写真から次の写真への切り替わり方です。",
+    "slideshowEffectDuration": "効果の長さ",
+    "slideshowShuffle": "シャッフル",
+    "slideshowShuffleHint": "写真をランダムな順番で表示します。すべての写真を 1 回ずつ表示してから繰り返します。",
+    "slideshowFit": "写真の大きさ",
+    "slideshowFits": {
+      "fit": "全体表示",
+      "fitNoEnlarge": "拡大せずに全体表示",
+      "fill": "画面いっぱいに表示",
+      "actual": "実寸"
+    },
+    "effectGroups": {
+      "basic": "基本",
+      "fades": "フェード",
+      "slides": "スライド",
+      "pushes": "プッシュ",
+      "wipes": "ワイプ",
+      "other": "その他"
+    },
+    "effects": {
+      "none": "なし",
+      "random": "ランダム",
+      "fade": "フェード",
+      "dipBlack": "黒を経由",
+      "dipWhite": "白を経由",
+      "slideLeft": "左へスライド",
+      "slideRight": "右へスライド",
+      "slideUp": "上へスライド",
+      "slideDown": "下へスライド",
+      "pushLeft": "左へプッシュ",
+      "pushRight": "右へプッシュ",
+      "pushUp": "上へプッシュ",
+      "pushDown": "下へプッシュ",
+      "wipeLeft": "左へワイプ",
+      "wipeRight": "右へワイプ",
+      "wipeUp": "上へワイプ",
+      "wipeDown": "下へワイプ",
+      "zoomIn": "ズームイン",
+      "zoomOut": "ズームアウト",
+      "iris": "アイリス",
+      "blinds": "ブラインド",
+      "flip": "フリップ"
     }
   },
   "viewer": {
@@ -406,7 +460,13 @@
     "faces": "顔",
     "facesUnavailable": "この写真は傾き補正されているため、顔の枠を表示できません。",
     "objects": "物体",
-    "objectsUnavailable": "この写真は傾き補正されているため、物体の枠を表示できません。"
+    "objectsUnavailable": "この写真は傾き補正されているため、物体の枠を表示できません。",
+    "zoomLevel": "ズーム",
+    "zoomLevels": {
+      "fit": "全体表示",
+      "fill": "画面いっぱい",
+      "actual": "実寸"
+    }
   },
   "tags": {
     "placeholder": "タグを入力して Enter を押してください",
@@ -504,7 +564,8 @@
     "play": "再生",
     "pause": "一時停止",
     "interval": "1 枚あたりの時間",
-    "seconds": "{{seconds, number}} 秒"
+    "seconds": "{{seconds, number}} 秒",
+    "shuffle": "シャッフル"
   },
   "faces": {
     "detect": "顔を検出",
@@ -1089,7 +1150,8 @@
         "panLeft": "写真を左へ動かす",
         "panRight": "写真を右へ動かす",
         "panUp": "写真を上へ動かす",
-        "panDown": "写真を下へ動かす"
+        "panDown": "写真を下へ動かす",
+        "zoomActual": "100% で表示"
       },
       "edit": {
         "undo": "元に戻す",
@@ -1111,7 +1173,8 @@
         "playPause": "再生または一時停止",
         "previous": "前の写真",
         "next": "次の写真",
-        "exit": "スライドショーを終了"
+        "exit": "スライドショーを終了",
+        "shuffle": "シャッフルのオン・オフ"
       },
       "people": {
         "back": "ライブラリに戻る",

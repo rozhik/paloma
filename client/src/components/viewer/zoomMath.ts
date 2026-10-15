@@ -13,6 +13,10 @@ export interface Point {
   y: number;
 }
 
+/** A named zoom a photo can open at: whole photo, window covered, or 100% of actual pixels. */
+export type ZoomLevel = 'fit' | 'fill' | 'actual';
+export const ZOOM_LEVELS: readonly ZoomLevel[] = ['fit', 'fill', 'actual'];
+
 export interface ZoomState {
   scale: number;
   x: number;
@@ -21,6 +25,8 @@ export interface ZoomState {
 
 /** Largest zoom: 400% of the photo's actual pixels */
 export const MAX_SCALE = 4;
+/** The percentages offered in the zoom menu, as scales */
+export const ZOOM_PERCENTS = [0.5, 1, 2, 4] as const;
 /** Step of the zoom buttons and the + and - keys */
 export const ZOOM_STEP = 1.25;
 /** How strongly one unit of wheel delta zooms */
@@ -32,9 +38,32 @@ export function fitScale(photo: Size, stage: Size): number {
   return Math.min(stage.width / photo.width, stage.height / photo.height, 1);
 }
 
+/** Scale at which the photo covers the whole stage, cropping what sticks out; at most 400%. */
+export function fillScale(photo: Size, stage: Size): number {
+  if (photo.width <= 0 || photo.height <= 0 || stage.width <= 0 || stage.height <= 0) return 1;
+  return Math.max(Math.min(Math.max(stage.width / photo.width, stage.height / photo.height), MAX_SCALE), fitScale(photo, stage));
+}
+
 /** The photo fitted and centred. */
 export function fitted(photo: Size, stage: Size): ZoomState {
   return { scale: fitScale(photo, stage), x: 0, y: 0 };
+}
+
+/** The photo covering the stage, centred. */
+export function filled(photo: Size, stage: Size): ZoomState {
+  return { scale: fillScale(photo, stage), x: 0, y: 0 };
+}
+
+/** The photo at a named level, centred: fitted, covering the stage, or at 100% (never below fitted). */
+export function atLevel(level: ZoomLevel, photo: Size, stage: Size): ZoomState {
+  if (level === 'fit') return fitted(photo, stage);
+  if (level === 'fill') return filled(photo, stage);
+  return { scale: clampScale(1, photo, stage), x: 0, y: 0 };
+}
+
+/** Whether a menu percentage can be chosen: it is not smaller than the fitted photo. */
+export function canZoomTo(scale: number, photo: Size, stage: Size): boolean {
+  return scale >= fitScale(photo, stage) - 1e-6;
 }
 
 export function clampScale(scale: number, photo: Size, stage: Size): number {
@@ -82,9 +111,18 @@ export function isFitted(state: ZoomState, photo: Size, stage: Size): boolean {
   return Math.abs(state.scale - fitScale(photo, stage)) < 1e-6;
 }
 
-/** After the stage changed size: a fitted photo is fitted again, otherwise the zoom is kept and re-clamped. */
+/** Whether the state shows the photo covering the stage, centred (within rounding). */
+export function isFilled(state: ZoomState, photo: Size, stage: Size): boolean {
+  return Math.abs(state.scale - fillScale(photo, stage)) < 1e-6 && state.x === 0 && state.y === 0;
+}
+
+/**
+ * After the stage changed size: a fitted or filled photo is fitted or filled again, otherwise the zoom is kept and
+ * re-clamped.
+ */
 export function resized(state: ZoomState, photo: Size, before: Size, after: Size): ZoomState {
   if (isFitted(state, photo, before)) return fitted(photo, after);
+  if (isFilled(state, photo, before)) return filled(photo, after);
   return clampPan({ ...state, scale: clampScale(state.scale, photo, after) }, photo, after);
 }
 

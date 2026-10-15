@@ -403,6 +403,60 @@
         "name": "Hoher Kontrast",
         "description": "Weiß und kräftige Farben auf Schwarz, für den deutlichsten Text."
       }
+    },
+    "openZoom": "Fotos öffnen mit",
+    "openZoomHint": "Wie groß ein Foto ist, wenn die Ansicht es öffnet oder zu ihm wechselt.",
+    "zoomLevels": {
+      "fit": "Einpassen",
+      "fill": "Bildschirm füllen",
+      "actual": "Originalgröße"
+    },
+    "slideshow": "Diashow",
+    "slideshowHint": "Wie die Diashow die Fotos zeigt.",
+    "slideshowInterval": "Zeit pro Foto",
+    "slideshowEffect": "Effekt",
+    "slideshowEffectHint": "Wie ein Foto in das nächste übergeht.",
+    "slideshowEffectDuration": "Effektdauer",
+    "slideshowShuffle": "Zufällige Reihenfolge",
+    "slideshowShuffleHint": "Die Fotos in zufälliger Reihenfolge zeigen. Jedes Foto wird einmal gezeigt, bevor sich etwas wiederholt.",
+    "slideshowFit": "Fotogröße",
+    "slideshowFits": {
+      "fit": "Einpassen",
+      "fitNoEnlarge": "Einpassen ohne Vergrößern",
+      "fill": "Bildschirm füllen",
+      "actual": "Originalgröße"
+    },
+    "effectGroups": {
+      "basic": "Grundlegend",
+      "fades": "Blenden",
+      "slides": "Einschieben",
+      "pushes": "Verdrängen",
+      "wipes": "Wischen",
+      "other": "Weitere"
+    },
+    "effects": {
+      "none": "Keiner",
+      "random": "Zufällig",
+      "fade": "Überblenden",
+      "dipBlack": "Über Schwarz",
+      "dipWhite": "Über Weiß",
+      "slideLeft": "Von rechts einschieben",
+      "slideRight": "Von links einschieben",
+      "slideUp": "Von unten einschieben",
+      "slideDown": "Von oben einschieben",
+      "pushLeft": "Nach links verdrängen",
+      "pushRight": "Nach rechts verdrängen",
+      "pushUp": "Nach oben verdrängen",
+      "pushDown": "Nach unten verdrängen",
+      "wipeLeft": "Nach links wischen",
+      "wipeRight": "Nach rechts wischen",
+      "wipeUp": "Nach oben wischen",
+      "wipeDown": "Nach unten wischen",
+      "zoomIn": "Hineinzoomen",
+      "zoomOut": "Herauszoomen",
+      "iris": "Iris",
+      "blinds": "Jalousie",
+      "flip": "Umdrehen"
     }
   },
   "viewer": {
@@ -420,7 +474,13 @@
     "faces": "Gesichter",
     "facesUnavailable": "Gesichtsrahmen können für dieses Foto wegen der Ausrichtung nicht angezeigt werden.",
     "objects": "Objekte",
-    "objectsUnavailable": "Objektrahmen können für dieses Foto wegen seiner Begradigung nicht angezeigt werden."
+    "objectsUnavailable": "Objektrahmen können für dieses Foto wegen seiner Begradigung nicht angezeigt werden.",
+    "zoomLevel": "Zoomstufe",
+    "zoomLevels": {
+      "fit": "Einpassen",
+      "fill": "Füllen",
+      "actual": "Originalgröße"
+    }
   },
   "tags": {
     "placeholder": "Tag eingeben und Enter drücken",
@@ -520,7 +580,8 @@
     "play": "Abspielen",
     "pause": "Pause",
     "interval": "Zeit pro Foto",
-    "seconds": "{{seconds, number}} s"
+    "seconds": "{{seconds, number}} s",
+    "shuffle": "Zufällige Reihenfolge"
   },
   "faces": {
     "detect": "Gesichter finden",
@@ -1117,7 +1178,8 @@
         "panLeft": "Foto nach links verschieben",
         "panRight": "Foto nach rechts verschieben",
         "panUp": "Foto nach oben verschieben",
-        "panDown": "Foto nach unten verschieben"
+        "panDown": "Foto nach unten verschieben",
+        "zoomActual": "Auf 100 % zoomen"
       },
       "edit": {
         "undo": "Rückgängig",
@@ -1139,7 +1201,8 @@
         "playPause": "Abspielen oder anhalten",
         "previous": "Vorheriges Foto",
         "next": "Nächstes Foto",
-        "exit": "Diashow beenden"
+        "exit": "Diashow beenden",
+        "shuffle": "Zufällige Reihenfolge ein- oder ausschalten"
       },
       "people": {
         "back": "Zurück zur Bibliothek",

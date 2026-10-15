@@ -11,7 +11,9 @@ import { previewSizeFor, useEditPreview } from '../useEditPreview.js';
 import { barInsets, barLayout, inwardSide } from './barLayout.js';
 import type { PanelAnchor, PanelKind } from './EditBar.js';
 import { useViewerEdits } from './useViewerEdits.js';
-import { ZOOM_STEP, clampPan, clampScale, fitted, isFitted, panBy, zoomAt, type Size, type ZoomState } from './zoomMath.js';
+import {
+  ZOOM_STEP, atLevel, clampPan, clampScale, fitted, isFilled, isFitted, panBy, zoomAt, type Size, type ZoomLevel, type ZoomState,
+} from './zoomMath.js';
 import { useSkin } from '../../appearance/runtime.js';
 import { useAllows, useLevel } from '../../levels/controls.js';
 import { BUNDLED_FILTER_ACTIONS } from '../../../../shared/keymaps.js';
@@ -95,8 +97,9 @@ export function usePhotoViewer(viewer: ViewerState) {
   const [showOriginal, setShowOriginal] = useState(false);
   const [showGrid, setShowGrid] = useState(false);
   const [stage, setStage] = useState<Size>({ width: window.innerWidth, height: window.innerHeight });
-  /** 'fit' follows the photo and window size; a state is a zoom the user chose */
-  const [zoomChoice, setZoomChoice] = useState<ZoomState | 'fit'>('fit');
+  /** A named level follows the photo and window size; a state is a zoom the user chose */
+  const openZoom = useUiSettings((state) => state.viewerOpenZoom);
+  const [zoomChoice, setZoomChoice] = useState<ZoomState | ZoomLevel>(openZoom);
   const [blocked, setBlocked] = useState(false);
 
   // Filters of the plugins that are on, with labels in the active language
@@ -110,9 +113,9 @@ export function usePhotoViewer(viewer: ViewerState) {
       .catch((err) => setLoadError(describeError(err, t)));
   }, [i18n.language, level]);
 
-  // Another photo starts fitted, with nothing open
+  // Another photo starts at the zoom chosen in Settings, with nothing open
   useEffect(() => {
-    setZoomChoice('fit');
+    setZoomChoice(useUiSettings.getState().viewerOpenZoom);
     setPanel(null);
     setFrame(null);
     setBlocked(false);
@@ -137,7 +140,7 @@ export function usePhotoViewer(viewer: ViewerState) {
       const free = { width: stage.width - inset.left - inset.right, height: stage.height - inset.top - inset.bottom };
       return { scale: fitted(full, free).scale, x: (inset.left - inset.right) / 2, y: (inset.top - inset.bottom) / 2 };
     }
-    if (zoomChoice === 'fit') return fitted(full, stage);
+    if (typeof zoomChoice === 'string') return atLevel(zoomChoice, full, stage);
     return clampPan({ ...zoomChoice, scale: clampScale(zoomChoice.scale, full, stage) }, full, stage);
   }, [frame, zoomChoice, full, stage, layout, barSize]);
 
@@ -157,10 +160,22 @@ export function usePhotoViewer(viewer: ViewerState) {
   }, [preview.fullWidth, preview.fullHeight]);
   useEffect(() => setFull({ width: photo.width || 1, height: photo.height || 1 }), [photo.id]);
 
-  const setZoom = useCallback((next: ZoomState) => setZoomChoice(isFitted(next, full, stage) ? 'fit' : next), [full, stage]);
+  const setZoom = useCallback((next: ZoomState) => {
+    if (isFitted(next, full, stage)) setZoomChoice('fit');
+    else if (isFilled(next, full, stage)) setZoomChoice('fill');
+    else setZoomChoice(next);
+  }, [full, stage]);
   // A fitted photo stays fitted, and another zoom is clamped to the new size by `zoom` above
   const onStageResize = useCallback((size: Size) => setStage(size), []);
   const zoomBy = (factor: number) => setZoom(zoomAt(zoom, zoom.scale * factor, full, stage));
+  /** A level from the zoom menu: Fit and Fill follow the window, a percentage keeps the window's centre in place */
+  const zoomTo = (level: 'fit' | 'fill' | number) => {
+    if (typeof level === 'string') setZoomChoice(level);
+    else setZoom(zoomAt(zoom, level, full, stage));
+  };
+  /** The menu entry the zoom is at, if any */
+  const zoomLevel: 'fit' | 'fill' | number = zoomChoice === 'fit' || zoomChoice === 'fill' ? zoomChoice
+    : zoomChoice === 'actual' ? 1 : zoom.scale;
 
   // Leaving a photo waits for its saves; a failed save keeps the viewer on it
   const leave = async (go: () => void) => {
@@ -263,6 +278,7 @@ export function usePhotoViewer(viewer: ViewerState) {
     'viewer.zoomIn': unzoomed(() => zoomBy(ZOOM_STEP)),
     'viewer.zoomOut': unzoomed(() => zoomBy(1 / ZOOM_STEP)),
     'viewer.zoomReset': unzoomed(() => setZoomChoice('fit')),
+    'viewer.zoomActual': unzoomed(() => zoomTo(1)),
     'viewer.panLeft': pan(1, 0),
     'viewer.panRight': pan(-1, 0),
     'viewer.panUp': pan(0, 1),
@@ -305,7 +321,8 @@ export function usePhotoViewer(viewer: ViewerState) {
   return {
     root, photo, viewer, edits, chain, dispatch, canEdit, layout, barSize, filters, barFilters, loadError, setLoadError, panel, setPanel,
     panelFilter, panelSide, frame, setFrame, frameRatio, imageAspect, showOriginal, setShowOriginal, showGrid,
-    setShowGrid, stage, full, zoom, preview, setZoom, onStageResize, zoomBy, fit: () => setZoomChoice('fit'),
+    setShowGrid, stage, full, zoom, preview, setZoom, onStageResize, zoomBy, zoomTo, zoomLevel,
+    fit: () => setZoomChoice('fit'),
     canPrev, canNext, prev, next, close, openFrame, applyFrame, cancelFrame, setFrameRatio, chooseFilter, lastStep,
     paletteValues, blocked, setBlocked, saveMessage, canInfo, showInfo, toggleInfo: () => setInfoOpen((open) => !open),
     closeInfo: () => setInfoOpen(false), previewSteps, canFaces, canAssignFaces, showFaces, toggleFaces, canObjects, showObjects, toggleObjects,

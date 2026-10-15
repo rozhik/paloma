@@ -417,6 +417,60 @@
         "name": "Alto contraste",
         "description": "Branco e cores vivas sobre preto, para o texto mais nítido."
       }
+    },
+    "openZoom": "Abrir as fotos em",
+    "openZoomHint": "O tamanho de uma foto quando o visualizador a abre ou passa para ela.",
+    "zoomLevels": {
+      "fit": "Ajustar",
+      "fill": "Preencher a tela",
+      "actual": "Tamanho original"
+    },
+    "slideshow": "Apresentação",
+    "slideshowHint": "Como a apresentação mostra as fotos.",
+    "slideshowInterval": "Tempo por foto",
+    "slideshowEffect": "Efeito",
+    "slideshowEffectHint": "Como uma foto dá lugar à próxima.",
+    "slideshowEffectDuration": "Duração do efeito",
+    "slideshowShuffle": "Ordem aleatória",
+    "slideshowShuffleHint": "Mostrar as fotos em ordem aleatória. Cada foto é mostrada uma vez antes de qualquer repetição.",
+    "slideshowFit": "Tamanho da foto",
+    "slideshowFits": {
+      "fit": "Ajustar",
+      "fitNoEnlarge": "Ajustar sem ampliar",
+      "fill": "Preencher a tela",
+      "actual": "Tamanho original"
+    },
+    "effectGroups": {
+      "basic": "Básicos",
+      "fades": "Esmaecimentos",
+      "slides": "Deslizamentos",
+      "pushes": "Empurrões",
+      "wipes": "Varreduras",
+      "other": "Outros"
+    },
+    "effects": {
+      "none": "Nenhum",
+      "random": "Aleatório",
+      "fade": "Esmaecer",
+      "dipBlack": "Esmaecer para preto",
+      "dipWhite": "Esmaecer para branco",
+      "slideLeft": "Deslizar para a esquerda",
+      "slideRight": "Deslizar para a direita",
+      "slideUp": "Deslizar para cima",
+      "slideDown": "Deslizar para baixo",
+      "pushLeft": "Empurrar para a esquerda",
+      "pushRight": "Empurrar para a direita",
+      "pushUp": "Empurrar para cima",
+      "pushDown": "Empurrar para baixo",
+      "wipeLeft": "Varrer para a esquerda",
+      "wipeRight": "Varrer para a direita",
+      "wipeUp": "Varrer para cima",
+      "wipeDown": "Varrer para baixo",
+      "zoomIn": "Aproximar",
+      "zoomOut": "Afastar",
+      "iris": "Íris",
+      "blinds": "Persianas",
+      "flip": "Virar"
     }
   },
   "viewer": {
@@ -434,7 +488,13 @@
     "faces": "Rostos",
     "facesUnavailable": "Os quadros dos rostos não podem ser mostrados nesta foto por causa do endireitamento.",
     "objects": "Objetos",
-    "objectsUnavailable": "Os quadros de objetos não podem ser mostrados nesta foto por causa do endireitamento."
+    "objectsUnavailable": "Os quadros de objetos não podem ser mostrados nesta foto por causa do endireitamento.",
+    "zoomLevel": "Nível de zoom",
+    "zoomLevels": {
+      "fit": "Ajustar",
+      "fill": "Preencher",
+      "actual": "Tamanho original"
+    }
   },
   "tags": {
     "placeholder": "Digite uma tag e pressione Enter",
@@ -536,7 +596,8 @@
     "play": "Reproduzir",
     "pause": "Pausar",
     "interval": "Tempo por foto",
-    "seconds": "{{seconds, number}} s"
+    "seconds": "{{seconds, number}} s",
+    "shuffle": "Ordem aleatória"
   },
   "faces": {
     "detect": "Encontrar rostos",
@@ -1145,7 +1206,8 @@
         "panLeft": "Mover a foto para a esquerda",
         "panRight": "Mover a foto para a direita",
         "panUp": "Mover a foto para cima",
-        "panDown": "Mover a foto para baixo"
+        "panDown": "Mover a foto para baixo",
+        "zoomActual": "Zoom em 100%"
       },
       "edit": {
         "undo": "Desfazer",
@@ -1167,7 +1229,8 @@
         "playPause": "Reproduzir ou pausar",
         "previous": "Foto anterior",
         "next": "Próxima foto",
-        "exit": "Sair da apresentação"
+        "exit": "Sair da apresentação",
+        "shuffle": "Ativar ou desativar a ordem aleatória"
       },
       "people": {
         "back": "Voltar à biblioteca",

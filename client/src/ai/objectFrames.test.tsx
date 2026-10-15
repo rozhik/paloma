@@ -56,7 +56,8 @@ describe('Objects toggle', () => {
   const layout = barLayout({ navBar: 'top', editBar: 'left' });
   const bar = (props: Partial<React.ComponentProps<typeof NavBar>>) => html(
     <NavBar placement={layout.navBar} style={{}} filename="a.jpg" index={0} total={1} scale={1} canPrev={false} canNext={false} zoomLocked={false} saving={false}
-      onClose={() => {}} onPrev={() => {}} onNext={() => {}} onZoomIn={() => {}} onZoomOut={() => {}} onFit={() => {}} {...props} />,
+      onClose={() => {}} onPrev={() => {}} onNext={() => {}} onZoomIn={() => {}} onZoomOut={() => {}} onFit={() => {}}
+        zoomLevel="fit" canZoomTo={() => true} onZoomTo={() => {}} {...props} />,
   );
 
   it('is in the navigation bar when the level offers it, pressed when frames are on', () => {

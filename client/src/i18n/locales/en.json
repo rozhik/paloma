@@ -400,6 +400,60 @@
         "name": "High Contrast",
         "description": "White and bright colors on black, for the clearest text."
       }
+    },
+    "openZoom": "Open photos at",
+    "openZoomHint": "How large a photo is when the viewer opens it or moves to it.",
+    "zoomLevels": {
+      "fit": "Fit",
+      "fill": "Fill the screen",
+      "actual": "Original size"
+    },
+    "slideshow": "Slideshow",
+    "slideshowHint": "How the slideshow plays the photos.",
+    "slideshowInterval": "Time per photo",
+    "slideshowEffect": "Effect",
+    "slideshowEffectHint": "How one photo changes into the next.",
+    "slideshowEffectDuration": "Effect length",
+    "slideshowShuffle": "Shuffle",
+    "slideshowShuffleHint": "Play the photos in a random order. Each photo is shown once before any repeats.",
+    "slideshowFit": "Photo size",
+    "slideshowFits": {
+      "fit": "Fit",
+      "fitNoEnlarge": "Fit without enlarging",
+      "fill": "Fill the screen",
+      "actual": "Original size"
+    },
+    "effectGroups": {
+      "basic": "Basic",
+      "fades": "Fades",
+      "slides": "Slides",
+      "pushes": "Pushes",
+      "wipes": "Wipes",
+      "other": "Other"
+    },
+    "effects": {
+      "none": "None",
+      "random": "Random",
+      "fade": "Fade",
+      "dipBlack": "Dip to black",
+      "dipWhite": "Dip to white",
+      "slideLeft": "Slide left",
+      "slideRight": "Slide right",
+      "slideUp": "Slide up",
+      "slideDown": "Slide down",
+      "pushLeft": "Push left",
+      "pushRight": "Push right",
+      "pushUp": "Push up",
+      "pushDown": "Push down",
+      "wipeLeft": "Wipe left",
+      "wipeRight": "Wipe right",
+      "wipeUp": "Wipe up",
+      "wipeDown": "Wipe down",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "iris": "Iris",
+      "blinds": "Blinds",
+      "flip": "Flip"
     }
   },
   "viewer": {
@@ -417,7 +471,13 @@
     "faces": "Faces",
     "facesUnavailable": "Face frames cannot be shown for this photo because of its straightening.",
     "objects": "Objects",
-    "objectsUnavailable": "Object frames cannot be shown for this photo because of its straightening."
+    "objectsUnavailable": "Object frames cannot be shown for this photo because of its straightening.",
+    "zoomLevel": "Zoom level",
+    "zoomLevels": {
+      "fit": "Fit",
+      "fill": "Fill",
+      "actual": "Original size"
+    }
   },
   "tags": {
     "placeholder": "Type a tag and press Enter",
@@ -517,7 +577,8 @@
     "play": "Play",
     "pause": "Pause",
     "interval": "Time per photo",
-    "seconds": "{{seconds, number}} s"
+    "seconds": "{{seconds, number}} s",
+    "shuffle": "Shuffle"
   },
   "faces": {
     "detect": "Find faces",
@@ -1114,7 +1175,8 @@
         "panLeft": "Move the photo left",
         "panRight": "Move the photo right",
         "panUp": "Move the photo up",
-        "panDown": "Move the photo down"
+        "panDown": "Move the photo down",
+        "zoomActual": "Zoom to 100%"
       },
       "edit": {
         "undo": "Undo",
@@ -1136,7 +1198,8 @@
         "playPause": "Play or pause",
         "previous": "Previous photo",
         "next": "Next photo",
-        "exit": "Exit the slideshow"
+        "exit": "Exit the slideshow",
+        "shuffle": "Shuffle on or off"
       },
       "people": {
         "back": "Back to the library",

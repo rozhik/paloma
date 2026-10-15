@@ -459,6 +459,60 @@
         "name": "تباين عالٍ",
         "description": "أبيض وألوان زاهية على أسود، لأوضح نص."
       }
+    },
+    "openZoom": "فتح الصور بحجم",
+    "openZoomHint": "حجم الصورة عندما يفتحها العارض أو ينتقل إليها.",
+    "zoomLevels": {
+      "fit": "ملاءمة",
+      "fill": "ملء الشاشة",
+      "actual": "الحجم الأصلي"
+    },
+    "slideshow": "عرض الشرائح",
+    "slideshowHint": "كيف يعرض عرض الشرائح الصور.",
+    "slideshowInterval": "مدة كل صورة",
+    "slideshowEffect": "التأثير",
+    "slideshowEffectHint": "كيف تتحول صورة إلى الصورة التالية.",
+    "slideshowEffectDuration": "مدة التأثير",
+    "slideshowShuffle": "ترتيب عشوائي",
+    "slideshowShuffleHint": "عرض الصور بترتيب عشوائي. تُعرض كل صورة مرة واحدة قبل أي تكرار.",
+    "slideshowFit": "حجم الصورة",
+    "slideshowFits": {
+      "fit": "ملاءمة",
+      "fitNoEnlarge": "ملاءمة دون تكبير",
+      "fill": "ملء الشاشة",
+      "actual": "الحجم الأصلي"
+    },
+    "effectGroups": {
+      "basic": "أساسية",
+      "fades": "تلاشٍ",
+      "slides": "انزلاق",
+      "pushes": "دفع",
+      "wipes": "مسح",
+      "other": "أخرى"
+    },
+    "effects": {
+      "none": "بلا تأثير",
+      "random": "عشوائي",
+      "fade": "تلاشٍ",
+      "dipBlack": "تلاشٍ عبر الأسود",
+      "dipWhite": "تلاشٍ عبر الأبيض",
+      "slideLeft": "انزلاق إلى اليسار",
+      "slideRight": "انزلاق إلى اليمين",
+      "slideUp": "انزلاق إلى الأعلى",
+      "slideDown": "انزلاق إلى الأسفل",
+      "pushLeft": "دفع إلى اليسار",
+      "pushRight": "دفع إلى اليمين",
+      "pushUp": "دفع إلى الأعلى",
+      "pushDown": "دفع إلى الأسفل",
+      "wipeLeft": "مسح إلى اليسار",
+      "wipeRight": "مسح إلى اليمين",
+      "wipeUp": "مسح إلى الأعلى",
+      "wipeDown": "مسح إلى الأسفل",
+      "zoomIn": "تكبير",
+      "zoomOut": "تصغير",
+      "iris": "قزحية",
+      "blinds": "ستائر",
+      "flip": "قلب"
     }
   },
   "viewer": {
@@ -476,7 +530,13 @@
     "faces": "الوجوه",
     "facesUnavailable": "لا يمكن عرض إطارات الوجوه لهذه الصورة بسبب تسويتها.",
     "objects": "الكائنات",
-    "objectsUnavailable": "لا يمكن عرض إطارات الكائنات لهذه الصورة بسبب تقويمها."
+    "objectsUnavailable": "لا يمكن عرض إطارات الكائنات لهذه الصورة بسبب تقويمها.",
+    "zoomLevel": "مستوى التكبير",
+    "zoomLevels": {
+      "fit": "ملاءمة",
+      "fill": "ملء",
+      "actual": "الحجم الأصلي"
+    }
   },
   "tags": {
     "placeholder": "اكتب وسمًا واضغط Enter",
@@ -584,7 +644,8 @@
     "play": "تشغيل",
     "pause": "إيقاف مؤقت",
     "interval": "مدة كل صورة",
-    "seconds": "{{seconds, number}} ث"
+    "seconds": "{{seconds, number}} ث",
+    "shuffle": "ترتيب عشوائي"
   },
   "faces": {
     "detect": "العثور على الوجوه",
@@ -1229,7 +1290,8 @@
         "panLeft": "تحريك الصورة يسارًا",
         "panRight": "تحريك الصورة يمينًا",
         "panUp": "تحريك الصورة لأعلى",
-        "panDown": "تحريك الصورة لأسفل"
+        "panDown": "تحريك الصورة لأسفل",
+        "zoomActual": "التكبير إلى 100%"
       },
       "edit": {
         "undo": "تراجع",
@@ -1251,7 +1313,8 @@
         "playPause": "تشغيل أو إيقاف مؤقت",
         "previous": "الصورة السابقة",
         "next": "الصورة التالية",
-        "exit": "الخروج من عرض الشرائح"
+        "exit": "الخروج من عرض الشرائح",
+        "shuffle": "تشغيل الترتيب العشوائي أو إيقافه"
       },
       "people": {
         "back": "العودة إلى المكتبة",

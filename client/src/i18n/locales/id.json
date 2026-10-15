@@ -389,6 +389,60 @@
         "name": "Kontras Tinggi",
         "description": "Putih dan warna cerah di atas hitam, untuk teks paling jelas."
       }
+    },
+    "openZoom": "Buka foto dengan",
+    "openZoomHint": "Seberapa besar foto saat penampil membukanya atau berpindah ke foto itu.",
+    "zoomLevels": {
+      "fit": "Pas",
+      "fill": "Penuhi layar",
+      "actual": "Ukuran asli"
+    },
+    "slideshow": "Tayangan slide",
+    "slideshowHint": "Cara tayangan slide menampilkan foto.",
+    "slideshowInterval": "Waktu per foto",
+    "slideshowEffect": "Efek",
+    "slideshowEffectHint": "Cara satu foto berganti ke foto berikutnya.",
+    "slideshowEffectDuration": "Lama efek",
+    "slideshowShuffle": "Acak",
+    "slideshowShuffleHint": "Tampilkan foto dalam urutan acak. Setiap foto ditampilkan sekali sebelum ada yang diulang.",
+    "slideshowFit": "Ukuran foto",
+    "slideshowFits": {
+      "fit": "Pas",
+      "fitNoEnlarge": "Pas tanpa memperbesar",
+      "fill": "Penuhi layar",
+      "actual": "Ukuran asli"
+    },
+    "effectGroups": {
+      "basic": "Dasar",
+      "fades": "Memudar",
+      "slides": "Geser",
+      "pushes": "Dorong",
+      "wipes": "Sapu",
+      "other": "Lainnya"
+    },
+    "effects": {
+      "none": "Tanpa efek",
+      "random": "Acak",
+      "fade": "Memudar",
+      "dipBlack": "Memudar ke hitam",
+      "dipWhite": "Memudar ke putih",
+      "slideLeft": "Geser ke kiri",
+      "slideRight": "Geser ke kanan",
+      "slideUp": "Geser ke atas",
+      "slideDown": "Geser ke bawah",
+      "pushLeft": "Dorong ke kiri",
+      "pushRight": "Dorong ke kanan",
+      "pushUp": "Dorong ke atas",
+      "pushDown": "Dorong ke bawah",
+      "wipeLeft": "Sapu ke kiri",
+      "wipeRight": "Sapu ke kanan",
+      "wipeUp": "Sapu ke atas",
+      "wipeDown": "Sapu ke bawah",
+      "zoomIn": "Perbesar",
+      "zoomOut": "Perkecil",
+      "iris": "Iris",
+      "blinds": "Kerai",
+      "flip": "Balik"
     }
   },
   "viewer": {
@@ -406,7 +460,13 @@
     "faces": "Wajah",
     "facesUnavailable": "Bingkai wajah tidak dapat ditampilkan untuk foto ini karena pelurusannya.",
     "objects": "Objek",
-    "objectsUnavailable": "Bingkai objek tidak dapat ditampilkan untuk foto ini karena pelurusannya."
+    "objectsUnavailable": "Bingkai objek tidak dapat ditampilkan untuk foto ini karena pelurusannya.",
+    "zoomLevel": "Tingkat zoom",
+    "zoomLevels": {
+      "fit": "Pas",
+      "fill": "Penuhi",
+      "actual": "Ukuran asli"
+    }
   },
   "tags": {
     "placeholder": "Ketik tag lalu tekan Enter",
@@ -504,7 +564,8 @@
     "play": "Putar",
     "pause": "Jeda",
     "interval": "Waktu per foto",
-    "seconds": "{{seconds, number}} dtk"
+    "seconds": "{{seconds, number}} dtk",
+    "shuffle": "Acak"
   },
   "faces": {
     "detect": "Cari wajah",
@@ -1089,7 +1150,8 @@
         "panLeft": "Geser foto ke kiri",
         "panRight": "Geser foto ke kanan",
         "panUp": "Geser foto ke atas",
-        "panDown": "Geser foto ke bawah"
+        "panDown": "Geser foto ke bawah",
+        "zoomActual": "Zoom ke 100%"
       },
       "edit": {
         "undo": "Urungkan",
@@ -1111,7 +1173,8 @@
         "playPause": "Putar atau jeda",
         "previous": "Foto sebelumnya",
         "next": "Foto berikutnya",
-        "exit": "Keluar dari tayangan slide"
+        "exit": "Keluar dari tayangan slide",
+        "shuffle": "Nyalakan atau matikan acak"
       },
       "people": {
         "back": "Kembali ke pustaka",
